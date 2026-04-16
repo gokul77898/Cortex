@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "[CORTEX-BLOCKED] open called with: $@" >&2
+echo "[CORTEX-BLOCKED] Called from PID: $$" >&2
+# Log to file for debugging
+echo "$(date): open $@" >> /tmp/cortex_open_log.txt
+exit 0

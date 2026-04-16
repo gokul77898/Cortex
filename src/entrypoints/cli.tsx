@@ -1,4 +1,24 @@
 import { feature } from 'bun:bundle';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+// Auto-load .env from project root BEFORE anything else
+// eslint-disable-next-line custom-rules/no-top-level-side-effects
+try {
+  const envPath = resolve(process.cwd(), '.env');
+  const envContent = readFileSync(envPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    if (key && !(key in process.env)) {
+      process.env[key] = val;
+    }
+  }
+} catch { /* no .env file — that's fine */ }
 
 declare const MACRO: { VERSION: string; DISPLAY_VERSION?: string };
 import {

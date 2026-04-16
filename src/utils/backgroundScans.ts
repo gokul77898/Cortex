@@ -442,11 +442,51 @@ export function startBackgroundScans(): void {
       scanComplete = true
       scanInProgress = false
 
-      // Log summary
-      const critical = results.filter(r => r.status === 'critical').length
-      const warnings = results.filter(r => r.status === 'warning').length
+      // Print scan results to terminal automatically
+      const critical = results.filter(r => r.status === 'critical')
+      const warnings = results.filter(r => r.status === 'warning')
+      const ok = results.filter(r => r.status === 'ok')
+
+      const lines: string[] = []
+      lines.push('')
+      lines.push('\x1b[1m\x1b[36m╔══════════════════════════════════════════════════════╗\x1b[0m')
+      lines.push('\x1b[1m\x1b[36m║         📊 CORTEX BACKGROUND SCAN REPORT            ║\x1b[0m')
+      lines.push('\x1b[1m\x1b[36m╚══════════════════════════════════════════════════════╝\x1b[0m')
+      lines.push('')
+
+      if (critical.length > 0) {
+        lines.push(`  \x1b[1m\x1b[31m🔴 CRITICAL (${critical.length})\x1b[0m`)
+        for (const r of critical) {
+          lines.push(`     \x1b[31m✗ ${r.type}: ${r.summary}\x1b[0m`)
+        }
+        lines.push('')
+      }
+
+      if (warnings.length > 0) {
+        lines.push(`  \x1b[1m\x1b[33m🟡 WARNINGS (${warnings.length})\x1b[0m`)
+        for (const r of warnings) {
+          lines.push(`     \x1b[33m⚠ ${r.type}: ${r.summary}\x1b[0m`)
+        }
+        lines.push('')
+      }
+
+      if (ok.length > 0) {
+        lines.push(`  \x1b[1m\x1b[32m🟢 PASSED (${ok.length})\x1b[0m`)
+        for (const r of ok) {
+          lines.push(`     \x1b[32m✓ ${r.type}: ${r.summary}\x1b[0m`)
+        }
+        lines.push('')
+      }
+
+      lines.push(`  \x1b[2m── Scanned at ${new Date().toLocaleTimeString()} ──\x1b[0m`)
+      lines.push(`  \x1b[2mType /scan-report for full details\x1b[0m`)
+      lines.push('')
+
+      // Print to stderr so it doesn't interfere with REPL
+      process.stderr.write(lines.join('\n') + '\n')
+
       logForDebugging(
-        `Background scans complete: ${critical} critical, ${warnings} warnings, ${results.length - critical - warnings} ok`,
+        `Background scans complete: ${critical.length} critical, ${warnings.length} warnings, ${ok.length} ok`,
       )
 
       // Cache results to disk

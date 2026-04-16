@@ -189,10 +189,11 @@ export async function printStartupScreen(): Promise<void> {
   process.stdout.write(out.join('\n'))
 
   const missions = getMissionsFromEnv()
-  const choice = await select({
-    message: 'Initialize Mission Engine Interface:',
-    choices: missions.map(m => ({ name: m.name, value: m })),
-  })
+  // Auto-select HuggingFace (Mission 09) — skip the selector
+  const hfMission = missions.find(m => m.provider === 'huggingface')
+  const choice = hfMission ?? missions[missions.length - 1]!
+  process.stdout.write(`✔ Initialize Mission Engine Interface: ${choice.name}\n                                     \n`)
+
 
   // Global ENV Injection
   delete process.env.CORTEX_USE_OPENAI
