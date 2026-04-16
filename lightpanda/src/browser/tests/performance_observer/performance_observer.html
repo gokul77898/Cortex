@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<script id="observe_performance_mark">
+{
+  const observer = new PerformanceObserver((list, observer) => {
+    testing.expectEqual(true, list instanceof PerformanceObserverEntryList);
+    testing.expectEqual(true, observer instanceof PerformanceObserver);
+
+    const entries = list.getEntries();
+    testing.expectEqual(true, entries instanceof Array);
+    testing.expectEqual(2, entries.length);
+
+    {
+      const { name, startTime, duration, entryType } = entries[0];
+      testing.expectEqual("operationStart", name);
+      testing.expectEqual(20, startTime);
+      testing.expectEqual(0, duration);
+      testing.expectEqual("mark", entryType);
+    }
+
+    {
+      const { name, startTime, duration, entryType } = entries[1];
+      testing.expectEqual("operationEnd", name);
+      testing.expectEqual(34.0, startTime);
+      testing.expectEqual(0, duration);
+      testing.expectEqual("mark", entryType);
+    }
+
+    observer.disconnect();
+  });
+
+  // Look for performance marks.
+  observer.observe({ type: "mark" });
+  performance.mark("operationStart", { startTime: 20.0 });
+  performance.mark("operationEnd", { startTime: 34.0 });
+}
+</script>
+
+<script id="microtask_access_to_list">
+{
+
+  let savedList;
+  const promise = new Promise((resolve) => {
+    const observer = new PerformanceObserver((list, observer) => {
+      savedList = list;
+      resolve();
+      observer.disconnect();
+    });
+    observer.observe({ type: "mark" });
+    performance.mark("testMark");
+  });
+
+  testing.async(async () => {
+    await promise;
+    // force a call_depth reset, which will clear the call_arena
+    document.getElementsByTagName('*');
+
+    const entries = savedList.getEntries();
+    testing.expectEqual(true, entries instanceof Array, {script_id: 'microtask_access_to_list'});
+    testing.expectEqual(1, entries.length);
+    testing.expectEqual("testMark", entries[0].name);
+    testing.expectEqual("mark", entries[0].entryType);
+  });
+}
+</script>
+
+<script>
+  testing.expectEqual(['mark', 'measure'], PerformanceObserver.supportedEntryTypes);
+</script>
+
+<script id="buffered_option">
+{
+  // Clear marks from previous tests so we get a precise count
+  performance.clearMarks();
+
+  // Create marks BEFORE the observer
+  performance.mark("early1", { startTime: 1.0 });
+  performance.mark("early2", { startTime: 2.0 });
+
+  let receivedEntries = null;
+  const observer = new PerformanceObserver((list) => {
+    receivedEntries = list.getEntries();
+  });
+
+  // With buffered: true, existing marks should be delivered
+  observer.observe({ type: "mark", buffered: true });
+
+  testing.onload(() => {
+    testing.expectEqual(true, receivedEntries !== null);
+    testing.expectEqual(2, receivedEntries.length);
+    testing.expectEqual("early1", receivedEntries[0].name);
+    testing.expectEqual("early2", receivedEntries[1].name);
+
+    observer.disconnect();
+  });
+}
+</script>

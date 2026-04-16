@@ -1,0 +1,138 @@
+{
+  "profile": {
+    "name": "Gokul",
+    "fullName": "Gokul",
+    "title": "Full-Stack Developer & AI Engineer",
+    "tagline": "Building the future, one line of code at a time",
+    "bio": "A passionate developer focused on creating innovative solutions at the intersection of AI and web technologies. I specialize in building robust, scalable applications with modern frameworks and cloud-native architectures.",
+    "location": "India",
+    "email": "hello@gokul.dev",
+    "avatar": "/avatar.png"
+  },
+  "social": {
+    "github": "https://github.com/gokul77898",
+    "linkedin": "https://linkedin.com/in/gokul",
+    "twitter": "https://twitter.com/gokul",
+    "portfolio": "https://gokul.dev"
+  },
+  "skills": [
+    {
+      "category": "Frontend",
+      "items": [
+        { "name": "React / Next.js", "level": 95 },
+        { "name": "TypeScript", "level": 90 },
+        { "name": "Tailwind CSS", "level": 92 },
+        { "name": "Vue.js", "level": 80 }
+      ]
+    },
+    {
+      "category": "Backend",
+      "items": [
+        { "name": "Node.js", "level": 90 },
+        { "name": "Python", "level": 88 },
+        { "name": "PostgreSQL", "level": 85 },
+        { "name": "GraphQL", "level": 82 }
+      ]
+    },
+    {
+      "category": "AI/ML",
+      "items": [
+        { "name": "LangChain", "level": 88 },
+        { "name": "OpenAI API", "level": 92 },
+        { "name": "Machine Learning", "level": 75 },
+        { "name": "Computer Vision", "level": 70 }
+      ]
+    },
+    {
+      "category": "DevOps & Tools",
+      "items": [
+        { "name": "Docker / Kubernetes", "level": 85 },
+        { "name": "AWS / GCP", "level": 80 },
+        { "name": "CI/CD Pipelines", "level": 88 },
+        { "name": "Git / GitHub Actions", "level": 95 }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": 1,
+      "title": "CORTEX CLI",
+      "description": "An open-source AI-powered CLI tool for software engineering tasks. Features intelligent code generation, multi-provider support, and extensible agent architecture.",
+      "image": "/projects/cortex.png",
+      "tags": ["TypeScript", "AI", "CLI", "Node.js"],
+      "github": "https://github.com/anthropics/cortex-code",
+      "live": null,
+      "featured": true
+    },
+    {
+      "id": 2,
+      "title": "Marine Odyssey",
+      "description": "An immersive marine life exploration platform with interactive 3D visualizations and real-time ocean data integration.",
+      "image": "/projects/marine.png",
+      "tags": ["React", "Three.js", "WebGL", "REST API"],
+      "github": null,
+      "live": "https://marine-odyssey.app",
+      "featured": true
+    },
+    {
+      "id": 3,
+      "title": "Scrapling Server",
+      "description": "High-performance web scraping infrastructure with anti-bot bypass capabilities, proxy management, and structured data extraction.",
+      "image": "/projects/scrapling.png",
+      "tags": ["Python", "Playwright", "FastAPI", "Docker"],
+      "github": "https://github.com/scrapling",
+      "live": null,
+      "featured": true
+    },
+    {
+      "id": 4,
+      "title": "Lightpanda Browser",
+      "description": "A lightweight, privacy-focused browser automation tool for testing and web scraping at scale.",
+      "image": "/projects/lightpanda.png",
+      "tags": ["Go", "Browser", "Automation"],
+      "github": null,
+      "live": null,
+      "featured": false
+    }
+  ],
+  "experience": [
+    {
+      "role": "Senior Software Engineer",
+      "company": "Tech Startup",
+      "period": "2023 - Present",
+      "description": "Leading development of AI-powered developer tools and CLI applications."
+    },
+    {
+      "role": "Full-Stack Developer",
+      "company": "Product Company",
+      "period": "2021 - 2023",
+      "description": "Built scalable web applications with React, Node.js, and cloud services."
+    },
+    {
+      "role": "Software Developer",
+      "company": "Agency",
+      "period": "2019 - 2021",
+      "description": "Developed client projects across various industries and technologies."
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Technology",
+      "institution": "University",
+      "year": "2019"
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Exceptional developer with a keen eye for detail and user experience.",
+      "author": "Team Lead",
+      "company": "Tech Startup"
+    }
+  ],
+  "stats": {
+    "projectsCompleted": 50,
+    "linesOfCode": "100K+",
+    "yearsExperience": 5,
+    "coffeeConsumed": "∞"
+  }
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<head></head>
+<script src="../../../testing.js"></script>
+
+<script id=append_before_src1>
+  loaded1 = 0;
+  const script1 = document.createElement('script');
+  script1.async = false;
+  script1.src = "dynamic1.js";
+  document.getElementsByTagName('head')[0].appendChild(script1);
+  testing.onload(() => {
+    testing.expectEqual(1, loaded1);
+  });
+</script>
+
+<script id=no_double_execute>
+  document.getElementsByTagName('head')[0].appendChild(script1);
+  testing.onload(() => {
+    testing.expectEqual(1, loaded1);
+  });
+</script>
+
+<script id=append_before_src2>
+  loaded2 = 0;
+  const script2a = document.createElement('script');
+  script2a.src = "dynamic2.js";
+  document.getElementsByTagName('head')[0].appendChild(script2a);
+  testing.onload(() => {
+    testing.expectEqual(2, loaded2);
+  });
+</script>
+
+<script>
+  const script2b = document.createElement('script');
+  document.getElementsByTagName('head')[0].appendChild(script2b);
+  script2b.src = "dynamic2.js";
+  script2b.src = "dynamic2.js";
+</script>
+
+<script id=src_after_append>
+  testing.onload(() => {
+    testing.expectEqual(2, loaded2);
+  });
+</script>

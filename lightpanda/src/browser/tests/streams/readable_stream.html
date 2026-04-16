@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+<script id=readable_stream_basic>
+  {
+    // Test basic stream creation
+    const stream = new ReadableStream();
+    testing.expectEqual('object', typeof stream);
+    testing.expectEqual('function', typeof stream.getReader);
+  }
+</script>
+
+<script id=readable_stream_reader>
+  {
+    // Test getting a reader
+    const stream = new ReadableStream();
+    const reader = stream.getReader();
+    testing.expectEqual('object', typeof reader);
+    testing.expectEqual('function', typeof reader.read);
+    testing.expectEqual('function', typeof reader.releaseLock);
+    testing.expectEqual('function', typeof reader.cancel);
+  }
+</script>
+
+<script id=response_body>
+  (async function() {
+    const response = new Response('hello world');
+    testing.expectEqual('object', typeof response.body);
+
+    const reader = response.body.getReader();
+    const result = await reader.read();
+
+    testing.expectEqual(false, result.done);
+    testing.expectEqual(true, result.value instanceof Uint8Array);
+
+    // Convert Uint8Array to string
+    const decoder = new TextDecoder();
+    const text = decoder.decode(result.value);
+    testing.expectEqual('hello world', text);
+
+    // Next read should be done
+    const result2 = await reader.read();
+    testing.expectEqual(true, result2.done);
+  })();
+</script>
+
+<script id=response_text>
+  (async function() {
+    const response = new Response('hello from text()');
+    const text = await response.text();
+    testing.expectEqual('hello from text()', text);
+  })();
+</script>
+
+<script id=response_json>
+  (async function() {
+    const response = new Response('{"foo":"bar","num":42}');
+    const json = await response.json();
+    testing.expectEqual('object', typeof json);
+    testing.expectEqual('bar', json.foo);
+    testing.expectEqual(42, json.num);
+  })();
+</script>
+
+<script id=response_null_body>
+  {
+    // Response with no body should have null body
+    const response = new Response();
+    testing.expectEqual(null, response.body);
+  }
+</script>
+
+<script id=response_empty_string_body>
+  (async function() {
+    // Response with empty string should have a stream that's immediately closed
+    const response = new Response('');
+    testing.expectEqual('object', typeof response.body);
+
+    const reader = response.body.getReader();
+    const result = await reader.read();
+
+    // Stream should be closed immediately (done: true, no value)
+    testing.expectEqual(true, result.done);
+  })();
+</script>
+
+<script id=response_status>
+  (async function() {
+    const response = new Response('test', { status: 404 });
+    testing.expectEqual(404, response.status);
+    testing.expectEqual(false, response.ok);
+
+    const text = await response.text();
+    testing.expectEqual('test', text);
+  })();
+</script>
+
+<script id=async_iterator_exists>
+  (async function() {
+    const stream = new ReadableStream();
+    testing.expectEqual('function', typeof stream[Symbol.asyncIterator]);
+  })();
+</script>
+
+<script id=async_iterator_basic>
+  (async function() {
+    const stream = new ReadableStream();
+    const iterator = stream[Symbol.asyncIterator]();
+    testing.expectEqual('object', typeof iterator);
+    testing.expectEqual('function', typeof iterator.next);
+  })();
+</script>
+
+<script id=async_iterator_for_await>
+  (async function() {
+    const response = new Response('test data');
+    const stream = response.body;
+
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    testing.expectEqual(1, chunks.length);
+    testing.expectEqual(true, chunks[0] instanceof Uint8Array);
+
+    const decoder = new TextDecoder();
+    const text = decoder.decode(chunks[0]);
+    testing.expectEqual('test data', text);
+  })();
+</script>
+
+<script id=async_iterator_locks_stream>
+  (async function() {
+    const response = new Response('test');
+    const stream = response.body;
+
+    // Get async iterator (locks stream)
+    const iterator = stream[Symbol.asyncIterator]();
+
+    // Try to get reader - should fail
+    let errorThrown = false;
+    try {
+      stream.getReader();
+    } catch (e) {
+      errorThrown = true;
+    }
+    testing.expectEqual(true, errorThrown);
+  })();
+</script>
+
+<script id=async_iterator_manual_next>
+  (async function() {
+    const response = new Response('hello');
+    const stream = response.body;
+    const iterator = stream[Symbol.asyncIterator]();
+
+    const result = await iterator.next();
+    testing.expectEqual('object', typeof result);
+    testing.expectEqual(false, result.done);
+    testing.expectEqual(true, result.value instanceof Uint8Array);
+
+    // Second call should be done
+    const result2 = await iterator.next();
+    testing.expectEqual(true, result2.done);
+  })();
+</script>
+
+<script id=async_iterator_early_break>
+  (async function() {
+    const response = new Response('test data');
+    const stream = response.body;
+
+    for await (const chunk of stream) {
+      break; // Early exit
+    }
+
+    // Should not throw errors
+    testing.expectEqual('object', typeof stream);
+  })();
+</script>
+
+<script id=readable_stream_locked>
+  const stream1 = new ReadableStream({
+    start(controller) {
+      controller.enqueue("data");
+      controller.close();
+    }
+  });
+
+  testing.expectEqual(false, stream1.locked);
+  const reader1 = stream1.getReader();
+  testing.expectEqual(true, stream1.locked);
+  reader1.releaseLock();
+  testing.expectEqual(false, stream1.locked);
+</script>
+
+<script id=readable_stream_cancel>
+  (async function() {
+    var cancelCalled = false;
+    var cancelReason = null;
+
+    const stream2 = new ReadableStream({
+      start(controller) {
+        controller.enqueue("data1");
+        controller.enqueue("data2");
+      },
+      cancel(reason) {
+        cancelCalled = true;
+        cancelReason = reason;
+      }
+    });
+
+    const result = await stream2.cancel("user requested");
+    testing.expectEqual(undefined, result);
+    testing.expectEqual(true, cancelCalled);
+    testing.expectEqual("user requested", cancelReason);
+  })();
+</script>
+
+<script id=readable_stream_pull>
+  (async function() {
+    var pullCount = 0;
+
+    const stream3 = new ReadableStream({
+      start(controller) {
+        controller.enqueue("initial");
+      },
+      pull(controller) {
+        pullCount++;
+        if (pullCount <= 2) {
+          controller.enqueue("pulled" + pullCount);
+        }
+        if (pullCount === 2) {
+          controller.close();
+        }
+      }
+    }, { highWaterMark: 1 });
+
+    const reader3 = stream3.getReader();
+
+    const data1 = await reader3.read();
+    testing.expectEqual("initial", data1.value);
+    testing.expectEqual(false, data1.done);
+
+    const data2 = await reader3.read();
+    testing.expectEqual("pulled1", data2.value);
+    testing.expectEqual(false, data2.done);
+  })();
+</script>
+
+<script id=readable_stream_desired_size>
+  var desiredSizes = [];
+
+  const stream4 = new ReadableStream({
+    start(controller) {
+      desiredSizes.push(controller.desiredSize);
+      controller.enqueue("a");
+      desiredSizes.push(controller.desiredSize);
+      controller.enqueue("b");
+      desiredSizes.push(controller.desiredSize);
+    }
+  }, { highWaterMark: 2 });
+
+  testing.expectEqual(2, desiredSizes[0]);
+  testing.expectEqual(1, desiredSizes[1]);
+  testing.expectEqual(0, desiredSizes[2]);
+</script>
+
+<script id=readable_stream_start_with_pull>
+  (async function() {
+    var pullCount = 0;
+
+    const stream5 = new ReadableStream({
+      start(controller) {
+        controller.enqueue("start1");
+        controller.enqueue("start2");
+      },
+      pull(controller) {
+        pullCount++;
+        if (pullCount === 1) {
+          controller.enqueue("pull1");
+        } else if (pullCount === 2) {
+          controller.enqueue("pull2");
+          controller.close();
+        }
+      }
+    }, { highWaterMark: 2 });
+
+    const reader5 = stream5.getReader();
+
+    const data1 = await reader5.read();
+    testing.expectEqual("start1", data1.value);
+    testing.expectEqual(false, data1.done);
+
+    const data2 = await reader5.read();
+    testing.expectEqual("start2", data2.value);
+    testing.expectEqual(false, data2.done);
+
+    const data3 = await reader5.read();
+    testing.expectEqual("pull1", data3.value);
+    testing.expectEqual(false, data3.done);
+  })();
+</script>
+
+<script id=enqueue_preserves_number>
+  (async function() {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(42);
+        controller.enqueue(0);
+        controller.enqueue(3.14);
+        controller.close();
+      }
+    });
+
+    const reader = stream.getReader();
+
+    const r1 = await reader.read();
+    testing.expectEqual(false, r1.done);
+    testing.expectEqual('number', typeof r1.value);
+    testing.expectEqual(42, r1.value);
+
+    const r2 = await reader.read();
+    testing.expectEqual('number', typeof r2.value);
+    testing.expectEqual(0, r2.value);
+
+    const r3 = await reader.read();
+    testing.expectEqual('number', typeof r3.value);
+    testing.expectEqual(3.14, r3.value);
+
+    const r4 = await reader.read();
+    testing.expectEqual(true, r4.done);
+  })();
+</script>
+
+<script id=enqueue_preserves_bool>
+  (async function() {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(true);
+        controller.enqueue(false);
+        controller.close();
+      }
+    });
+
+    const reader = stream.getReader();
+
+    const r1 = await reader.read();
+    testing.expectEqual('boolean', typeof r1.value);
+    testing.expectEqual(true, r1.value);
+
+    const r2 = await reader.read();
+    testing.expectEqual('boolean', typeof r2.value);
+    testing.expectEqual(false, r2.value);
+  })();
+</script>
+
+<script id=enqueue_preserves_object>
+  (async function() {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue({ key: 'value', num: 7 });
+        controller.close();
+      }
+    });
+
+    const reader = stream.getReader();
+
+    const r1 = await reader.read();
+    testing.expectEqual('object', typeof r1.value);
+    testing.expectEqual('value', r1.value.key);
+    testing.expectEqual(7, r1.value.num);
+  })();
+</script>

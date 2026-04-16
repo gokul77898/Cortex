@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ScraplingServer": {
+      "command": "/Users/gokul/Documents/openclaude/python/venv/bin/scrapling",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "PYTHONPATH": "/Users/gokul/Documents/openclaude/python/venv/lib/python3.14/site-packages"
+      }
+    }
+  }
+}

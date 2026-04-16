@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<iframe id="receiver"></iframe>
+
+<script id="messages">
+{
+  let reply = null;
+  window.addEventListener('message', (e) => {
+    reply = e.data;
+  });
+
+  const iframe = $('#receiver');
+  iframe.src = 'support/message_receiver.html';
+  iframe.addEventListener('load', () => {
+    iframe.contentWindow.postMessage('ping', '*');
+  });
+
+  testing.onload(() => {
+    testing.expectEqual('pong', reply.data);
+    testing.expectEqual(testing.ORIGIN, reply.origin);
+  });
+}
+</script>

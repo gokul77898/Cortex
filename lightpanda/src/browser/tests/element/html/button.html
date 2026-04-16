@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<script src="../../testing.js"></script>
+
+<!-- Button elements -->
+<button id="button1">Click me</button>
+<button id="button2" disabled>Disabled button</button>
+
+<!-- Form association tests -->
+<form id="form1">
+  <button id="button_in_form">In form</button>
+</form>
+
+<form id="form2"></form>
+<button id="button_with_form_attr" form="form2">With form attr</button>
+
+<button id="button_no_form">No form</button>
+
+<form id="form3">
+  <button id="button_invalid_form_attr" form="nonexistent">Invalid form</button>
+</form>
+
+<script id="disabled_initial">
+  testing.expectEqual(false, $('#button1').disabled)
+  testing.expectEqual(true, $('#button2').disabled)
+</script>
+
+<script id="disabled_set">
+  $('#button1').disabled = true
+  testing.expectEqual(true, $('#button1').disabled)
+
+  $('#button2').disabled = false
+  testing.expectEqual(false, $('#button2').disabled)
+</script>
+
+<script id="form_ancestor">
+  const buttonInForm = $('#button_in_form')
+  testing.expectEqual('FORM', buttonInForm.form.tagName)
+  testing.expectEqual('form1', buttonInForm.form.id)
+</script>
+
+<script id="form_attribute">
+  const buttonWithFormAttr = $('#button_with_form_attr')
+  testing.expectEqual('FORM', buttonWithFormAttr.form.tagName)
+  testing.expectEqual('form2', buttonWithFormAttr.form.id)
+</script>
+
+<script id="form_null">
+  const buttonNoForm = $('#button_no_form')
+  testing.expectEqual(null, buttonNoForm.form)
+</script>
+
+<script id="form_invalid_attribute">
+  const buttonInvalidFormAttr = $('#button_invalid_form_attr')
+  testing.expectEqual(null, buttonInvalidFormAttr.form)
+</script>
+
+<button id="named1" name="submit-btn"></button>
+<button id="named2"></button>
+
+<button id="required1" required></button>
+<button id="required2"></button>
+
+<script id="name_initial">
+  testing.expectEqual('submit-btn', $('#named1').name)
+  testing.expectEqual('', $('#named2').name)
+</script>
+
+<script id="name_set">
+  {
+    const button = document.createElement('button')
+    testing.expectEqual('', button.name)
+
+    button.name = 'action'
+    testing.expectEqual('action', button.name)
+    testing.expectEqual('action', button.getAttribute('name'))
+
+    button.name = 'submit'
+    testing.expectEqual('submit', button.name)
+    testing.expectEqual('submit', button.getAttribute('name'))
+  }
+</script>
+
+<script id="name_reflects_to_attribute">
+  {
+    const button = document.createElement('button')
+    testing.expectEqual(null, button.getAttribute('name'))
+
+    button.name = 'fieldname'
+    testing.expectEqual('fieldname', button.getAttribute('name'))
+    testing.expectTrue(button.outerHTML.includes('name="fieldname"'))
+  }
+</script>
+
+<script id="required_initial">
+  testing.expectEqual(true, $('#required1').required)
+  testing.expectEqual(false, $('#required2').required)
+</script>
+
+<script id="required_set">
+  {
+    const button = document.createElement('button')
+    testing.expectEqual(false, button.required)
+
+    button.required = true
+    testing.expectEqual(true, button.required)
+    testing.expectEqual('', button.getAttribute('required'))
+
+    button.required = false
+    testing.expectEqual(false, button.required)
+    testing.expectEqual(null, button.getAttribute('required'))
+  }
+</script>
+
+<script id="required_reflects_to_attribute">
+  {
+    const button = document.createElement('button')
+    testing.expectEqual(null, button.getAttribute('required'))
+    testing.expectFalse(button.outerHTML.includes('required'))
+
+    button.required = true
+    testing.expectEqual('', button.getAttribute('required'))
+    testing.expectTrue(button.outerHTML.includes('required'))
+
+    button.required = false
+    testing.expectEqual(null, button.getAttribute('required'))
+    testing.expectFalse(button.outerHTML.includes('required'))
+  }
+</script>

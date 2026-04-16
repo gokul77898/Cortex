@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marine Odyssey - Deep Sea Experience</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Cinematic letterbox effect */
+    .letterbox {
+      position: fixed;
+      left: 0;
+      width: 100%;
+      height: 8%;
+      background: #000;
+      z-index: 100;
+      transition: height 1s ease;
+    }
+    .letterbox.top { top: 0; }
+    .letterbox.bottom { bottom: 0; }
+
+    /* Title overlay */
+    .title-overlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 50;
+      text-align: center;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+
+    .title-overlay h1 {
+      font-size: clamp(2rem, 8vw, 6rem);
+      font-weight: 100;
+      color: transparent;
+      background: linear-gradient(180deg, #00d4ff 0%, #0099cc 50%, #004466 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      text-transform: uppercase;
+      letter-spacing: 0.5em;
+      animation: titleFloat 4s ease-in-out infinite;
+      text-shadow: 0 0 60px rgba(0, 212, 255, 0.5);
+    }
+
+    .title-overlay .subtitle {
+      font-size: clamp(0.8rem, 2vw, 1.5rem);
+      color: rgba(0, 200, 255, 0.6);
+      letter-spacing: 0.3em;
+      margin-top: 1rem;
+      animation: fadeIn 2s ease 1s both;
+    }
+
+    @keyframes titleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Depth indicator */
+    .depth-meter {
+      position: fixed;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .depth-bar {
+      width: 4px;
+      height: 200px;
+      background: linear-gradient(to bottom,
+        rgba(0, 200, 255, 0.8) 0%,
+        rgba(0, 100, 200, 0.5) 50%,
+        rgba(0, 50, 100, 0.3) 100%);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .depth-marker {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #00d4ff;
+      border-radius: 50%;
+      left: -4px;
+      box-shadow: 0 0 20px #00d4ff;
+      transition: top 0.5s ease;
+    }
+
+    .depth-label {
+      color: rgba(0, 200, 255, 0.8);
+      font-size: 0.75rem;
+      margin-top: 10px;
+      letter-spacing: 0.1em;
+    }
+
+    /* Info panel */
+    .info-panel {
+      position: fixed;
+      bottom: 12%;
+      left: 30px;
+      z-index: 50;
+      max-width: 400px;
+      background: linear-gradient(135deg,
+        rgba(0, 30, 60, 0.8) 0%,
+        rgba(0, 20, 40, 0.6) 100%);
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      transform: translateX(-120%);
+      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .info-panel.visible {
+      transform: translateX(0);
+    }
+
+    .info-panel h3 {
+      color: #00d4ff;
+      font-weight: 300;
+      margin-bottom: 10px;
+      letter-spacing: 0.1em;
+    }
+
+    .info-panel p {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* Controls hint */
+    .controls {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      color: rgba(0, 200, 255, 0.5);
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      opacity: 0;
+      animation: fadeIn 2s ease 3s forwards;
+    }
+
+    /* Sound toggle */
+    .sound-toggle {
+      position: fixed;
+      top: 12%;
+      right: 30px;
+      z-index: 50;
+      background: rgba(0, 30, 60, 0.6);
+      border: 1px solid rgba(0, 200, 255, 0.3);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .sound-toggle:hover {
+      background: rgba(0, 200, 255, 0.2);
+      transform: scale(1.1);
+    }
+
+    .sound-toggle svg {
+      width: 24px;
+      height: 24px;
+      fill: rgba(0, 200, 255, 0.8);
+    }
+
+    /* Loading screen */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #001122 0%, #000811 100%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1s ease;
+    }
+
+    .loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-wave {
+      width: 200px;
+      height: 100px;
+      position: relative;
+    }
+
+    .loading-wave span {
+      position: absolute;
+      bottom: 0;
+      width: 8px;
+      height: 8px;
+      background: #00d4ff;
+      border-radius: 50%;
+      animation: wave 1.5s ease-in-out infinite;
+    }
+
+    .loading-wave span:nth-child(1) { left: 0; animation-delay: 0s; }
+    .loading-wave span:nth-child(2) { left: 20px; animation-delay: 0.1s; }
+    .loading-wave span:nth-child(3) { left: 40px; animation-delay: 0.2s; }
+    .loading-wave span:nth-child(4) { left: 60px; animation-delay: 0.3s; }
+    .loading-wave span:nth-child(5) { left: 80px; animation-delay: 0.4s; }
+    .loading-wave span:nth-child(6) { left: 100px; animation-delay: 0.5s; }
+    .loading-wave span:nth-child(7) { left: 120px; animation-delay: 0.6s; }
+    .loading-wave span:nth-child(8) { left: 140px; animation-delay: 0.7s; }
+    .loading-wave span:nth-child(9) { left: 160px; animation-delay: 0.8s; }
+    .loading-wave span:nth-child(10) { left: 180px; animation-delay: 0.9s; }
+
+    @keyframes wave {
+      0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+      50% { transform: translateY(-50px) scale(1.5); opacity: 0.5; }
+    }
+
+    .loading-text {
+      color: rgba(0, 200, 255, 0.6);
+      margin-top: 30px;
+      letter-spacing: 0.3em;
+      font-size: 0.9rem;
+    }
+
+    /* Zone indicator */
+    .zone-indicator {
+      position: fixed;
+      top: 12%;
+      left: 30px;
+      z-index: 50;
+      color: rgba(0, 200, 255, 0.8);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading" id="loading">
+    <div class="loading-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <p class="loading-text">DESCENDING INTO THE ABYSS...</p>
+  </div>
+
+  <!-- Cinematic letterbox -->
+  <div class="letterbox top"></div>
+  <div class="letterbox bottom"></div>
+
+  <!-- 3D Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- Title Overlay -->
+  <div class="title-overlay" id="title-overlay">
+    <h1>Marine Odyssey</h1>
+    <p class="subtitle">A Journey Through Earth's Final Frontier</p>
+  </div>
+
+  <!-- Depth Meter -->
+  <div class="depth-meter">
+    <div class="depth-bar">
+      <div class="depth-marker" id="depth-marker"></div>
+    </div>
+    <span class="depth-label" id="depth-label">0m</span>
+  </div>
+
+  <!-- Zone Indicator -->
+  <div class="zone-indicator" id="zone-indicator">Sunlight Zone</div>
+
+  <!-- Info Panel -->
+  <div class="info-panel" id="info-panel">
+    <h3 id="creature-name">Coral Reef</h3>
+    <p id="creature-info">Coral reefs are among the most diverse ecosystems on Earth, hosting over 4,000 species of fish and 800 species of hard corals.</p>
+  </div>
+
+  <!-- Sound Toggle -->
+  <button class="sound-toggle" id="sound-toggle" aria-label="Toggle Sound">
+    <svg viewBox="0 0 24 24" id="sound-icon">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+  </button>
+
+  <!-- Controls -->
+  <div class="controls">
+    SCROLL TO DIVE DEEPER | MOVE MOUSE TO EXPLORE
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

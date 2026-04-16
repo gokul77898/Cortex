@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+<div id=id1>d1 <p>hello</p></div>
+<div id=id2>
+  <style>h1 { font-size: 1em; }</style>
+  <!-- this is a comment -->
+  This is a <br>
+  text
+</div>
+
+<script id=element>
+  const div = $('#id1');
+  testing.expectEqual('d1 hello', div.textContent);
+
+  div.textContent = 'world <p>!</p>';
+  testing.expectEqual('world <p>!</p>', div.textContent);
+
+  const div2 = $('#id2');
+  testing.expectEqual("\n  h1 { font-size: 1em; }\n  \n  This is a \n  text\n", div2.textContent);
+</script>
+
+<script id=document>
+  testing.expectEqual(null, document.textContent);
+  document.textContent = 'over 9000';
+  testing.expectEqual(null, document.textContent);
+</script>
+
+<script id=cdata>
+  div.innerHTML = 'd1 <p>hello</p>';
+  testing.expectEqual('d1 ', div.firstChild.textContent);
+  div.firstChild.textContent = 'dd2d';
+  testing.expectEqual('dd2d', div.firstChild.textContent);
+  testing.expectEqual('dd2dhello', div.textContent);
+</script>
+
+<script id=attribute>
+  const attr = div.getAttributeNode('id');
+  testing.expectEqual('id1', attr.value);
+  testing.expectEqual('id1', attr.textContent);
+  attr.textContent = 'attr2';
+  testing.expectEqual('attr2', attr.value);
+  testing.expectEqual('attr2', attr.textContent);
+  testing.expectEqual(div, $('#attr2'));
+</script>

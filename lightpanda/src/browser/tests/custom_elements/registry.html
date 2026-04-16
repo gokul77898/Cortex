@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+<script id="registry">
+{
+    testing.expectEqual(true, window.customElements !== undefined);
+    testing.expectEqual('function', typeof window.customElements.define);
+    testing.expectEqual('function', typeof window.customElements.get);
+}
+
+{
+    class MyElement extends HTMLElement {}
+    customElements.define('my-element', MyElement);
+    const retrieved = customElements.get('my-element');
+    testing.expectEqual(true, retrieved === MyElement);
+}
+
+{
+    const retrieved = customElements.get('not-defined');
+    testing.expectEqual(undefined, retrieved);
+}
+
+{
+    class AnotherElement extends HTMLElement {}
+    customElements.define('another-element', AnotherElement);
+
+    let threw = false;
+    try {
+        customElements.define('another-element', AnotherElement);
+    } catch (e) {
+        threw = true;
+    }
+    testing.expectEqual(true, threw);
+}
+
+{
+    let threw = false;
+    try {
+        customElements.define('nohyphen', class extends HTMLElement {});
+    } catch (e) {
+        threw = true;
+    }
+    testing.expectEqual(true, threw);
+}
+
+{
+    let threw = false;
+    try {
+        customElements.define('UPPERCASE-ELEMENT', class extends HTMLElement {});
+    } catch (e) {
+        threw = true;
+    }
+    testing.expectEqual(true, threw);
+}
+
+{
+    let threw = false;
+    try {
+        customElements.define('annotation-xml', class extends HTMLElement {});
+    } catch (e) {
+        threw = true;
+    }
+    testing.expectEqual(true, threw);
+}
+
+{
+    class TestElement extends HTMLElement {}
+    customElements.define('test-element', TestElement);
+
+    const el = document.createElement('test-element');
+    testing.expectEqual('TEST-ELEMENT', el.tagName);
+    testing.expectEqual(true, el instanceof HTMLElement);
+}
+
+{
+    const el = document.createElement('undefined-element');
+    testing.expectEqual('UNDEFINED-ELEMENT', el.tagName);
+}
+
+{
+    const el = document.createElement('no-hyphen-invalid');
+    testing.expectEqual('NO-HYPHEN-INVALID', el.tagName);
+}
+</script>
+
+<script id="whenDefined_already_defined">
+{
+    class AlreadyDefined extends HTMLElement {}
+    customElements.define('already-defined', AlreadyDefined);
+
+    const promise = customElements.whenDefined('already-defined');
+    testing.expectEqual('object', typeof promise);
+    testing.expectEqual(true, promise instanceof Promise);
+}
+</script>
+
+<script id="whenDefined_not_yet_defined">
+{
+    const promise = customElements.whenDefined('future-element');
+    testing.expectEqual('object', typeof promise);
+    testing.expectEqual(true, promise instanceof Promise);
+
+    // Now define it
+    class FutureElement extends HTMLElement {}
+    customElements.define('future-element', FutureElement);
+}
+</script>
+
+<script id="whenDefined_same_promise">
+{
+    const promise1 = customElements.whenDefined('pending-element');
+    const promise2 = customElements.whenDefined('pending-element');
+
+    // Should return the same promise for the same name
+    testing.expectEqual(true, promise1 === promise2);
+
+    // Define it so cleanup happens
+    class PendingElement extends HTMLElement {}
+    customElements.define('pending-element', PendingElement);
+}
+</script>
+
+<script id="constructor_self_insert_foster_parent">
+{
+    // Regression: custom element constructor inserting itself (via appendChild) during
+    // innerHTML parsing. When the element is not valid table content, the HTML5 parser
+    // foster-parents it before the <table> via appendBeforeSiblingCallback. That callback
+    // previously didn't check for an existing _parent before calling insertNodeRelative,
+    // causing the "Page.insertNodeRelative parent" assertion to fire.
+    let constructorCalled = 0;
+    let container;
+
+    class CtorSelfInsert extends HTMLElement {
+        constructor() {
+            super();
+            constructorCalled++;
+            // Insert self into container so _parent is set before the parser
+            // officially places this element via appendBeforeSiblingCallback.
+            if (container) container.appendChild(this);
+        }
+    }
+    customElements.define('ctor-self-insert', CtorSelfInsert);
+
+    container = document.createElement('div');
+    // ctor-self-insert is not valid table content; the parser foster-parents it
+    // before the <table>, calling appendBeforeSiblingCallback(sibling=table, node=element).
+    // At that point the element already has _parent=container from the constructor.
+    container.innerHTML = '<table><ctor-self-insert></ctor-self-insert></table>';
+
+    testing.expectEqual(1, constructorCalled);
+}
+</script>

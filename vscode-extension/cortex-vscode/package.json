@@ -1,0 +1,129 @@
+{
+  "name": "cortex-vscode",
+  "displayName": "CORTEX",
+  "description": "Practical VS Code companion for CORTEX with project-aware launch behavior and a real Control Center.",
+  "version": "0.1.1",
+  "publisher": "devnull-bootloader",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:cortex.start",
+    "onCommand:cortex.startInWorkspaceRoot",
+    "onCommand:cortex.openDocs",
+    "onCommand:cortex.openSetupDocs",
+    "onCommand:cortex.openWorkspaceProfile",
+    "onCommand:cortex.openControlCenter",
+    "onView:cortex.controlCenter"
+  ],
+  "main": "./src/extension.js",
+  "files": [
+    "README.md",
+    "media/**",
+    "src/extension.js",
+    "src/presentation.js",
+    "src/state.js",
+    "themes/**"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "cortex.start",
+        "title": "CORTEX: Launch in Terminal",
+        "category": "CORTEX"
+      },
+      {
+        "command": "cortex.startInWorkspaceRoot",
+        "title": "CORTEX: Launch in Workspace Root",
+        "category": "CORTEX"
+      },
+      {
+        "command": "cortex.openDocs",
+        "title": "CORTEX: Open Repository",
+        "category": "CORTEX"
+      },
+      {
+        "command": "cortex.openSetupDocs",
+        "title": "CORTEX: Open Setup Guide",
+        "category": "CORTEX"
+      },
+      {
+        "command": "cortex.openWorkspaceProfile",
+        "title": "CORTEX: Open Workspace Profile",
+        "category": "CORTEX"
+      },
+      {
+        "command": "cortex.openControlCenter",
+        "title": "CORTEX: Open Control Center",
+        "category": "CORTEX"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cortex",
+          "title": "CORTEX",
+          "icon": "media/cortex.svg"
+        }
+      ]
+    },
+    "views": {
+      "cortex": [
+        {
+          "id": "cortex.controlCenter",
+          "name": "Control Center",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CORTEX",
+      "properties": {
+        "cortex.launchCommand": {
+          "type": "string",
+          "default": "cortex",
+          "description": "Command run in the integrated terminal when launching CORTEX."
+        },
+        "cortex.terminalName": {
+          "type": "string",
+          "default": "CORTEX",
+          "description": "Integrated terminal tab name for CORTEX sessions."
+        },
+        "cortex.useOpenAIShim": {
+          "type": "boolean",
+          "default": false,
+          "description": "Optionally set CORTEX_USE_OPENAI=1 in launched CORTEX terminals."
+        }
+      }
+    },
+    "themes": [
+      {
+        "label": "CORTEX Terminal Black",
+        "uiTheme": "vs-dark",
+        "path": "./themes/CORTEX-Terminal-Black.json"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test ./src/*.test.js",
+    "lint": "node -e \"for (const file of require('node:fs').readdirSync('./src')) { if (file.endsWith('.js')) { require('node:child_process').execFileSync(process.execPath, ['--check', require('node:path').join('src', file)], { stdio: 'inherit' }); } }\"",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "keywords": [
+    "cortex",
+    "terminal",
+    "theme",
+    "cli",
+    "llm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gitlawb/cortex"
+  },
+  "license": "MIT"
+}

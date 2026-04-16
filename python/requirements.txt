@@ -1,0 +1,9 @@
+transformers>=4.48.0
+torch
+accelerate
+huggingface_hub
+python-dotenv
+tiktoken
+psutil
+openai>=1.0.0
+httpx>=0.24.0

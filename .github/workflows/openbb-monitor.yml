@@ -1,0 +1,25 @@
+name: OpenBB Upstream Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Every hour
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check OpenBB Upstream
+        run: |
+          LATEST=$(git ls-remote https://github.com/OpenBB-finance/OpenBB.git HEAD | awk '{print $1}')
+          echo "Latest hash: $LATEST"
+          # Store hash in a file or send notification
+          echo $LATEST > .openbb_upstream_hash
+      - name: Commit if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .openbb_upstream_hash
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: update openbb upstream hash"
+          git push

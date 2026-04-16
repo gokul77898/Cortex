@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<script src="../../testing.js"></script>
+
+<!-- Test fixtures for form.name -->
+<form id="form_with_name" name="myForm"></form>
+<form id="form_without_name"></form>
+
+<script id="name_initial">
+{
+  testing.expectEqual('myForm', $('#form_with_name').name)
+  testing.expectEqual('', $('#form_without_name').name)
+}
+</script>
+
+<script id="name_set">
+  {
+    const form = document.createElement('form')
+    testing.expectEqual('', form.name)
+
+    form.name = 'testForm'
+    testing.expectEqual('testForm', form.name)
+    testing.expectEqual('testForm', form.getAttribute('name'))
+  }
+</script>
+
+<script id="action">
+  {
+    const form = document.createElement('form')
+    testing.expectEqual(testing.BASE_URL + 'element/html/form.html', form.action)
+
+    form.action = 'hello';
+    testing.expectEqual(testing.BASE_URL + 'element/html/hello', form.action)
+
+    form.action = '/hello';
+    testing.expectEqual(testing.ORIGIN + '/hello', form.action)
+
+    form.action = 'https://lightpanda.io/hello';
+    testing.expectEqual('https://lightpanda.io/hello', form.action)
+  }
+</script>
+
+<!-- Test fixtures for form.method -->
+<form id="form_get" method="get"></form>
+<form id="form_post" method="post"></form>
+<form id="form_dialog" method="dialog"></form>
+<form id="form_default"></form>
+
+<script id="method_initial">
+{
+  testing.expectEqual('get', $('#form_get').method)
+  testing.expectEqual('post', $('#form_post').method)
+  testing.expectEqual('dialog', $('#form_dialog').method)
+  testing.expectEqual('get', $('#form_default').method)
+}
+</script>
+
+<script id="method_set">
+  {
+    const form = document.createElement('form')
+    testing.expectEqual('get', form.method)
+
+    form.method = 'post'
+    testing.expectEqual('post', form.method)
+    testing.expectEqual('post', form.getAttribute('method'))
+  }
+</script>
+
+<script id="method_normalization">
+  {
+    const form = document.createElement('form')
+
+    // Test uppercase normalization
+    form.setAttribute('method', 'POST')
+    testing.expectEqual('post', form.method)
+
+    form.setAttribute('method', 'GeT')
+    testing.expectEqual('get', form.method)
+
+    form.setAttribute('method', 'DIALOG')
+    testing.expectEqual('dialog', form.method)
+
+    // Test invalid value defaults to "get"
+    form.setAttribute('method', 'invalid')
+    testing.expectEqual('get', form.method)
+  }
+</script>
+
+<!-- Test fixtures for form.elements -->
+<form id="form1">
+  <input name="field1" value="value1">
+  <button name="btn1" type="submit">Submit</button>
+  <select name="select1">
+    <option value="opt1">Option 1</option>
+  </select>
+  <textarea name="text1">Text</textarea>
+</form>
+
+<!-- Control outside form with form=ID -->
+<input id="external1" name="external" form="form1">
+
+<!-- Control outside form without form attribute -->
+<input id="orphan" name="orphan">
+
+<script id="elements_collection">
+{
+  const form = $('#form1')
+  const elements = form.elements
+
+  testing.expectEqual('HTMLFormControlsCollection', elements.constructor.name)
+  testing.expectEqual(5, elements.length)
+}
+</script>
+
+<script id="length">
+{
+  testing.expectEqual(5, $('#form1').length)
+}
+</script>
+
+<script id="elements_indexed_access">
+{
+  const form = $('#form1')
+  const elements = form.elements
+
+  testing.expectEqual('field1', elements[0].name)
+  testing.expectEqual('INPUT', elements[0].tagName)
+
+  testing.expectEqual('btn1', elements[1].name)
+  testing.expectEqual('BUTTON', elements[1].tagName)
+
+  testing.expectEqual('select1', elements[2].name)
+  testing.expectEqual('SELECT', elements[2].tagName)
+
+  testing.expectEqual('text1', elements[3].name)
+  testing.expectEqual('TEXTAREA', elements[3].tagName)
+
+  testing.expectEqual('external', elements[4].name)
+  testing.expectEqual('INPUT', elements[4].tagName)
+}
+</script>
+
+<script id="elements_named_access">
+{
+  const form = $('#form1')
+  const elements = form.elements
+
+  testing.expectEqual('field1', elements.field1.name)
+  testing.expectEqual('btn1', elements.btn1.name)
+  testing.expectEqual('select1', elements.select1.name)
+  testing.expectEqual('text1', elements.text1.name)
+  testing.expectEqual('external', elements.external.name)
+
+  testing.expectEqual('field1', elements.namedItem('field1').name)
+}
+</script>
+
+<script id="elements_excludes_orphans">
+{
+  const form = $('#form1')
+  const elements = form.elements
+
+  let foundOrphan = false
+  for (let i = 0; i < elements.length; i++) {
+    if (elements[i].id === 'orphan') {
+      foundOrphan = true
+    }
+  }
+  testing.expectEqual(false, foundOrphan)
+}
+</script>
+
+<form id="form2"></form>
+
+<script id="elements_live_collection">
+{
+  const form = $('#form2')
+  testing.expectEqual(0, form.elements.length)
+
+  const input = document.createElement('input')
+  input.name = 'dynamic'
+  form.appendChild(input)
+
+  testing.expectEqual(1, form.elements.length)
+  testing.expectEqual('dynamic', form.elements[0].name)
+
+  input.remove()
+  testing.expectEqual(0, form.elements.length)
+}
+</script>
+
+<!-- Test with controls that have form attribute pointing to different form -->
+<form id="form3"></form>
+<input id="belongs_to_3" name="field3" form="form3">
+
+<script id="form_attribute_different_form">
+{
+  const form1 = $('#form1')
+  const form3 = $('#form3')
+  const belongs3 = $('#belongs_to_3')
+
+  let inForm1 = false
+  for (let i = 0; i < form1.elements.length; i++) {
+    if (form1.elements[i].id === 'belongs_to_3') {
+      inForm1 = true
+    }
+  }
+  testing.expectEqual(false, inForm1)
+
+  let inForm3 = false
+  for (let i = 0; i < form3.elements.length; i++) {
+    if (form3.elements[i].id === 'belongs_to_3') {
+      inForm3 = true
+    }
+  }
+  testing.expectEqual(true, inForm3)
+}
+</script>
+
+<!-- CRITICAL TEST: Nested control with form attribute pointing elsewhere -->
+<form id="outer_form">
+  <input id="nested_but_reassigned" name="reassigned" form="form3">
+  <input id="nested_normal" name="normal">
+</form>
+
+<script id="nested_control_with_form_attribute">
+{
+  // This test prevents a dangerous optimization bug:
+  // Even though nested_but_reassigned is physically nested in outer_form,
+  // it has form="form3", so it belongs to form3, NOT outer_form.
+  // We MUST check the form attribute even for nested controls!
+
+  const outerForm = $('#outer_form')
+  const form3 = $('#form3')
+
+  // outer_form should have only 1 element (nested_normal)
+  testing.expectEqual(1, outerForm.elements.length)
+  testing.expectEqual('nested_normal', outerForm.elements[0].id)
+
+  // form3 should have 2 elements (belongs_to_3 and nested_but_reassigned)
+  testing.expectEqual(2, form3.elements.length)
+
+  let foundReassigned = false
+  for (let i = 0; i < form3.elements.length; i++) {
+    if (form3.elements[i].id === 'nested_but_reassigned') {
+      foundReassigned = true
+    }
+  }
+  testing.expectEqual(true, foundReassigned)
+}
+</script>
+
+<!-- Test radio buttons with same name -->
+<form id="radio_form">
+  <input type="radio" name="choice" value="a">
+  <input type="radio" name="choice" value="b">
+  <input type="radio" name="choice" value="c">
+</form>
+
+<script id="radio_buttons_in_elements">
+{
+  const form = $('#radio_form')
+  testing.expectEqual(3, form.elements.length)
+
+  testing.expectEqual('a', form.elements[0].value)
+  testing.expectEqual('b', form.elements[1].value)
+  testing.expectEqual('c', form.elements[2].value)
+
+  // Ensure all radios are unchecked at start (cleanup from any previous tests)
+  form.elements[0].checked = false
+  form.elements[1].checked = false
+  form.elements[2].checked = false
+
+  // namedItem with duplicate names returns RadioNodeList
+  const result = form.elements.namedItem('choice')
+  testing.expectEqual('RadioNodeList', result.constructor.name)
+  testing.expectEqual(3, result.length)
+  testing.expectEqual('', result.value)
+
+  form.elements[1].checked = true
+  testing.expectEqual('b', result.value)
+
+  result.value = 'c'
+  testing.expectEqual(true, form.elements[2].checked)
+}
+</script>
+
+<!-- Test disabled controls -->
+<script id="disabled_controls_included">
+{
+  const form = document.createElement('form')
+  const input1 = document.createElement('input')
+  input1.name = 'enabled'
+  const input2 = document.createElement('input')
+  input2.name = 'disabled'
+  input2.disabled = true
+
+  form.appendChild(input1)
+  form.appendChild(input2)
+
+  testing.expectEqual(2, form.elements.length)
+  testing.expectEqual('enabled', form.elements[0].name)
+  testing.expectEqual('disabled', form.elements[1].name)
+}
+</script>
+
+<!-- Test empty form -->
+<form id="empty_form"></form>
+
+<script id="empty_form_elements">
+{
+  const form = $('#empty_form')
+  testing.expectEqual(0, form.elements.length)
+  testing.expectEqual(0, form.length)
+}
+</script>
+
+<!-- Test form without id can't have external controls -->
+<form id="form_no_id_attr"></form>
+<input id="orphan2" name="orphan2" form="nonexistent">
+
+<script id="form_without_id_no_external">
+{
+  const form = $('#form_no_id_attr')
+  testing.expectEqual(0, form.elements.length)
+}
+</script>
+
+<form id="duplicate_names">
+  <input type="text" name="choice" value="a">
+  <input type="text" name="choice" value="b">
+  <input type="text" name="choice" value="c">
+</form>
+
+<script id="duplicate_names_handling">
+{
+  const form = $('#duplicate_names')
+  testing.expectEqual(3, form.elements.length)
+
+  testing.expectEqual('a', form.elements[0].value)
+  testing.expectEqual('b', form.elements[1].value)
+  testing.expectEqual('c', form.elements[2].value)
+
+  testing.expectEqual('', form.elements['choice'].value)
+}
+</script>
+
+<!-- Test: requestSubmit() fires the submit event (unlike submit()) -->
+<form id="test_form2" action="/should-not-navigate2" method="get">
+  <input name="q" value="test2">
+</form>
+
+<script id="requestSubmit_fires_submit_event">
+{
+  const form = $('#test_form2');
+  let submitFired = false;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitFired = true;
+  });
+
+  form.requestSubmit();
+
+  testing.expectEqual(true, submitFired);
+}
+</script>
+
+<!-- Test: requestSubmit() with preventDefault stops navigation -->
+<form id="test_form3" action="/should-not-navigate3" method="get">
+  <input name="q" value="test3">
+</form>
+
+<script id="requestSubmit_respects_preventDefault">
+{
+  const form = $('#test_form3');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+  });
+
+  form.requestSubmit();
+
+  // Form submission was prevented, so no navigation should be scheduled
+  testing.expectEqual(true, true);
+}
+</script>
+
+<!-- Test: requestSubmit() with non-submit-button submitter throws TypeError -->
+<form id="test_form_rs1" action="/should-not-navigate4" method="get">
+  <input id="rs1_text" type="text" name="q" value="test">
+  <input id="rs1_submit" type="submit" value="Go">
+  <input id="rs1_image" type="image" src="x.png">
+  <button id="rs1_btn_submit" type="submit">Submit</button>
+  <button id="rs1_btn_reset" type="reset">Reset</button>
+  <button id="rs1_btn_button" type="button">Button</button>
+</form>
+
+<script id="requestSubmit_rejects_non_submit_button">
+{
+  const form = $('#test_form_rs1');
+  form.addEventListener('submit', (e) => e.preventDefault());
+
+  // A text input is not a submit button — should throw TypeError
+  testing.expectError('TypeError', () => {
+    form.requestSubmit($('#rs1_text'));
+  });
+
+  // A reset button is not a submit button — should throw TypeError
+  testing.expectError('TypeError', () => {
+    form.requestSubmit($('#rs1_btn_reset'));
+  });
+
+  // A <button type="button"> is not a submit button — should throw TypeError
+  testing.expectError('TypeError', () => {
+    form.requestSubmit($('#rs1_btn_button'));
+  });
+
+  // A <div> is not a submit button — should throw TypeError
+  const div = document.createElement('div');
+  form.appendChild(div);
+  testing.expectError('TypeError', () => {
+    form.requestSubmit(div);
+  });
+}
+</script>
+
+<!-- Test: requestSubmit() accepts valid submit buttons -->
+<script id="requestSubmit_accepts_submit_buttons">
+{
+  const form = $('#test_form_rs1');
+  let submitCount = 0;
+  form.addEventListener('submit', (e) => { e.preventDefault(); submitCount++; });
+
+  // <input type="submit"> is a valid submitter
+  form.requestSubmit($('#rs1_submit'));
+  testing.expectEqual(1, submitCount);
+
+  // <input type="image"> is a valid submitter
+  form.requestSubmit($('#rs1_image'));
+  testing.expectEqual(2, submitCount);
+
+  // <button type="submit"> is a valid submitter
+  form.requestSubmit($('#rs1_btn_submit'));
+  testing.expectEqual(3, submitCount);
+}
+</script>
+
+<!-- Test: requestSubmit() with submitter not owned by form throws NotFoundError -->
+<form id="test_form_rs2" action="/should-not-navigate5" method="get">
+  <input type="text" name="q" value="test">
+</form>
+<form id="test_form_rs3">
+  <input id="rs3_submit" type="submit" value="Other Submit">
+</form>
+
+<script id="requestSubmit_rejects_wrong_form_submitter">
+{
+  const form = $('#test_form_rs2');
+
+  // Submit button belongs to a different form — should throw NotFoundError
+  testing.expectError('NotFoundError', () => {
+    form.requestSubmit($('#rs3_submit'));
+  });
+}
+</script>
+
+<!-- Test: requestSubmit(submitter) sets SubmitEvent.submitter -->
+<form id="test_form_submitter" action="/should-not-navigate6" method="get">
+  <button id="submitter_btn" type="submit">Save</button>
+</form>
+
+<script id="requestSubmit_sets_submitter">
+{
+  const form = $('#test_form_submitter');
+  const btn = $('#submitter_btn');
+  let capturedSubmitter = undefined;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    capturedSubmitter = e.submitter;
+  });
+
+  form.requestSubmit(btn);
+  testing.expectEqual(btn, capturedSubmitter);
+}
+</script>
+
+<!-- Test: requestSubmit() without submitter sets submitter to the form element -->
+<form id="test_form_submitter2" action="/should-not-navigate7" method="get">
+  <input type="text" name="q" value="test">
+</form>
+
+<script id="requestSubmit_default_submitter_is_form">
+{
+  const form = $('#test_form_submitter2');
+  let capturedSubmitter = undefined;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    capturedSubmitter = e.submitter;
+  });
+
+  form.requestSubmit();
+  testing.expectEqual(form, capturedSubmitter);
+}
+</script>

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<script>
+  function assert(expected, fd) {
+    for (let e of expected) {
+      testing.expectEqual(true, fd.has(e.key));
+      testing.expectEqual(expected.find((ee) => ee.key == e.key).value, fd.get(e.key));
+      testing.expectEqual(expected.filter((ee) => ee.key == e.key).map((ee) => ee.value), fd.getAll(e.key));
+    }
+    testing.expectEqual(null, fd.get("nope"));
+    testing.expectEqual([], fd.getAll("nope"));
+
+    testing.expectEqual(expected.map((e) => e.key), Array.from(fd.keys()));
+    testing.expectEqual(expected.map((e) => e.value), Array.from(fd.values()));
+    testing.expectEqual(expected.map((e) => [e.key, e.value]), Array.from(fd));
+    testing.expectEqual(expected.map((e) => [e.key, e.value]), Array.from(fd.entries()));
+  }
+</script>
+
+<script id=basic>
+{
+  const fd = new FormData();
+  assert([], fd);
+
+  fd.append('name', 'John');
+  assert([{key: 'name', value: 'John'}], fd);
+
+  fd.append('email', 'john@example.com');
+  assert([{key: 'name', value: 'John'}, {key: 'email', value: 'john@example.com'}], fd);
+}
+</script>
+
+<script id=manipulation>
+{
+  const fd = new FormData();
+  assert([], fd);
+
+  fd.append('field', 'value1')
+  assert([{key: 'field', value: 'value1'}], fd);
+
+  fd.append('field', 'value2')
+  assert([{key: 'field', value: 'value1'}, {key: 'field', value: 'value2'}], fd);
+
+  fd.set('field', 'only')
+  assert([{key: 'field', value: 'only'}], fd);
+}
+</script>
+
+<script id=emptyAndNull>
+{
+  const fd = new FormData();
+  testing.expectEqual(null, fd.get('anything'));
+  testing.expectEqual([], fd.getAll('anything'));
+  testing.expectEqual(false, fd.has('anything'));
+}
+</script>
+
+<script id=duplicateKeys>
+{
+  const fd = new FormData();
+  fd.append('key', '1');
+  fd.append('key', '2');
+  fd.append('key', '3');
+
+  testing.expectEqual('1', fd.get('key'));
+  testing.expectEqual(['1', '2', '3'], fd.getAll('key'));
+
+  fd.set('key', 'only');
+  testing.expectEqual('only', fd.get('key'));
+  testing.expectEqual(['only'], fd.getAll('key'));
+}
+</script>
+
+<script id=deleteOperations>
+{
+  const fd = new FormData();
+  fd.append('a', '1');
+  fd.append('b', '2');
+  fd.append('a', '3');
+  fd.append('c', '4');
+  fd.append('a', '5');
+
+  fd.delete('a');
+  testing.expectEqual(false, fd.has('a'));
+  testing.expectEqual('2', fd.get('b'));
+  testing.expectEqual('4', fd.get('c'));
+
+  fd.delete('nonexistent');
+  testing.expectEqual('2', fd.get('b'));
+  testing.expectEqual('4', fd.get('c'));
+}
+</script>
+
+<script id=iteration>
+{
+  const fd = new FormData();
+  fd.append('a', '1');
+  fd.append('b', '2');
+  fd.append('a', '3');
+
+  const keys = Array.from(fd.keys());
+  testing.expectEqual(['a', 'b', 'a'], keys);
+
+  const values = Array.from(fd.values());
+  testing.expectEqual(['1', '2', '3'], values);
+
+  const entries = Array.from(fd.entries());
+  testing.expectEqual([['a', '1'], ['b', '2'], ['a', '3']], entries);
+
+  const defaultIter = Array.from(fd);
+  testing.expectEqual([['a', '1'], ['b', '2'], ['a', '3']], defaultIter);
+}
+</script>
+
+<script id=iteratorIsolation>
+{
+  const fd = new FormData();
+  fd.append('a', '1');
+  fd.append('b', '2');
+  fd.append('c', '3');
+
+  const keys1 = fd.keys();
+  const keys2 = fd.keys();
+  const values1 = fd.values();
+  const entries1 = fd.entries();
+
+  testing.expectEqual('a', keys1.next().value);
+  testing.expectEqual('a', keys2.next().value);
+  testing.expectEqual('1', values1.next().value);
+  testing.expectEqual(['a', '1'], entries1.next().value);
+
+  testing.expectEqual('b', keys1.next().value);
+  testing.expectEqual('b', keys2.next().value);
+  testing.expectEqual('2', values1.next().value);
+  testing.expectEqual(['b', '2'], entries1.next().value);
+
+  testing.expectEqual('c', keys1.next().value);
+  testing.expectEqual('c', keys2.next().value);
+  testing.expectEqual('3', values1.next().value);
+  testing.expectEqual(['c', '3'], entries1.next().value);
+
+  testing.expectEqual(true, keys1.next().done);
+  testing.expectEqual(true, keys2.next().done);
+  testing.expectEqual(true, values1.next().done);
+  testing.expectEqual(true, entries1.next().done);
+}
+</script>
+
+<script id=iteratorLifetime>
+{
+  let keysIter;
+  let valuesIter;
+  let entriesIter;
+
+  {
+    const fd = new FormData();
+    fd.append('x', '10');
+    fd.append('y', '20');
+    fd.append('z', '30');
+    keysIter = fd.keys();
+    valuesIter = fd.values();
+    entriesIter = fd.entries();
+  }
+
+  testing.expectEqual('x', keysIter.next().value);
+  testing.expectEqual('10', valuesIter.next().value);
+  testing.expectEqual(['x', '10'], entriesIter.next().value);
+
+  testing.expectEqual('y', keysIter.next().value);
+  testing.expectEqual('20', valuesIter.next().value);
+  testing.expectEqual(['y', '20'], entriesIter.next().value);
+
+  testing.expectEqual('z', keysIter.next().value);
+  testing.expectEqual('30', valuesIter.next().value);
+  testing.expectEqual(['z', '30'], entriesIter.next().value);
+
+  testing.expectEqual(true, keysIter.next().done);
+  testing.expectEqual(true, valuesIter.next().done);
+  testing.expectEqual(true, entriesIter.next().done);
+}
+</script>
+
+<script id=forEach>
+{
+  const fd = new FormData();
+  fd.append('a', '1');
+  fd.append('b', '2');
+  fd.append('c', '3');
+
+  const results = [];
+  fd.forEach((value, key, formData) => {
+    results.push({value, key});
+    // Verify third argument is the FormData instance itself
+    testing.expectEqual(fd, formData);
+  });
+
+  testing.expectEqual([
+    {key: 'a', value: '1'},
+    {key: 'b', value: '2'},
+    {key: 'c', value: '3'}
+  ], results);
+}
+</script>
+
+<script id=forEachWithDuplicates>
+{
+  const fd = new FormData();
+  fd.append('x', '10');
+  fd.append('x', '20');
+  fd.append('y', '30');
+
+  const results = [];
+  fd.forEach((value, key) => {
+    results.push({key, value});
+  });
+
+  testing.expectEqual([
+    {key: 'x', value: '10'},
+    {key: 'x', value: '20'},
+    {key: 'y', value: '30'}
+  ], results);
+}
+</script>
+
+<script id=forEachEmpty>
+{
+  const fd = new FormData();
+  let called = false;
+
+  fd.forEach(() => {
+    called = true;
+  });
+
+  testing.expectEqual(false, called);
+}
+</script>
+
+<script id=forEachThisArg>
+{
+  const fd = new FormData();
+  fd.append('a', '1');
+  fd.append('b', '2');
+  const context = {sum: 0};
+
+  fd.forEach(function(value) {
+    this.sum += parseInt(value);
+  }, context);
+
+  testing.expectEqual(3, context.sum);
+}
+</script>
+
+<form id="form1">
+  <input id="has_no_name" value="nope1">
+  <input id="is_disabled" disabled value="nope2">
+
+  <input name="txt-1" value="txt-1-v">
+  <input name="txt-2" value="txt-~-v" type=password>
+
+  <input name="chk-3" value="chk-3-va" type=checkbox>
+  <input name="chk-3" value="chk-3-vb" type=checkbox checked>
+  <input name="chk-3" value="chk-3-vc" type=checkbox checked>
+  <input name="chk-4" value="chk-4-va" type=checkbox>
+  <input name="chk-4" value="chk-4-va" type=checkbox>
+
+  <input name="rdi-1" value="rdi-1-va" type=radio>
+  <input name="rdi-1" value="rdi-1-vb" type=radio>
+  <input name="rdi-1" value="rdi-1-vc" type=radio checked>
+  <input name="rdi-2" value="rdi-2-va" type=radio>
+  <input name="rdi-2" value="rdi-2-vb" type=radio>
+
+  <textarea name="ta-1"> ta-1-v</textarea>
+  <textarea name="ta"></textarea>
+
+  <input type=hidden name=h1 value="h1-v">
+  <input type=hidden name=h2 value="h2-v" disabled=disabled>
+
+  <select name="sel-1"><option>blue<option>red</select>
+  <select name="sel-2"><option>blue<option value=sel-2-v selected>red</select>
+  <select name="sel-3"><option disabled>nope1<option>nope2</select>
+  <select name="mlt-1" multiple><option>water<option>tea</select>
+  <select name="mlt-2" multiple><option selected>water<option selected>tea<option>coffee</select>
+  <input type=submit id=s1 name=s1 value=s1-v>
+  <input type=submit name=s2 value=s2-v>
+  <input type=image name=i1 value=i1-v>
+</form>
+<input type=text name=abc value=123 form=form1>
+
+<script id=formData>
+  let f = new FormData();
+  testing.expectEqual(null, f.get('a'));
+  testing.expectEqual(false, f.has('a'));
+  testing.expectEqual([], f.getAll('a'));
+  testing.expectEqual(undefined, f.delete('a'));
+
+  f.set('a', 1);
+  testing.expectEqual(true, f.has('a'));
+  testing.expectEqual('1', f.get('a'));
+  testing.expectEqual(['1'], f.getAll('a'));
+
+  f.append('a', 2);
+  testing.expectEqual(true, f.has('a'));
+  testing.expectEqual('1', f.get('a'));
+  testing.expectEqual(['1', '2'], f.getAll('a'));
+
+  f.append('b', '3');
+  testing.expectEqual(true, f.has('a'));
+  testing.expectEqual('1', f.get('a'));
+  testing.expectEqual(['1', '2'], f.getAll('a'));
+  testing.expectEqual(true, f.has('b'));
+  testing.expectEqual('3', f.get('b'));
+  testing.expectEqual(['3'], f.getAll('b'));
+
+  let acc = [];
+  for (const key of f.keys()) { acc.push(key) }
+  testing.expectEqual(['a', 'a', 'b'], acc);
+
+  acc = [];
+  for (const value of f.values()) { acc.push(value) }
+  testing.expectEqual(['1', '2', '3'], acc);
+
+  acc = [];
+  for (const entry of f.entries()) { acc.push(entry) }
+  testing.expectEqual([['a', '1'], ['a', '2'], ['b', '3']], acc);
+
+  acc = [];
+  for (const entry of f) { acc.push(entry) };
+  testing.expectEqual([['a', '1'], ['a', '2'], ['b', '3']], acc);
+
+  f.delete('a');
+  testing.expectEqual(false, f.has('a'));
+  testing.expectEqual(true, f.has('b'));
+
+  acc = [];
+  for (const key of f.keys()) { acc.push(key) }
+  testing.expectEqual(['b'], acc);
+
+  acc = [];
+  for (const value of f.values()) { acc.push(value) }
+  testing.expectEqual(['3'], acc);
+
+  acc = [];
+  for (const entry of f.entries()) { acc.push(entry) }
+  testing.expectEqual([['b', '3']], acc);
+
+  acc = [];
+  for (const entry of f) { acc.push(entry) }
+  testing.expectEqual([['b', '3']], acc);
+</script>
+
+<script id=serialize>
+  {
+    let form1 = $('#form1');
+    let submit1 = $('#s1');
+
+    let input = document.createElement('input');
+    input.name = 'dyn';
+    input.value = 'dyn-v';
+    form1.appendChild(input);
+    let f2 = new FormData(form1, submit1);
+
+    acc = [];
+    for (const entry of f2) {
+      acc.push(entry);
+    };
+
+    testing.expectEqual(['txt-1', 'txt-1-v'], acc[0]);
+    testing.expectEqual(['txt-2', 'txt-~-v'], acc[1]);
+    testing.expectEqual(['chk-3', 'chk-3-vb'], acc[2]);
+    testing.expectEqual(['chk-3', 'chk-3-vc'], acc[3]);
+    testing.expectEqual(['rdi-1', 'rdi-1-vc'], acc[4]);
+    testing.expectEqual(['ta-1', ' ta-1-v'], acc[5]);
+    testing.expectEqual(['ta', ''], acc[6]);
+    testing.expectEqual(['h1', 'h1-v'], acc[7]);
+    testing.expectEqual(['sel-1', 'blue'], acc[8]);
+    testing.expectEqual(['sel-2', 'sel-2-v'], acc[9]);
+    testing.expectEqual(['sel-3', 'nope2'], acc[10]);
+    testing.expectEqual(['mlt-2', 'water'], acc[11]);
+    testing.expectEqual(['mlt-2', 'tea'], acc[12]);
+    testing.expectEqual(['s1', 's1-v'], acc[13]);
+  }
+</script>
+
+<script id=submitterBehavior>
+{
+  // Test that only the specified submitter is included in FormData
+  const form = document.createElement('form');
+
+  const input1 = document.createElement('input');
+  input1.name = 'field1';
+  input1.value = 'value1';
+  form.appendChild(input1);
+
+  const submit1 = document.createElement('input');
+  submit1.type = 'submit';
+  submit1.name = 'action';
+  submit1.value = 'save';
+  form.appendChild(submit1);
+
+  const submit2 = document.createElement('input');
+  submit2.type = 'submit';
+  submit2.name = 'action';
+  submit2.value = 'delete';
+  form.appendChild(submit2);
+
+  const submit3 = document.createElement('input');
+  submit3.type = 'submit';
+  submit3.name = 'action';
+  submit3.value = 'cancel';
+  form.appendChild(submit3);
+
+  // FormData with submit2 as submitter - should only include submit2
+  const fd = new FormData(form, submit2);
+  testing.expectEqual('value1', fd.get('field1'));
+  testing.expectEqual('delete', fd.get('action'));
+  testing.expectEqual(['delete'], fd.getAll('action'));
+
+  // FormData with no submitter - should not include any submit buttons
+  const fd2 = new FormData(form);
+  testing.expectEqual('value1', fd2.get('field1'));
+  testing.expectEqual(null, fd2.get('action'));
+  testing.expectEqual([], fd2.getAll('action'));
+
+  // FormData with submit1 as submitter
+  const fd3 = new FormData(form, submit1);
+  testing.expectEqual('value1', fd3.get('field1'));
+  testing.expectEqual('save', fd3.get('action'));
+  testing.expectEqual(['save'], fd3.getAll('action'));
+}
+</script>
+
+<script id=imageSubmitter>
+{
+  // Test that image inputs add name.x and name.y coordinates
+  const form = document.createElement('form');
+
+  const input1 = document.createElement('input');
+  input1.name = 'username';
+  input1.value = 'alice';
+  form.appendChild(input1);
+
+  const image1 = document.createElement('input');
+  image1.type = 'image';
+  image1.name = 'submit';
+  image1.value = 'ignored'; // value is ignored for image inputs
+  form.appendChild(image1);
+
+  const fd = new FormData(form, image1);
+  testing.expectEqual('alice', fd.get('username'));
+  testing.expectEqual('0', fd.get('submit.x'));
+  testing.expectEqual('0', fd.get('submit.y'));
+  testing.expectEqual(null, fd.get('submit')); // name without .x/.y should not exist
+
+  // Verify order and that .x comes before .y
+  const entries = Array.from(fd.entries());
+  testing.expectEqual([['username', 'alice'], ['submit.x', '0'], ['submit.y', '0']], entries);
+}
+</script>
+
+<script id=multipleImagesWithSameName>
+{
+  // Test that when multiple images share a name, only submitter's coordinates are included
+  const form = document.createElement('form');
+
+  const img1 = document.createElement('input');
+  img1.type = 'image';
+  img1.name = 'coords';
+  form.appendChild(img1);
+
+  const img2 = document.createElement('input');
+  img2.type = 'image';
+  img2.name = 'coords';
+  form.appendChild(img2);
+
+  const img3 = document.createElement('input');
+  img3.type = 'image';
+  img3.name = 'coords';
+  form.appendChild(img3);
+
+  // Only img2 should be included
+  const fd = new FormData(form, img2);
+  testing.expectEqual(['0'], fd.getAll('coords.x'));
+  testing.expectEqual(['0'], fd.getAll('coords.y'));
+
+  const entries = Array.from(fd.entries());
+  testing.expectEqual([['coords.x', '0'], ['coords.y', '0']], entries);
+}
+</script>
+
+<script id=buttonSubmitter>
+{
+  // Test that <button> elements work as submitters
+  const form = document.createElement('form');
+
+  const input1 = document.createElement('input');
+  input1.name = 'data';
+  input1.value = 'test';
+  form.appendChild(input1);
+
+  const button1 = document.createElement('button');
+  button1.name = 'btn';
+  button1.value = 'first';
+  button1.type = 'submit';
+  form.appendChild(button1);
+
+  const button2 = document.createElement('button');
+  button2.name = 'btn';
+  button2.value = 'second';
+  button2.type = 'submit';
+  form.appendChild(button2);
+
+  // With button1 as submitter
+  const fd1 = new FormData(form, button1);
+  testing.expectEqual('test', fd1.get('data'));
+  testing.expectEqual('first', fd1.get('btn'));
+  testing.expectEqual(['first'], fd1.getAll('btn'));
+
+  // With button2 as submitter
+  const fd2 = new FormData(form, button2);
+  testing.expectEqual('test', fd2.get('data'));
+  testing.expectEqual('second', fd2.get('btn'));
+  testing.expectEqual(['second'], fd2.getAll('btn'));
+
+  // No submitter - no button included
+  const fd3 = new FormData(form);
+  testing.expectEqual('test', fd3.get('data'));
+  testing.expectEqual(null, fd3.get('btn'));
+}
+</script>
+
+<script id=mixedSubmitTypes>
+{
+  // Test mix of input[type=submit], input[type=image], and button
+  const form = document.createElement('form');
+
+  const field = document.createElement('input');
+  field.name = 'name';
+  field.value = 'Bob';
+  form.appendChild(field);
+
+  const submit = document.createElement('input');
+  submit.type = 'submit';
+  submit.name = 'op';
+  submit.value = 'save';
+  form.appendChild(submit);
+
+  const image = document.createElement('input');
+  image.type = 'image';
+  image.name = 'map';
+  form.appendChild(image);
+
+  const button = document.createElement('button');
+  button.type = 'submit';
+  button.name = 'op';
+  button.value = 'delete';
+  form.appendChild(button);
+
+  // Using image as submitter - only image coordinates included
+  const fd1 = new FormData(form, image);
+  testing.expectEqual('Bob', fd1.get('name'));
+  testing.expectEqual('0', fd1.get('map.x'));
+  testing.expectEqual('0', fd1.get('map.y'));
+  testing.expectEqual(null, fd1.get('op'));
+
+  // Using submit as submitter
+  const fd2 = new FormData(form, submit);
+  testing.expectEqual('Bob', fd2.get('name'));
+  testing.expectEqual('save', fd2.get('op'));
+  testing.expectEqual(null, fd2.get('map.x'));
+  testing.expectEqual(null, fd2.get('map.y'));
+
+  // Using button as submitter
+  const fd3 = new FormData(form, button);
+  testing.expectEqual('Bob', fd3.get('name'));
+  testing.expectEqual('delete', fd3.get('op'));
+  testing.expectEqual(null, fd3.get('map.x'));
+}
+</script>
+
+<script id=submitterWithoutName>
+{
+  // Test that submitter without name is not included
+  const form = document.createElement('form');
+
+  const input = document.createElement('input');
+  input.name = 'field';
+  input.value = 'data';
+  form.appendChild(input);
+
+  const submit = document.createElement('input');
+  submit.type = 'submit';
+  // no name attribute
+  submit.value = 'Submit';
+  form.appendChild(submit);
+
+  const fd = new FormData(form, submit);
+  testing.expectEqual('data', fd.get('field'));
+  // Should not have any submit-related entries
+  const entries = Array.from(fd.entries());
+  testing.expectEqual([['field', 'data']], entries);
+}
+</script>
+
+<script id=disabledFieldset>
+{
+  // Elements inside a disabled fieldset should not be included
+  const form = document.createElement('form');
+
+  const fieldset = document.createElement('fieldset');
+  fieldset.disabled = true;
+
+  const inside = document.createElement('input');
+  inside.name = 'inside';
+  inside.value = 'nope';
+  fieldset.appendChild(inside);
+
+  const outside = document.createElement('input');
+  outside.name = 'outside';
+  outside.value = 'yes';
+
+  form.appendChild(fieldset);
+  form.appendChild(outside);
+
+  const fd = new FormData(form);
+  testing.expectEqual(null, fd.get('inside'));
+  testing.expectEqual('yes', fd.get('outside'));
+}
+</script>
+
+<script id=disabledFieldsetLegendExemption>
+{
+  // Elements inside the FIRST legend of a disabled fieldset are NOT disabled
+  const form = document.createElement('form');
+
+  const fieldset = document.createElement('fieldset');
+  fieldset.disabled = true;
+
+  const legend = document.createElement('legend');
+  const inLegend = document.createElement('input');
+  inLegend.name = 'in-legend';
+  inLegend.value = 'exempt';
+  legend.appendChild(inLegend);
+
+  const notInLegend = document.createElement('input');
+  notInLegend.name = 'not-in-legend';
+  notInLegend.value = 'nope';
+
+  fieldset.appendChild(legend);
+  fieldset.appendChild(notInLegend);
+  form.appendChild(fieldset);
+
+  const fd = new FormData(form);
+  testing.expectEqual('exempt', fd.get('in-legend'));
+  testing.expectEqual(null, fd.get('not-in-legend'));
+}
+</script>
+
+<script id=disabledFieldsetSecondLegend>
+{
+  // Only the FIRST legend gets the exemption; second legend inputs are still disabled
+  const form = document.createElement('form');
+
+  const fieldset = document.createElement('fieldset');
+  fieldset.disabled = true;
+
+  const legend1 = document.createElement('legend');
+  const inLegend1 = document.createElement('input');
+  inLegend1.name = 'first-legend';
+  inLegend1.value = 'exempt';
+  legend1.appendChild(inLegend1);
+
+  const legend2 = document.createElement('legend');
+  const inLegend2 = document.createElement('input');
+  inLegend2.name = 'second-legend';
+  inLegend2.value = 'nope';
+  legend2.appendChild(inLegend2);
+
+  fieldset.appendChild(legend1);
+  fieldset.appendChild(legend2);
+  form.appendChild(fieldset);
+
+  const fd = new FormData(form);
+  testing.expectEqual('exempt', fd.get('first-legend'));
+  testing.expectEqual(null, fd.get('second-legend'));
+}
+</script>
+
+<script id=disabledFieldsetNested>
+{
+  // Outer fieldset disabled: inner enabled fieldset's elements are still disabled
+  const form = document.createElement('form');
+
+  const outer = document.createElement('fieldset');
+  outer.disabled = true;
+
+  const inner = document.createElement('fieldset');
+  // inner is NOT disabled itself
+
+  const input = document.createElement('input');
+  input.name = 'deep';
+  input.value = 'nope';
+  inner.appendChild(input);
+
+  outer.appendChild(inner);
+  form.appendChild(outer);
+
+  const fd = new FormData(form);
+  testing.expectEqual(null, fd.get('deep'));
+}
+</script>
+
+<script id=imageWithoutName>
+{
+  // Test that image input without name still submits x and y coordinates
+  const form = document.createElement('form');
+
+  const input = document.createElement('input');
+  input.name = 'field';
+  input.value = 'data';
+  form.appendChild(input);
+
+  const image = document.createElement('input');
+  image.type = 'image';
+  // no name attribute
+  form.appendChild(image);
+
+  const fd = new FormData(form, image);
+  testing.expectEqual('data', fd.get('field'));
+  // Image without name submits plain 'x' and 'y' keys
+  testing.expectEqual('0', fd.get('x'));
+  testing.expectEqual('0', fd.get('y'));
+  const entries = Array.from(fd.entries());
+  testing.expectEqual([['field', 'data'], ['x', '0'], ['y', '0']], entries);
+}
+</script>
+
+<script id=formDataEventFires>
+{
+  // formdata event fires on the form when FormData is constructed with a form
+  const form = document.createElement('form');
+
+  const input = document.createElement('input');
+  input.name = 'field';
+  input.value = 'hello';
+  form.appendChild(input);
+
+  let eventFired = false;
+  let receivedFormData = null;
+
+  form.addEventListener('formdata', (e) => {
+    eventFired = true;
+    receivedFormData = e.formData;
+  });
+
+  const fd = new FormData(form);
+  testing.expectEqual(true, eventFired);
+  testing.expectEqual(fd, receivedFormData);
+}
+</script>
+
+<script id=formDataEventNotFiredWithoutForm>
+{
+  // formdata event should NOT fire when FormData is constructed without a form
+  const fd = new FormData();
+  fd.append('a', '1');
+  testing.expectEqual('1', fd.get('a'));
+}
+</script>
+
+<script id=formDataEventBubbles>
+{
+  // formdata event should bubble
+  const container = document.createElement('div');
+  const form = document.createElement('form');
+  container.appendChild(form);
+  document.body.appendChild(container);
+
+  const input = document.createElement('input');
+  input.name = 'x';
+  input.value = '1';
+  form.appendChild(input);
+
+  let bubbled = false;
+  container.addEventListener('formdata', () => {
+    bubbled = true;
+  });
+
+  const fd = new FormData(form);
+  testing.expectEqual(true, bubbled);
+
+  document.body.removeChild(container);
+}
+</script>
+
+<script id=formDataEventNotCancelable>
+{
+  // formdata event should not be cancelable
+  const form = document.createElement('form');
+
+  const input = document.createElement('input');
+  input.name = 'key';
+  input.value = 'val';
+  form.appendChild(input);
+
+  let cancelable = null;
+  form.addEventListener('formdata', (e) => {
+    cancelable = e.cancelable;
+  });
+
+  const fd = new FormData(form);
+  testing.expectEqual(false, cancelable);
+}
+</script>
+
+<script id=formDataEventModifyFormData>
+{
+  // Listeners can modify formData during the event
+  const form = document.createElement('form');
+
+  const input = document.createElement('input');
+  input.name = 'original';
+  input.value = 'data';
+  form.appendChild(input);
+
+  form.addEventListener('formdata', (e) => {
+    e.formData.append('added', 'by-listener');
+  });
+
+  const fd = new FormData(form);
+  testing.expectEqual('data', fd.get('original'));
+  testing.expectEqual('by-listener', fd.get('added'));
+}
+</script>

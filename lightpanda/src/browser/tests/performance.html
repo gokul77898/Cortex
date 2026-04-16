@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<script src="testing.js"></script>
+
+<script id=performance>
+  testing.expectEqual(performance, window.performance);
+</script>
+
+<script id=now_returns_number>
+  const t = performance.now();
+  testing.expectEqual('number', typeof t);
+  testing.expectEqual(true, t >= 0);
+</script>
+
+<script id=now_increases>
+  const t1 = performance.now();
+  const t2 = performance.now();
+  testing.expectEqual(true, t2 >= t1);
+</script>
+
+<script id=timeOrigin>
+  const origin = performance.timeOrigin;
+  testing.expectEqual('number', typeof origin);
+  testing.expectEqual(true, origin > 0);
+</script>
+
+<script id=now_relative_to_origin>
+  {
+    const t = performance.now();
+    const now = Date.now();
+    testing.expectEqual(true, t < now);
+  }
+</script>
+
+<script id=multiple_calls>
+  {
+    const times = [];
+    for (let i = 0; i < 5; i++) {
+      times.push(performance.now());
+    }
+
+    for (let i = 1; i < times.length; i++) {
+      testing.expectEqual(true, times[i] >= times[i-1]);
+    }
+  }
+</script>
+
+<script id=mark>
+  {
+    let mark1 = performance.mark("start");
+    testing.expectEqual(true, mark1 instanceof PerformanceMark);
+    testing.expectEqual('start', mark1.name);
+    testing.expectEqual('mark', mark1.entryType);
+    testing.expectEqual(0, mark1.duration);
+    testing.expectEqual(null, mark1.detail);
+
+    let mark2 = performance.mark("start", {startTime: 32939393.9});
+    testing.expectEqual(32939393.9, mark2.startTime);
+  }
+</script>
+
+<script id=getEntries>
+  {
+    // Clear any existing marks first
+    performance.clearMarks();
+
+    const entries1 = performance.getEntries();
+    const initialCount = entries1.length;
+
+    performance.mark("test1");
+    performance.mark("test2");
+    performance.mark("test3");
+
+    const entries2 = performance.getEntries();
+    testing.expectEqual(initialCount + 3, entries2.length);
+  }
+</script>
+
+<script id=getEntriesByType>
+  {
+    performance.clearMarks();
+
+    performance.mark("mark1");
+    performance.mark("mark2");
+
+    const marks = performance.getEntriesByType("mark");
+    testing.expectEqual(2, marks.length);
+    testing.expectEqual('mark1', marks[0].name);
+    testing.expectEqual('mark2', marks[1].name);
+  }
+</script>
+
+<script id=getEntriesByName>
+  {
+    performance.clearMarks();
+
+    performance.mark("myMark");
+    performance.mark("otherMark");
+    performance.mark("myMark");
+
+    const entries = performance.getEntriesByName("myMark");
+    testing.expectEqual(2, entries.length);
+    testing.expectEqual('myMark', entries[0].name);
+    testing.expectEqual('myMark', entries[1].name);
+
+    const byType = performance.getEntriesByName("myMark", "mark");
+    testing.expectEqual(2, byType.length);
+  }
+</script>
+
+<script id=clearMarks>
+  {
+    performance.clearMarks();
+
+    performance.mark("mark1");
+    performance.mark("mark2");
+    performance.mark("mark3");
+
+    let marks = performance.getEntriesByType("mark");
+    testing.expectEqual(3, marks.length);
+
+    // Clear specific mark
+    performance.clearMarks("mark2");
+    marks = performance.getEntriesByType("mark");
+    testing.expectEqual(2, marks.length);
+    testing.expectEqual('mark1', marks[0].name);
+    testing.expectEqual('mark3', marks[1].name);
+
+    // Clear all marks
+    performance.clearMarks();
+    marks = performance.getEntriesByType("mark");
+    testing.expectEqual(0, marks.length);
+  }
+</script>
+
+<script id=measure_basic>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    let measure1 = performance.measure("basic-measure");
+    testing.expectEqual(true, measure1 instanceof PerformanceMeasure);
+    testing.expectEqual('basic-measure', measure1.name);
+    testing.expectEqual('measure', measure1.entryType);
+    testing.expectEqual(null, measure1.detail);
+  }
+</script>
+
+<script id=measure_between_marks>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    performance.mark("start");
+    performance.mark("end");
+
+    let measure = performance.measure("duration", {
+      start: "start",
+      end: "end"
+    });
+
+    testing.expectEqual('duration', measure.name);
+    testing.expectEqual('measure', measure.entryType);
+    testing.expectEqual(true, measure.duration >= 0);
+    testing.expectEqual(true, measure.startTime >= 0);
+  }
+</script>
+
+<script id=measure_no_arguments>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    let measure = performance.measure("from-start");
+    testing.expectEqual('from-start', measure.name);
+    testing.expectEqual(0, measure.startTime);
+    testing.expectEqual(true, measure.duration > 0);
+  }
+</script>
+
+<script id=measure_with_duration>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    let measure = performance.measure("fixed-duration", {
+      duration: 100.5
+    });
+
+    testing.expectEqual('fixed-duration', measure.name);
+    testing.expectEqual(100.5, measure.duration);
+    testing.expectEqual(0, measure.startTime);
+  }
+</script>
+
+<script id=measure_with_detail>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    let detail = { foo: "bar", count: 42 };
+    let measure = performance.measure("with-detail", {
+      detail: detail
+    });
+
+    testing.expectEqual('with-detail', measure.name);
+    testing.expectEqual(true, measure.detail !== null);
+    testing.expectEqual('bar', measure.detail.foo);
+    testing.expectEqual(42, measure.detail.count);
+  }
+</script>
+
+<script id=getEntriesByType_measure>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    performance.measure("measure1");
+    performance.measure("measure2");
+    performance.measure("measure3");
+
+    const measures = performance.getEntriesByType("measure");
+    testing.expectEqual(3, measures.length);
+    testing.expectEqual('measure1', measures[0].name);
+    testing.expectEqual('measure2', measures[1].name);
+    testing.expectEqual('measure3', measures[2].name);
+  }
+</script>
+
+<script id=clearMeasures>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    performance.measure("measure1");
+    performance.measure("measure2");
+    performance.measure("measure3");
+
+    let measures = performance.getEntriesByType("measure");
+    testing.expectEqual(3, measures.length);
+
+    // Clear specific measure
+    performance.clearMeasures("measure2");
+    measures = performance.getEntriesByType("measure");
+    testing.expectEqual(2, measures.length);
+    testing.expectEqual('measure1', measures[0].name);
+    testing.expectEqual('measure3', measures[1].name);
+
+    // Clear all measures
+    performance.clearMeasures();
+    measures = performance.getEntriesByType("measure");
+    testing.expectEqual(0, measures.length);
+  }
+</script>
+
+<script id=measure_with_navigation_timing_marks>
+  {
+    // performance.measure() must accept PerformanceTiming attribute names
+    // (e.g. "fetchStart") as start/end marks per the W3C User Timing Level 2 spec.
+    // https://www.w3.org/TR/user-timing/#dom-performance-measure
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    performance.mark("mark-dataComplete");
+    let m = performance.measure("dataComplete", "fetchStart", "mark-dataComplete");
+    testing.expectEqual('dataComplete', m.name);
+    testing.expectEqual('measure', m.entryType);
+    testing.expectEqual(true, m.duration >= 0);
+
+    // navigationStart is also a valid mark name (was already supported)
+    performance.mark("mark-end");
+    let m2 = performance.measure("fromNav", "navigationStart", "mark-end");
+    testing.expectEqual('fromNav', m2.name);
+    testing.expectEqual(true, m2.duration >= 0);
+  }
+</script>
+
+<script id=performance_timing_exists>
+  {
+    // performance.timing must not be undefined (used by sites like Bing)
+    testing.expectEqual(true, performance.timing !== undefined);
+    testing.expectEqual(true, performance.timing !== null);
+  }
+</script>
+
+<script id=performance_timing_navigationStart>
+  {
+    // navigationStart must be a number (sites access performance.timing.navigationStart)
+    const timing = performance.timing;
+    testing.expectEqual('number', typeof timing.navigationStart);
+    testing.expectEqual(0, timing.navigationStart);
+  }
+</script>
+
+<script id=performance_timing_all_properties>
+  {
+    // All PerformanceTiming properties must be accessible and return numbers
+    const timing = performance.timing;
+    const props = [
+      'navigationStart', 'unloadEventStart', 'unloadEventEnd',
+      'redirectStart', 'redirectEnd', 'fetchStart',
+      'domainLookupStart', 'domainLookupEnd',
+      'connectStart', 'connectEnd', 'secureConnectionStart',
+      'requestStart', 'responseStart', 'responseEnd',
+      'domLoading', 'domInteractive',
+      'domContentLoadedEventStart', 'domContentLoadedEventEnd',
+      'domComplete', 'loadEventStart', 'loadEventEnd',
+    ];
+    for (const prop of props) {
+      testing.expectEqual('number', typeof timing[prop]);
+    }
+  }
+</script>
+
+<script id=performance_timing_same_object>
+  {
+    // performance.timing should return the same object on each access
+    testing.expectEqual(true, performance.timing === performance.timing);
+  }
+</script>
+
+<script id=mixed_marks_and_measures>
+  {
+    performance.clearMarks();
+    performance.clearMeasures();
+
+    performance.mark("mark1");
+    performance.measure("measure1");
+    performance.mark("mark2");
+    performance.measure("measure2");
+
+    const allEntries = performance.getEntries();
+    testing.expectEqual(true, allEntries.length >= 4);
+
+    const marks = performance.getEntriesByType("mark");
+    testing.expectEqual(2, marks.length);
+
+    const measures = performance.getEntriesByType("measure");
+    testing.expectEqual(2, measures.length);
+
+    // Clearing marks shouldn't affect measures
+    performance.clearMarks();
+    const remainingMeasures = performance.getEntriesByType("measure");
+    testing.expectEqual(2, remainingMeasures.length);
+
+    const remainingMarks = performance.getEntriesByType("mark");
+    testing.expectEqual(0, remainingMarks.length);
+  }
+</script>
+
+<script id=performance_timing_exists>
+  {
+    // Navigation Timing Level 1: performance.timing must be an object, not undefined
+    testing.expectEqual('object', typeof performance.timing);
+    testing.expectEqual(false, performance.timing === null);
+  }
+</script>
+
+<script id=performance_timing_navigationStart>
+  {
+    // The most commonly used property — must be a number (not undefined)
+    testing.expectEqual('number', typeof performance.timing.navigationStart);
+    testing.expectEqual(0, performance.timing.navigationStart);
+  }
+</script>
+
+<script id=performance_navigation_exists>
+  {
+    // Navigation Timing Level 1: performance.navigation must be an object, not undefined
+    testing.expectEqual('object', typeof performance.navigation);
+    testing.expectEqual(false, performance.navigation === null);
+    testing.expectEqual('number', typeof performance.navigation.type);
+    testing.expectEqual('number', typeof performance.navigation.redirectCount);
+    testing.expectEqual(0, performance.navigation.type);
+    testing.expectEqual(0, performance.navigation.redirectCount);
+  }
+</script>
+
+<script id=performance_timing_all_properties>
+  {
+    const t = performance.timing;
+    const props = [
+      'navigationStart', 'unloadEventStart', 'unloadEventEnd',
+      'redirectStart', 'redirectEnd', 'fetchStart',
+      'domainLookupStart', 'domainLookupEnd',
+      'connectStart', 'connectEnd', 'secureConnectionStart',
+      'requestStart', 'responseStart', 'responseEnd',
+      'domLoading', 'domInteractive',
+      'domContentLoadedEventStart', 'domContentLoadedEventEnd',
+      'domComplete', 'loadEventStart', 'loadEventEnd',
+    ];
+    for (const prop of props) {
+      testing.expectEqual('number', typeof t[prop]);
+    }
+  }
+</script>

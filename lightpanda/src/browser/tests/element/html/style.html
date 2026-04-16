@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<script src="../../testing.js"></script>
+
+<script id="sheet">
+  {
+    // Disconnected style element should have no sheet
+    testing.expectEqual(null, document.createElement('style').sheet);
+
+    // Connected style element should have a CSSStyleSheet
+    const style = document.createElement('style');
+    document.head.appendChild(style);
+    testing.expectEqual(true, style.sheet instanceof CSSStyleSheet);
+
+    // Same sheet instance on repeated access
+    testing.expectEqual(true, style.sheet === style.sheet);
+
+    // Non-CSS type should have no sheet
+    const lessStyle = document.createElement('style');
+    lessStyle.type = 'text/less';
+    document.head.appendChild(lessStyle);
+    testing.expectEqual(null, lessStyle.sheet);
+
+    // Empty type attribute is valid (defaults to text/css per spec)
+    const emptyType = document.createElement('style');
+    emptyType.setAttribute('type', '');
+    document.head.appendChild(emptyType);
+    testing.expectEqual(true, emptyType.sheet instanceof CSSStyleSheet);
+
+    // Case-insensitive type check
+    const upperType = document.createElement('style');
+    upperType.type = 'TEXT/CSS';
+    document.head.appendChild(upperType);
+    testing.expectEqual(true, upperType.sheet instanceof CSSStyleSheet);
+
+    // Disconnection clears sheet
+    const tempStyle = document.createElement('style');
+    document.head.appendChild(tempStyle);
+    testing.expectEqual(true, tempStyle.sheet instanceof CSSStyleSheet);
+    document.head.removeChild(tempStyle);
+    testing.expectEqual(null, tempStyle.sheet);
+
+    // ownerNode points back to the style element
+    const ownStyle = document.createElement('style');
+    document.head.appendChild(ownStyle);
+    testing.expectEqual(true, ownStyle.sheet.ownerNode === ownStyle);
+  }
+</script>
+
+<script id="type">
+  {
+    const style = document.createElement('style');
+    testing.expectEqual('text/css', style.type);
+
+    style.type = 'text/plain';
+    testing.expectEqual('text/plain', style.type);
+  }
+</script>
+
+<script id="media">
+  {
+    const style = document.createElement('style');
+    testing.expectEqual('', style.media);
+
+    style.media = 'screen';
+    testing.expectEqual('screen', style.media);
+
+    style.media = 'print and (max-width: 600px)';
+    testing.expectEqual('print and (max-width: 600px)', style.media);
+  }
+</script>
+
+<script id="blocking">
+  {
+    const style = document.createElement('style');
+    testing.expectEqual('', style.blocking);
+
+    style.blocking = 'render';
+    testing.expectEqual('render', style.blocking);
+  }
+</script>
+
+<script id="disabled">
+  {
+    const style = document.createElement('style');
+    testing.expectEqual(false, style.disabled);
+
+    style.disabled = true;
+    testing.expectEqual(true, style.disabled);
+
+    style.disabled = false;
+    testing.expectEqual(false, style.disabled);
+  }
+</script>
+
+<script id="attributes">
+  {
+    const style = document.createElement('style');
+
+    style.setAttribute('media', 'screen');
+    testing.expectEqual('screen', style.media);
+
+    style.setAttribute('type', 'text/less');
+    testing.expectEqual('text/less', style.type);
+
+    style.setAttribute('disabled', '');
+    testing.expectEqual(true, style.disabled);
+  }
+</script>
+
+<script id="style-load-event">
+{
+  // A style element fires a load event when appended to the DOM.
+  const style = document.createElement("style");
+  let result = false;
+  testing.async(async () => {
+    await new Promise(resolve => {
+      style.addEventListener("load", ({ bubbles, cancelBubble, cancelable, composed, isTrusted, target }) => {
+        testing.expectEqual(false, bubbles);
+        testing.expectEqual(false, cancelBubble);
+        testing.expectEqual(false, cancelable);
+        testing.expectEqual(false, composed);
+        testing.expectEqual(true, isTrusted);
+        testing.expectEqual(style, target);
+        result = true;
+        return resolve();
+      });
+      document.head.appendChild(style);
+    });
+  });
+
+  testing.onload(() => testing.expectEqual(true, result));
+}
+</script>
+
+<script id="style-tag-content-parsing">
+{
+  const style = document.createElement("style");
+  style.textContent = '.content-test { padding: 5px; }';
+  document.head.appendChild(style);
+
+  const sheet = style.sheet;
+  testing.expectTrue(sheet instanceof CSSStyleSheet);
+  testing.expectEqual(1, sheet.cssRules.length);
+  testing.expectEqual('.content-test', sheet.cssRules[0].selectorText);
+  testing.expectEqual('5px', sheet.cssRules[0].style.padding);
+}
+</script>

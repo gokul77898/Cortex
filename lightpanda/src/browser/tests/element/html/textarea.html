@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<script src="../../testing.js"></script>
+
+<!-- TextArea elements -->
+<textarea id="textarea1">initial text</textarea>
+<textarea id="textarea2"></textarea>
+<textarea id="textarea3" disabled>disabled text</textarea>
+
+<!-- Form association tests -->
+<form id="form1">
+  <textarea id="textarea_in_form">in form</textarea>
+</form>
+
+<form id="form2"></form>
+<textarea id="textarea_with_form_attr" form="form2">with form attr</textarea>
+
+<textarea id="textarea_no_form">no form</textarea>
+
+<form id="form3">
+  <textarea id="textarea_invalid_form_attr" form="nonexistent">invalid form</textarea>
+</form>
+
+<script id="value_initial">
+  testing.expectEqual('initial text', $('#textarea1').value)
+  testing.expectEqual('', $('#textarea2').value)
+</script>
+
+<script id="value_set">
+  $('#textarea1').value = 'changed'
+  testing.expectEqual('changed', $('#textarea1').value)
+
+  $('#textarea2').value = 'new value'
+  testing.expectEqual('new value', $('#textarea2').value)
+</script>
+
+<script id="defaultValue">
+  testing.expectEqual('initial text', $('#textarea1').defaultValue)
+  testing.expectEqual('', $('#textarea2').defaultValue)
+
+  // Setting value shouldn't change defaultValue
+  $('#textarea1').value = 'changed'
+  testing.expectEqual('initial text', $('#textarea1').defaultValue)
+</script>
+
+<script id="defaultValue_set">
+  {
+    const textarea = document.createElement('textarea')
+    testing.expectEqual('', textarea.defaultValue)
+    testing.expectEqual('', textarea.value)
+
+    // Setting defaultValue should update the text content
+    textarea.defaultValue = 'new default'
+    testing.expectEqual('new default', textarea.defaultValue)
+    testing.expectEqual('new default', textarea.value)
+    testing.expectEqual('new default', textarea.textContent)
+
+    // Setting value should not affect defaultValue
+    textarea.value = 'user input'
+    testing.expectEqual('new default', textarea.defaultValue)
+    testing.expectEqual('user input', textarea.value)
+
+    // Test setting defaultValue on element that already has content
+    const textarea2 = document.createElement('textarea')
+    textarea2.textContent = 'initial content'
+    testing.expectEqual('initial content', textarea2.defaultValue)
+
+    textarea2.defaultValue = 'modified default'
+    testing.expectEqual('modified default', textarea2.defaultValue)
+    testing.expectEqual('modified default', textarea2.textContent)
+  }
+</script>
+
+<script id="disabled_initial">
+  testing.expectEqual(false, $('#textarea1').disabled)
+  testing.expectEqual(true, $('#textarea3').disabled)
+</script>
+
+<script id="disabled_set">
+  $('#textarea1').disabled = true
+  testing.expectEqual(true, $('#textarea1').disabled)
+
+  $('#textarea3').disabled = false
+  testing.expectEqual(false, $('#textarea3').disabled)
+</script>
+
+<script id="form_ancestor">
+  const textareaInForm = $('#textarea_in_form')
+  testing.expectEqual('FORM', textareaInForm.form.tagName)
+  testing.expectEqual('form1', textareaInForm.form.id)
+</script>
+
+<script id="form_attribute">
+  const textareaWithFormAttr = $('#textarea_with_form_attr')
+  testing.expectEqual('FORM', textareaWithFormAttr.form.tagName)
+  testing.expectEqual('form2', textareaWithFormAttr.form.id)
+</script>
+
+<script id="form_null">
+  const textareaNoForm = $('#textarea_no_form')
+  testing.expectEqual(null, textareaNoForm.form)
+</script>
+
+<script id="form_invalid_attribute">
+  const textareaInvalidFormAttr = $('#textarea_invalid_form_attr')
+  testing.expectEqual(null, textareaInvalidFormAttr.form)
+</script>
+
+<textarea id="named1" name="comments"></textarea>
+<textarea id="named2"></textarea>
+
+<textarea id="required1" required></textarea>
+<textarea id="required2"></textarea>
+
+<script id="name_initial">
+  testing.expectEqual('comments', $('#named1').name)
+  testing.expectEqual('', $('#named2').name)
+</script>
+
+<script id="name_set">
+  {
+    const textarea = document.createElement('textarea')
+    testing.expectEqual('', textarea.name)
+
+    textarea.name = 'message'
+    testing.expectEqual('message', textarea.name)
+    testing.expectEqual('message', textarea.getAttribute('name'))
+
+    textarea.name = 'feedback'
+    testing.expectEqual('feedback', textarea.name)
+    testing.expectEqual('feedback', textarea.getAttribute('name'))
+  }
+</script>
+
+<script id="name_reflects_to_attribute">
+  {
+    const textarea = document.createElement('textarea')
+    testing.expectEqual(null, textarea.getAttribute('name'))
+
+    textarea.name = 'fieldname'
+    testing.expectEqual('fieldname', textarea.getAttribute('name'))
+    testing.expectTrue(textarea.outerHTML.includes('name="fieldname"'))
+  }
+</script>
+
+<script id="required_initial">
+  testing.expectEqual(true, $('#required1').required)
+  testing.expectEqual(false, $('#required2').required)
+</script>
+
+<script id="required_set">
+  {
+    const textarea = document.createElement('textarea')
+    testing.expectEqual(false, textarea.required)
+
+    textarea.required = true
+    testing.expectEqual(true, textarea.required)
+    testing.expectEqual('', textarea.getAttribute('required'))
+
+    textarea.required = false
+    testing.expectEqual(false, textarea.required)
+    testing.expectEqual(null, textarea.getAttribute('required'))
+  }
+</script>
+
+<script id="required_reflects_to_attribute">
+  {
+    const textarea = document.createElement('textarea')
+    testing.expectEqual(null, textarea.getAttribute('required'))
+    testing.expectFalse(textarea.outerHTML.includes('required'))
+
+    textarea.required = true
+    testing.expectEqual('', textarea.getAttribute('required'))
+    testing.expectTrue(textarea.outerHTML.includes('required'))
+
+    textarea.required = false
+    testing.expectEqual(null, textarea.getAttribute('required'))
+    testing.expectFalse(textarea.outerHTML.includes('required'))
+  }
+</script>
+
+<script id="clone_basic">
+  {
+    const original = document.createElement('textarea')
+    original.defaultValue = 'default text'
+    testing.expectEqual('default text', original.value)
+
+    // Change the value
+    original.value = 'user modified'
+    testing.expectEqual('user modified', original.value)
+    testing.expectEqual('default text', original.defaultValue)
+
+    // Clone the textarea
+    const clone = original.cloneNode(true)
+
+    // Clone should have the runtime value copied
+    testing.expectEqual('user modified', clone.value)
+    testing.expectEqual('default text', clone.defaultValue)
+  }
+</script>
+
+<script id="clone_preserves_user_changes">
+  {
+    // Create a fresh element to avoid interfering with other tests
+    const original = document.createElement('textarea')
+    original.textContent = 'initial text'
+    testing.expectEqual('initial text', original.defaultValue)
+    testing.expectEqual('initial text', original.value)
+
+    // User modifies the value
+    original.value = 'user typed this'
+    testing.expectEqual('user typed this', original.value)
+    testing.expectEqual('initial text', original.defaultValue)
+
+    // Clone should preserve the user's changes
+    const clone = original.cloneNode(true)
+    testing.expectEqual('user typed this', clone.value)
+    testing.expectEqual('initial text', clone.defaultValue)
+  }
+</script>
+
+<script id="clone_empty_textarea">
+  {
+    const original = document.createElement('textarea')
+    testing.expectEqual('', original.value)
+
+    original.value = 'some content'
+    const clone = original.cloneNode(true)
+
+    testing.expectEqual('some content', clone.value)
+  }
+</script>
+
+<script id="select_event">
+  {
+    const textarea = document.createElement('textarea');
+    textarea.value = 'Hello World';
+    document.body.appendChild(textarea);
+
+    let eventCount = 0;
+    let lastEvent = null;
+
+    textarea.addEventListener('select', (e) => {
+      eventCount++;
+      lastEvent = e;
+    });
+
+    let onselectFired = false;
+    textarea.onselect = () => { onselectFired = true; };
+
+    let bubbledToBody = false;
+    document.body.addEventListener('select', () => {
+      bubbledToBody = true;
+    });
+
+    testing.expectEqual(0, eventCount);
+
+    textarea.select();
+
+    testing.onload(() => {
+      testing.expectEqual(1, eventCount);
+      testing.expectEqual('select', lastEvent.type);
+      testing.expectEqual(textarea, lastEvent.target);
+      testing.expectEqual(true, lastEvent.bubbles);
+      testing.expectEqual(false, lastEvent.cancelable);
+      testing.expectEqual(true, bubbledToBody);
+      testing.expectEqual(true, onselectFired);
+    });
+  }
+</script>
+
+<script id="selectionchange_event">
+  {
+    const textarea = document.createElement('textarea');
+    textarea.value = 'Hello World';
+    document.body.appendChild(textarea);
+    
+    let eventCount = 0;
+    let lastEvent = null;
+    
+    textarea.addEventListener('selectionchange', (e) => {
+      eventCount++;
+      lastEvent = e;
+    });
+    
+    testing.expectEqual(0, eventCount);
+    
+    textarea.setSelectionRange(0, 5);
+    textarea.select();
+    textarea.selectionStart = 3;
+    textarea.selectionEnd = 8;
+    
+    let bubbledToBody = false;
+    document.body.addEventListener('selectionchange', () => {
+      bubbledToBody = true;
+    });
+    textarea.setSelectionRange(1, 4);
+    
+    testing.onload(() => {
+      testing.expectEqual(5, eventCount);
+      testing.expectEqual('selectionchange', lastEvent.type);
+      testing.expectEqual(textarea, lastEvent.target);
+      testing.expectEqual(true, lastEvent.bubbles);
+      testing.expectEqual(false, lastEvent.cancelable);
+      testing.expectEqual(true, bubbledToBody);
+    });
+  }
+</script>

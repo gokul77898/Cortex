@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<script id=setInterval>
+  let set_interval1 = false
+  let timer1 = window.setInterval(function() {
+    set_interval1 = true;
+    testing.expectEqual(window, this);
+  }, 1);
+
+  let set_interval2 = false
+  let timer2 = window.setInterval(function() {
+    set_interval2 = true;
+  }, 1)
+  window.clearInterval(timer2);
+
+  testing.expectEqual(true, timer1 != timer2);
+
+
+  testing.onload(() => {
+    testing.expectEqual(true, set_interval1);
+    testing.expectEqual(false, set_interval2);
+  });
+</script>
+
+<script id=setTimeout>
+  testing.expectEqual(1, window.setTimeout.length);
+  let wst2 = 1;
+  window.setTimeout((a, b) => {
+    wst2 = a + b;
+  }, 1, 2, 3);
+  testing.onload(() => testing.expectEqual(5, wst2));
+</script>
+
+<script id=invalid-timer-clear>
+  // Surprisingly, these don't fail but silently ignored.
+  clearTimeout(-1);
+  clearInterval(-2);
+  clearImmediate(-3);
+  testing.expectEqual(true, true);
+</script>

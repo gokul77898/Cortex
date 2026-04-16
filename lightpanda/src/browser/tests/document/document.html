@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<head id="the_head">
+  <meta charset="UTF-8">
+  <title>Test Document Title</title>
+  <script src="../testing.js"></script>
+</head>
+
+<body id=the_body>
+</body>
+
+<script id=document>
+  testing.expectEqual(10, document.childNodes[0].nodeType);
+  testing.expectEqual(null, document.parentNode);
+  testing.expectEqual(undefined, document.getCurrentScript);
+  testing.expectEqual(testing.BASE_URL + 'document/document.html', document.URL);
+  testing.expectEqual(window, document.defaultView);
+  testing.expectEqual(false, document.hidden);
+  testing.expectEqual("visible", document.visibilityState);
+  testing.expectEqual(false, document.prerendering);
+  testing.expectEqual(undefined, Document.prerendering);
+</script>
+
+<script id=headAndbody>
+  testing.expectEqual($('#the_head'), document.head);
+  testing.expectEqual($('#the_body'), document.body);
+</script>
+
+<script id=documentElement>
+  testing.expectEqual($('#the_body').parentNode, document.documentElement);
+  testing.expectEqual(document.documentElement, document.scrollingElement);
+</script>
+
+<script id=title>
+  testing.expectEqual('Test Document Title', document.title);
+  document.title = 'New Title';
+  testing.expectEqual('New Title', document.title);
+  document.title = '';
+  testing.expectEqual('', document.title);
+</script>
+
+<script id=createTextNode>
+  const textNode = document.createTextNode('Hello World');
+  testing.expectEqual(3, textNode.nodeType);
+  testing.expectEqual('Hello World', textNode.nodeValue);
+  testing.expectEqual('Hello World', textNode.textContent);
+
+  const emptyText = document.createTextNode('');
+  testing.expectEqual('', emptyText.nodeValue);
+</script>
+
+<script id=document_metadata>
+  // Test document metadata properties on HTML document
+  testing.expectEqual('text/html', document.contentType);
+  testing.expectEqual('UTF-8', document.characterSet);
+  testing.expectEqual('UTF-8', document.charset);
+  testing.expectEqual('UTF-8', document.inputEncoding);
+  testing.expectEqual('CSS1Compat', document.compatMode);
+  testing.expectEqual(document.URL, document.documentURI);
+  testing.expectEqual('', document.referrer);
+  testing.expectEqual(testing.HOST, document.domain);
+</script>
+
+<script id=programmatic_document_metadata>
+  // Test document metadata properties on programmatically created document
+  const doc = new Document();
+  testing.expectEqual('application/xml', doc.contentType);
+  testing.expectEqual('UTF-8', doc.characterSet);
+  testing.expectEqual('UTF-8', doc.charset);
+  testing.expectEqual('UTF-8', doc.inputEncoding);
+  testing.expectEqual('CSS1Compat', doc.compatMode);
+  testing.expectEqual('', doc.referrer);
+  // Programmatic document should have empty domain (no URL/origin)
+  testing.expectEqual(testing.HOST, doc.domain);
+</script>
+
+<!-- Test anchors and links -->
+<a id="link1" href="/page1">Link 1</a>
+<a id="link2" href="/page2">Link 2</a>
+<a id="anchor1" name="section1">Anchor 1</a>
+<a id="anchor2" name="section2">Anchor 2</a>
+<a id="both" href="/page3" name="section3">Both href and name</a>
+<a id="no_attrs">No attributes</a>
+
+<script id=document_links>
+  {
+    // document.links should only include <a> elements with href attribute
+    const links = document.links;
+    testing.expectEqual('HTMLCollection', links.constructor.name);
+    testing.expectEqual(3, links.length);
+
+    // Should include link1, link2, and both
+    testing.expectEqual($('#link1'), links[0]);
+    testing.expectEqual($('#link2'), links[1]);
+    testing.expectEqual($('#both'), links[2]);
+
+    // Indexed access
+    testing.expectEqual($('#link1'), links.item(0));
+    testing.expectEqual($('#link2'), links.item(1));
+    testing.expectEqual($('#both'), links.item(2));
+    testing.expectEqual(null, links.item(3));
+  }
+</script>
+
+<script id=document_anchors>
+  {
+    // document.anchors should only include <a> elements with name attribute
+    const anchors = document.anchors;
+    testing.expectEqual('HTMLCollection', anchors.constructor.name);
+    testing.expectEqual(3, anchors.length);
+
+    // Should include anchor1, anchor2, and both
+    testing.expectEqual($('#anchor1'), anchors[0]);
+    testing.expectEqual($('#anchor2'), anchors[1]);
+    testing.expectEqual($('#both'), anchors[2]);
+
+    // Indexed access
+    testing.expectEqual($('#anchor1'), anchors.item(0));
+    testing.expectEqual($('#anchor2'), anchors.item(1));
+    testing.expectEqual($('#both'), anchors.item(2));
+    testing.expectEqual(null, anchors.item(3));
+  }
+</script>
+
+<script id=links_live_collection>
+  {
+    // Test that document.links is a live collection
+    const links = document.links;
+    const initialLength = links.length;
+
+    // Add a new link
+    const newLink = document.createElement('a');
+    newLink.href = '/new-page';
+    newLink.textContent = 'New Link';
+    document.body.appendChild(newLink);
+
+    testing.expectEqual(initialLength + 1, links.length);
+    testing.expectEqual(newLink, links[links.length - 1]);
+
+    // Remove href attribute - should no longer be in links
+    newLink.removeAttribute('href');
+    testing.expectEqual(initialLength, links.length);
+
+    // Add it back
+    newLink.href = '/another-page';
+    testing.expectEqual(initialLength + 1, links.length);
+
+    // Remove the element
+    newLink.remove();
+    testing.expectEqual(initialLength, links.length);
+  }
+</script>
+
+<script id=anchors_live_collection>
+  // Test that document.anchors is a live collection
+  const anchors = document.anchors;
+  const initialLength = anchors.length;
+
+  // Add a new anchor
+  const newAnchor = document.createElement('a');
+  newAnchor.name = 'new-section';
+  newAnchor.textContent = 'New Anchor';
+  document.body.appendChild(newAnchor);
+
+  testing.expectEqual(initialLength + 1, anchors.length);
+  testing.expectEqual(newAnchor, anchors[anchors.length - 1]);
+
+  // Remove name attribute - should no longer be in anchors
+  newAnchor.removeAttribute('name');
+  testing.expectEqual(initialLength, anchors.length);
+
+  // Add it back
+  newAnchor.name = 'another-section';
+  testing.expectEqual(initialLength + 1, anchors.length);
+
+  // Remove the element
+  newAnchor.remove();
+  testing.expectEqual(initialLength, anchors.length);
+</script>
+
+<script id=cookie_basic>
+  // Basic cookie operations
+  document.cookie = 'testbasic1=Oeschger';
+  testing.expectEqual(true, document.cookie.includes('testbasic1=Oeschger'));
+
+  document.cookie = 'testbasic2=tripe';
+  testing.expectEqual(true, document.cookie.includes('testbasic1=Oeschger'));
+  testing.expectEqual(true, document.cookie.includes('testbasic2=tripe'));
+
+  // HttpOnly should be ignored from JavaScript
+  const beforeHttp = document.cookie;
+  document.cookie = 'IgnoreMy=Ghost; HttpOnly';
+  testing.expectEqual(false, document.cookie.includes('IgnoreMy=Ghost'));
+
+  // Clean up
+  document.cookie = 'testbasic1=; Max-Age=0';
+  document.cookie = 'testbasic2=; Max-Age=0';
+</script>
+
+<script id=cookie_special_chars>
+  // Test special characters in cookie values
+  document.cookie = 'testspaces=hello world';
+  testing.expectEqual(true, document.cookie.includes('testspaces=hello world'));
+  document.cookie = 'testspaces=; Max-Age=0';
+
+  // Test various allowed special characters
+  document.cookie = 'testspecial=!#$%&\'()*+-./';
+  testing.expectEqual(true, document.cookie.includes('testspecial='));
+  document.cookie = 'testspecial=; Max-Age=0';
+
+  // Semicolon terminates the cookie value
+  document.cookie = 'testsemi=before;after';
+  testing.expectEqual(true, document.cookie.includes('testsemi=before'));
+  testing.expectEqual(false, document.cookie.includes('after'));
+  document.cookie = 'testsemi=; Max-Age=0';
+</script>
+
+<script id=cookie_empty_name>
+  // Cookie with empty name (just a value)
+  document.cookie = 'teststandalone';
+  testing.expectEqual(true, document.cookie.includes('teststandalone'));
+  document.cookie = 'teststandalone; Max-Age=0';
+</script>
+
+<script id=cookie_whitespace>
+  // Names and values should be trimmed
+  document.cookie = '  testtrim  =  trimmed_value  ';
+  testing.expectEqual(true, document.cookie.includes('testtrim=trimmed_value'));
+  document.cookie = 'testtrim=; Max-Age=0';
+</script>
+
+<script id=cookie_max_age>
+  // Max-Age=0 should immediately delete
+  document.cookie = 'testtemp0=value; Max-Age=0';
+  testing.expectEqual(false, document.cookie.includes('testtemp0=value'));
+
+  // Negative Max-Age should also delete
+  document.cookie = 'testinstant=value';
+  testing.expectEqual(true, document.cookie.includes('testinstant=value'));
+  document.cookie = 'testinstant=value; Max-Age=-1';
+  testing.expectEqual(false, document.cookie.includes('testinstant=value'));
+
+  // Positive Max-Age should keep cookie
+  document.cookie = 'testkept=value; Max-Age=3600';
+  testing.expectEqual(true, document.cookie.includes('testkept=value'));
+  document.cookie = 'testkept=; Max-Age=0';
+</script>
+
+<script id=cookie_overwrite>
+  // Setting a cookie with the same name should overwrite
+  document.cookie = 'testoverwrite=first';
+  testing.expectEqual(true, document.cookie.includes('testoverwrite=first'));
+
+  document.cookie = 'testoverwrite=second';
+  testing.expectEqual(true, document.cookie.includes('testoverwrite=second'));
+  testing.expectEqual(false, document.cookie.includes('testoverwrite=first'));
+
+  document.cookie = 'testoverwrite=; Max-Age=0';
+</script>
+
+<script id=cookie_path>
+  // Path attribute
+  document.cookie = 'testpath1=value; Path=/';
+  testing.expectEqual(true, document.cookie.includes('testpath1=value'));
+
+  // Different path cookie should coexist
+  document.cookie = 'testpath2=value2; Path=/src';
+  testing.expectEqual(true, document.cookie.includes('testpath1=value'));
+
+  document.cookie = 'testpath1=; Max-Age=0; Path=/';
+  document.cookie = 'testpath2=; Max-Age=0; Path=/src';
+</script>
+
+<script id=cookie_invalid_chars>
+  // Control characters (< 32 or > 126) should be rejected
+  const beforeBad = document.cookie;
+
+  document.cookie = 'testbad1\x00=value';
+  testing.expectEqual(false, document.cookie.includes('testbad1'));
+
+  document.cookie = 'testbad2\x1F=value';
+  testing.expectEqual(false, document.cookie.includes('testbad2'));
+
+  document.cookie = 'testbad3=val\x7F';
+  testing.expectEqual(false, document.cookie.includes('testbad3'));
+</script>
+
+<script id=createAttribute>
+  {
+    var attr = document.createAttribute('hello');
+    testing.expectEqual('hello', attr.name);
+    testing.expectEqual('', attr.value);
+
+    testing.withError((err) => {
+      testing.expectEqual(5, err.code);
+      testing.expectEqual("InvalidCharacterError", err.name);
+    }, () => document.createAttribute(''));
+
+    testing.withError((err) => {
+      testing.expectEqual(5, err.code);
+      testing.expectEqual("InvalidCharacterError", err.name);
+    }, () => document.createAttribute('.over'));
+  }
+</script>
+
+<script id=append>
+{
+  const doc = new Document();
+  const html = doc.createElement('html');
+  const body = doc.createElement('body');
+  const div1 = doc.createElement('div');
+  const div2 = doc.createElement('div');
+
+  doc.append(html);
+  testing.expectEqual(1, doc.childNodes.length);
+  testing.expectEqual(html, doc.childNodes[0]);
+
+  html.append(body);
+  testing.expectEqual(1, html.childNodes.length);
+  testing.expectEqual(body, html.childNodes[0]);
+
+  body.append(div1, div2);
+  testing.expectEqual(2, body.childNodes.length);
+  testing.expectEqual(div1, body.childNodes[0]);
+  testing.expectEqual(div2, body.childNodes[1]);
+
+  body.append('text node');
+  testing.expectEqual(3, body.childNodes.length);
+  testing.expectEqual(3, body.childNodes[2].nodeType);
+  testing.expectEqual('text node', body.childNodes[2].textContent);
+}
+</script>
+
+<script id=prepend>
+{
+  const doc = new Document();
+  const html = doc.createElement('html');
+  const body = doc.createElement('body');
+  const div1 = doc.createElement('div');
+  const div2 = doc.createElement('div');
+  const div3 = doc.createElement('div');
+
+  doc.prepend(html);
+  testing.expectEqual(1, doc.childNodes.length);
+  testing.expectEqual(html, doc.childNodes[0]);
+
+  html.prepend(body);
+  testing.expectEqual(1, html.childNodes.length);
+  testing.expectEqual(body, html.childNodes[0]);
+
+  body.append(div1);
+  body.prepend(div2, div3);
+  testing.expectEqual(3, body.childNodes.length);
+  testing.expectEqual(div2, body.childNodes[0]);
+  testing.expectEqual(div3, body.childNodes[1]);
+  testing.expectEqual(div1, body.childNodes[2]);
+
+  body.prepend('text node');
+  testing.expectEqual(4, body.childNodes.length);
+  testing.expectEqual(3, body.childNodes[0].nodeType);
+  testing.expectEqual('text node', body.childNodes[0].textContent);
+}
+</script>
+
+<script id=children>
+  testing.expectEqual(1, document.children.length);
+  testing.expectEqual('HTML', document.children.item(0).nodeName)
+  testing.expectEqual('HTML', document.firstElementChild.nodeName);
+  testing.expectEqual('HTML', document.lastElementChild.nodeName);
+  testing.expectEqual(1, document.childElementCount);
+
+  let nd = new Document();
+  testing.expectEqual(0, nd.children.length);
+  testing.expectEqual(null, nd.children.item(0));
+  testing.expectEqual(null, nd.firstElementChild);
+  testing.expectEqual(null, nd.lastElementChild);
+  testing.expectEqual(0, nd.childElementCount);
+</script>
+
+<script id=adoptedStyleSheets>
+  {
+    const acss = document.adoptedStyleSheets;
+    testing.expectEqual(0, acss.length);
+    acss.push(new CSSStyleSheet());
+    testing.expectEqual(1, acss.length);
+  }
+</script>

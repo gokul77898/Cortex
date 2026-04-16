@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<script id=meta type=module>
+  testing.expectEqual('/src/browser/tests/page/module.html', new URL(import.meta.url).pathname)
+</script>
+
+<script id=basic-import type=module>
+  import { "val1" as val1 } from "./mod1.js";
+  testing.expectEqual('value-1', val1);
+</script>
+
+<script id=relative-imports type=module>
+  import { importedValue, localValue } from "./modules/importer.js";
+  testing.expectEqual('from-base', importedValue);
+  testing.expectEqual('local', localValue);
+</script>
+
+<script id=re-exports type=module>
+  import { baseValue, importedValue, localValue } from "./modules/re-exporter.js";
+  testing.expectEqual('from-base', baseValue);
+  testing.expectEqual('from-base', importedValue);
+  testing.expectEqual('local', localValue);
+</script>
+
+<script id=shared-module-1 type=module>
+  import { increment, getCount } from "./modules/shared.js";
+  testing.expectEqual(1, increment());
+  testing.expectEqual(1, getCount());
+</script>
+
+<script id=shared-module-2 type=module>
+  import { increment, getCount } from "./modules/shared.js";
+  testing.expectEqual(2, increment());
+  testing.expectEqual(2, getCount());
+</script>
+
+<script id=circular-imports type=module>
+  import { aValue, getFromB } from "./modules/circular-a.js";
+  import { bValue, getFromA } from "./modules/circular-b.js";
+  testing.expectEqual('a', aValue);
+  testing.expectEqual('b', bValue);
+  testing.expectEqual('b', getFromB());
+  testing.expectEqual('a', getFromA());
+</script>
+
+<script id=basic-async type=module>
+  import { "val1" as val1 } from "./mod1.js";
+  const m = await import("./mod1.js");
+  testing.expectEqual('value-1', m.val1, {script_id: 'basic-async'});
+</script>
+
+<script id=import-404 type=module>
+  try {
+    await import("./modules/nonexistent.js");
+    testing.expectFail("error expected");
+  } catch(e) {
+    testing.expectEqual(true, e.toString().includes("FailedToLoad"), {script_id: 'import-404'});
+  }
+</script>
+
+<!-- this used to crash -->
+<script type=module src=modules/self_async.js></script>

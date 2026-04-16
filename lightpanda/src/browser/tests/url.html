@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<script src="testing.js"></script>
+<script id=url>
+  testing.expectEqual("function", typeof window.URL);
+
+  {
+    const url = new URL('http://example.com/path');
+    testing.expectEqual('http://example.com/path', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path/';
+    const url = new URL('subpath', base);
+    testing.expectEqual('http://example.com/path/subpath', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path/subpath';
+    const url = new URL('/newpath', base);
+    testing.expectEqual('http://example.com/newpath', url.toString());
+  }
+
+  {
+    const url = new URL('?a=b', 'http://example.com/path');
+    testing.expectEqual('http://example.com/path?a=b', url.toString());
+  }
+
+  {
+    const url = new URL('#hash', 'http://example.com/path');
+    testing.expectEqual('http://example.com/path#hash', url.toString());
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('foo.js');
+    });
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('/path/to/file');
+    });
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('?query=value');
+    });
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('#fragment');
+    });
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('');
+    });
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('foo.js', 'not a url');
+    });
+  }
+
+  {
+    testing.withError((err) => {
+      testing.expectEqual(true, err.toString().includes('TypeError'));
+    }, () => {
+      const url = new URL('foo.js', 'bar/baz');
+    });
+  }
+
+  {
+    const url = new URL('http://example.com/absolute', 'invalid base');
+    testing.expectEqual('http://example.com/absolute', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/a/b/c/d';
+    const url = new URL('../foo', base);
+    testing.expectEqual('http://example.com/a/b/foo', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/a/b/c/d';
+    const url = new URL('../../../../../foo', base);
+    testing.expectEqual('http://example.com/foo', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path?a=b';
+    const url = new URL('?c=d', base);
+    testing.expectEqual('http://example.com/path?c=d', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path?a=b';
+    const url = new URL('#hash', base);
+    testing.expectEqual('http://example.com/path?a=b#hash', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path#hash';
+    const url = new URL('?c=d', base);
+    testing.expectEqual('http://example.com/path?c=d', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path#hash';
+    const url = new URL('#newhash', base);
+    testing.expectEqual('http://example.com/path#newhash', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path?a=b#hash';
+    const url = new URL('?c=d', base);
+    testing.expectEqual('http://example.com/path?c=d', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path?a=b#hash';
+    const url = new URL('#newhash', base);
+    testing.expectEqual('http://example.com/path?a=b#newhash', url.toString());
+  }
+
+  {
+    const base = 'http://example.com/path/?a=b';
+    const url = new URL('sub', base);
+    testing.expectEqual('http://example.com/path/sub', url.toString());
+  }
+
+  {
+    const url = new URL('http://example.com/path?a=b#hash');
+    testing.expectEqual(url.toString(), url.href);
+    testing.expectEqual('?a=b', url.search);
+    testing.expectEqual('#hash', url.hash);
+  }
+
+  {
+    const url = new URL('http://example.com/path');
+    testing.expectEqual('', url.search);
+    testing.expectEqual('', url.hash);
+  }
+
+  {
+    const url = new URL('http://example.com/path?a=b');
+    testing.expectEqual('?a=b', url.search);
+    testing.expectEqual('', url.hash);
+  }
+
+  {
+    const url = new URL('http://example.com/path#hash');
+    testing.expectEqual('', url.search);
+    testing.expectEqual('#hash', url.hash);
+  }
+
+  {
+    const url = new URL('http://example.com/path/to/resource?query=1#fragment');
+    testing.expectEqual('/path/to/resource', url.pathname);
+  }
+
+  {
+    const url = new URL('http://example.com');
+    testing.expectEqual('/', url.pathname);
+  }
+
+  {
+    const url = new URL('http://user:pass@example.com/path');
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('pass', url.password);
+    testing.expectEqual('/path', url.pathname);
+  }
+
+  {
+    const url = new URL('http://user@example.com/');
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('', url.password);
+  }
+
+  {
+    const url = new URL('http://user:@example.com/');
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('', url.password);
+  }
+
+  {
+    const url = new URL('http://example.com/');
+    testing.expectEqual('', url.username);
+    testing.expectEqual('', url.password);
+  }
+
+  {
+    const url = new URL('https://user:pass@example.com/path');
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('pass', url.password);
+    testing.expectEqual('/path', url.pathname);
+  }
+
+  {
+    const url = new URL('https://user@example.com/');
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('', url.password);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.username = 'newuser';
+    testing.expectEqual('newuser', url.username);
+    testing.expectEqual('https://newuser@example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://olduser@example.com/path');
+    url.username = 'newuser';
+    testing.expectEqual('newuser', url.username);
+    testing.expectEqual('https://newuser@example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://olduser:pass@example.com/path');
+    url.username = 'newuser';
+    testing.expectEqual('newuser', url.username);
+    testing.expectEqual('pass', url.password);
+    testing.expectEqual('https://newuser:pass@example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://user@example.com/path');
+    url.password = 'secret';
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('secret', url.password);
+    testing.expectEqual('https://user:secret@example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://user:oldpass@example.com/path');
+    url.password = 'newpass';
+    testing.expectEqual('user', url.username);
+    testing.expectEqual('newpass', url.password);
+    testing.expectEqual('https://user:newpass@example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://user:pass@example.com/path');
+    url.username = '';
+    url.password = '';
+    testing.expectEqual('', url.username);
+    testing.expectEqual('', url.password);
+    testing.expectEqual('https://example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.username = 'user@domain';
+    testing.expectEqual('user%40domain', url.username);
+    testing.expectEqual('https://user%40domain@example.com/path', url.href);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.username = 'user:name';
+    testing.expectEqual('user%3Aname', url.username);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.password = 'pass@word';
+    testing.expectEqual('pass%40word', url.password);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.password = 'pass:word';
+    testing.expectEqual('pass%3Aword', url.password);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.username = 'user/name';
+    testing.expectEqual('user%2Fname', url.username);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    url.password = 'pass?word';
+    testing.expectEqual('pass%3Fword', url.password);
+  }
+
+  {
+    const url = new URL('https://user%40domain:pass%3Aword@example.com/path');
+    testing.expectEqual('user%40domain', url.username);
+    testing.expectEqual('pass%3Aword', url.password);
+  }
+
+  {
+    const url = new URL('https://example.com:8080/path?a=b#hash');
+    url.username = 'user';
+    url.password = 'pass';
+    testing.expectEqual('https://user:pass@example.com:8080/path?a=b#hash', url.href);
+    testing.expectEqual('8080', url.port);
+    testing.expectEqual('?a=b', url.search);
+    testing.expectEqual('#hash', url.hash);
+  }
+
+  {
+    const url = new URL('http://user:pass@example.com:8080/path?query=1#hash');
+    testing.expectEqual('http:', url.protocol);
+    testing.expectEqual('example.com', url.hostname);
+    testing.expectEqual('8080', url.port);
+    testing.expectEqual('http://example.com:8080', url.origin);
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    testing.expectEqual('https:', url.protocol);
+    testing.expectEqual('example.com', url.hostname);
+    testing.expectEqual('', url.port);
+    testing.expectEqual('https://example.com', url.origin);
+  }
+
+  {
+    const url = new URL('https://example.com:443/path');
+    testing.expectEqual('https:', url.protocol);
+    testing.expectEqual('example.com', url.hostname);
+    testing.expectEqual('443', url.port);
+    testing.expectEqual('https://example.com', url.origin);
+  }
+
+  {
+    const url = new URL('http://example.com:80/path');
+    testing.expectEqual('http:', url.protocol);
+    testing.expectEqual('example.com', url.hostname);
+    testing.expectEqual('80', url.port);
+    testing.expectEqual('http://example.com', url.origin);
+  }
+
+  {
+    const url = new URL('ftp://example.com/path');
+    testing.expectEqual('ftp:', url.protocol);
+    testing.expectEqual('null', url.origin);
+  }
+</script>
+
+<script id=searchParams>
+  {
+    const url = new URL('https://example.com/path?foo=bar&baz=qux');
+    testing.expectEqual('bar', url.searchParams.get('foo'));
+    testing.expectEqual('qux', url.searchParams.get('baz'));
+    testing.expectEqual(2, url.searchParams.size);
+  }
+
+  {
+    const url = new URL('https://example.com/path?foo=bar&baz=qux');
+    url.searchParams.set('foo', 'updated');
+    url.searchParams.append('new', 'param');
+    const href = url.href;
+    testing.expectEqual(true, href.includes('foo=updated'));
+    testing.expectEqual(true, href.includes('new=param'));
+  }
+
+  {
+    const url = new URL('https://example.com/path');
+    testing.expectEqual(0, url.searchParams.size);
+    url.searchParams.set('added', 'value');
+    testing.expectEqual(true, url.href.includes('?added=value'));
+  }
+
+  {
+    const url = new URL('https://example.com/path?a=1#section');
+    testing.expectEqual('1', url.searchParams.get('a'));
+    url.searchParams.set('b', '2');
+    const href = url.href;
+    testing.expectEqual(true, href.includes('a=1'));
+    testing.expectEqual(true, href.includes('b=2'));
+    testing.expectEqual(true, href.endsWith('#section'));
+  }
+
+  {
+    const url = new URL('https://example.com/?x=1&y=2&z=3');
+    url.searchParams.delete('y');
+    const href = url.href;
+    testing.expectEqual(true, href.includes('x=1'));
+    testing.expectEqual(false, href.includes('y=2'));
+    testing.expectEqual(true, href.includes('z=3'));
+  }
+
+  {
+    const url = new URL('https://example.com/?test=1');
+    const sp1 = url.searchParams;
+    const sp2 = url.searchParams;
+    testing.expectEqual(true, sp1 === sp2);
+  }
+
+  {
+    const url = new URL('https://example.com/path?a=1&b=2');
+    url.searchParams.delete('a');
+    url.searchParams.delete('b');
+    testing.expectEqual('https://example.com/path', url.href);
+  }
+
+  {
+    let url = new URL("https://foo.bar");
+    const searchParams = url.searchParams;
+
+    // SearchParams should be empty.
+    testing.expectEqual(0, searchParams.size);
+
+    url.href = "https://lightpanda.io?over=9000&light=panda";
+    // It won't hurt to check href and host too.
+    testing.expectEqual("https://lightpanda.io/?over=9000&light=panda", url.href);
+    testing.expectEqual("lightpanda.io", url.host);
+    // SearchParams should be updated too when URL is set.
+    testing.expectEqual(2, searchParams.size);
+    testing.expectEqual("9000", searchParams.get("over"));
+    testing.expectEqual("panda", searchParams.get("light"));
+  }
+</script>
+
+<script id=stringifier>
+{
+  const url1 = new URL('https://example.com/api');
+  const url2 = new URL(url1);
+  testing.expectEqual('https://example.com/api', url2.href);
+}
+
+{
+  const obj = {
+    toString() {
+      return 'https://example.com/custom';
+    }
+  };
+  const url = new URL(obj);
+  testing.expectEqual('https://example.com/custom', url.href);
+}
+
+{
+  const baseUrl = new URL('https://example.com/');
+  const url = new URL('/path', baseUrl);
+  testing.expectEqual('https://example.com/path', url.href);
+}
+
+{
+  const obj = {
+    toString() {
+      return 'https://example.com/';
+    }
+  };
+  const url = new URL('/relative', obj);
+  testing.expectEqual('https://example.com/relative', url.href);
+}
+
+{
+  const anchor = document.createElement('a');
+  anchor.href = 'https://example.com/test';
+  const url = new URL(anchor);
+  testing.expectEqual('https://example.com/test', url.href);
+}
+
+{
+  const anchor = document.createElement('a');
+  anchor.href = 'https://example.com/base/';
+  const url = new URL('relative', anchor);
+  testing.expectEqual('https://example.com/base/relative', url.href);
+}
+</script>
+
+<script id=setters>
+{
+  const url = new URL('https://example.com/path');
+  url.href = 'https://newdomain.com/newpath';
+  testing.expectEqual('https://newdomain.com/newpath', url.href);
+  testing.expectEqual('newdomain.com', url.hostname);
+  testing.expectEqual('/newpath', url.pathname);
+}
+
+{
+  const url = new URL('https://example.com/path?a=b#hash');
+  url.href = 'http://other.com/';
+  testing.expectEqual('http://other.com/', url.href);
+  testing.expectEqual('', url.search);
+  testing.expectEqual('', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.protocol = 'http';
+  testing.expectEqual('http://example.com/path', url.href);
+  testing.expectEqual('http:', url.protocol);
+}
+
+{
+  const url = new URL('http://example.com/path');
+  url.protocol = 'https:';
+  testing.expectEqual('https://example.com/path', url.href);
+  testing.expectEqual('https:', url.protocol);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.hostname = 'newhost.com';
+  testing.expectEqual('https://newhost.com/path', url.href);
+  testing.expectEqual('newhost.com', url.hostname);
+}
+
+{
+  const url = new URL('https://example.com:8080/path');
+  url.hostname = 'newhost.com';
+  testing.expectEqual('https://newhost.com:8080/path', url.href);
+  testing.expectEqual('newhost.com', url.hostname);
+  testing.expectEqual('8080', url.port);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.host = 'newhost.com:9000';
+  testing.expectEqual('https://newhost.com:9000/path', url.href);
+  testing.expectEqual('newhost.com', url.hostname);
+  testing.expectEqual('9000', url.port);
+}
+
+{
+  const url = new URL('https://example.com:8080/path');
+  url.host = 'newhost.com';
+  testing.expectEqual('https://newhost.com:8080/path', url.href);
+  testing.expectEqual('newhost.com', url.hostname);
+  testing.expectEqual('8080', url.port);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.port = '8080';
+  testing.expectEqual('https://example.com:8080/path', url.href);
+  testing.expectEqual('8080', url.port);
+}
+
+{
+  const url = new URL('https://example.com:8080/path');
+  url.port = '';
+  testing.expectEqual('https://example.com/path', url.href);
+  testing.expectEqual('', url.port);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.port = '443';
+  testing.expectEqual('https://example.com/path', url.href);
+  testing.expectEqual('', url.port);
+}
+
+{
+  const url = new URL('http://example.com/path');
+  url.port = '80';
+  testing.expectEqual('http://example.com/path', url.href);
+  testing.expectEqual('', url.port);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.pathname = '/newpath';
+  testing.expectEqual('https://example.com/newpath', url.href);
+  testing.expectEqual('/newpath', url.pathname);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.pathname = 'newpath';
+  testing.expectEqual('https://example.com/newpath', url.href);
+  testing.expectEqual('/newpath', url.pathname);
+}
+
+{
+  const url = new URL('https://example.com/path?a=b#hash');
+  url.pathname = '/new/path';
+  testing.expectEqual('https://example.com/new/path?a=b#hash', url.href);
+  testing.expectEqual('/new/path', url.pathname);
+}
+
+// Pathname setter must percent-encode spaces and special characters
+{
+  const url = new URL('http://a/');
+  url.pathname = 'c d';
+  testing.expectEqual('http://a/c%20d', url.href);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.pathname = '/path with spaces/file name';
+  testing.expectEqual('https://example.com/path%20with%20spaces/file%20name', url.href);
+  testing.expectEqual('/path%20with%20spaces/file%20name', url.pathname);
+}
+
+// Already-encoded sequences should not be double-encoded
+{
+  const url = new URL('https://example.com/path');
+  url.pathname = '/already%20encoded';
+  testing.expectEqual('https://example.com/already%20encoded', url.href);
+}
+
+// This is the exact check the URL polyfill uses to decide if native URL is sufficient
+{
+  const url = new URL('b', 'http://a');
+  url.pathname = 'c d';
+  testing.expectEqual('http://a/c%20d', url.href);
+  testing.expectEqual(true, !!url.searchParams);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.search = '?a=b';
+  testing.expectEqual('https://example.com/path?a=b', url.href);
+  testing.expectEqual('?a=b', url.search);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.search = 'a=b';
+  testing.expectEqual('https://example.com/path?a=b', url.href);
+  testing.expectEqual('?a=b', url.search);
+}
+
+{
+  const url = new URL('https://example.com/path?old=value');
+  url.search = 'new=value';
+  testing.expectEqual('https://example.com/path?new=value', url.href);
+  testing.expectEqual('?new=value', url.search);
+}
+
+{
+  const url = new URL('https://example.com/path?a=b#hash');
+  url.search = 'c=d';
+  testing.expectEqual('https://example.com/path?c=d#hash', url.href);
+  testing.expectEqual('?c=d', url.search);
+  testing.expectEqual('#hash', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.hash = '#section';
+  testing.expectEqual('https://example.com/path#section', url.href);
+  testing.expectEqual('#section', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.hash = 'section';
+  testing.expectEqual('https://example.com/path#section', url.href);
+  testing.expectEqual('#section', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path#old');
+  url.hash = 'new';
+  testing.expectEqual('https://example.com/path#new', url.href);
+  testing.expectEqual('#new', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path?a=b#hash');
+  url.hash = 'newhash';
+  testing.expectEqual('https://example.com/path?a=b#newhash', url.href);
+  testing.expectEqual('?a=b', url.search);
+  testing.expectEqual('#newhash', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path#hash');
+  url.hash = '';
+  testing.expectEqual('https://example.com/path', url.href);
+  testing.expectEqual('', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.hash = '#a b';
+  testing.expectEqual('https://example.com/path#a%20b', url.href);
+  testing.expectEqual('#a%20b', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path');
+  url.hash = 'a b';
+  testing.expectEqual('https://example.com/path#a%20b', url.href);
+  testing.expectEqual('#a%20b', url.hash);
+}
+
+{
+  const url = new URL('https://example.com/path?a=b');
+  url.search = '';
+  testing.expectEqual('https://example.com/path', url.href);
+  testing.expectEqual('', url.search);
+}
+
+{
+  const url = new URL('https://example.com/path?a=b');
+  const sp = url.searchParams;
+  testing.expectEqual('b', sp.get('a'));
+  url.search = 'c=d';
+
+  testing.expectEqual('d', url.searchParams.get('c'));
+  testing.expectEqual(null, url.searchParams.get('a'));
+}
+
+{
+  const url = new URL('https://example.com/path?a=b');
+  const sp = url.searchParams;
+  testing.expectEqual('b', sp.get('a'));
+  url.search = 'c=d b';
+
+  testing.expectEqual('d b', url.searchParams.get('c'));
+  testing.expectEqual(null, url.searchParams.get('a'));
+
+  url.search = 'c d=d b';
+  testing.expectEqual('d b', url.searchParams.get('c d'));
+  testing.expectEqual(null, url.searchParams.get('c'));
+}
+
+{
+  const url = new URL('https://example.com/path?a=b');
+  const sp = url.searchParams;
+  testing.expectEqual('b', sp.get('a'));
+  url.href = 'https://example.com/other?x=y';
+
+  testing.expectEqual('y', url.searchParams.get('x'));
+  testing.expectEqual(null, url.searchParams.get('a'));
+}
+</script>
+
+<script id=canParse>
+{
+  testing.expectEqual('function', typeof URL.canParse);
+}
+
+{
+  testing.expectEqual(true, URL.canParse('https://example.com'));
+  testing.expectEqual(true, URL.canParse('http://example.com/path'));
+  testing.expectEqual(true, URL.canParse('https://example.com:8080/path?a=b#hash'));
+  testing.expectEqual(true, URL.canParse('ftp://example.com'));
+}
+
+{
+  testing.expectEqual(false, URL.canParse(''));
+  testing.expectEqual(false, URL.canParse('foo.js'));
+  testing.expectEqual(false, URL.canParse('/path/to/file'));
+  testing.expectEqual(false, URL.canParse('?query=value'));
+  testing.expectEqual(false, URL.canParse('#fragment'));
+}
+
+{
+  testing.expectEqual(true, URL.canParse('subpath', 'http://example.com/path/'));
+  testing.expectEqual(true, URL.canParse('/newpath', 'http://example.com/path'));
+  testing.expectEqual(true, URL.canParse('?a=b', 'http://example.com/path'));
+  testing.expectEqual(true, URL.canParse('#hash', 'http://example.com/path'));
+  testing.expectEqual(true, URL.canParse('../foo', 'http://example.com/a/b/c'));
+}
+
+{
+  testing.expectEqual(false, URL.canParse('foo.js', undefined));
+  testing.expectEqual(false, URL.canParse('subpath', undefined));
+  testing.expectEqual(false, URL.canParse('../foo', undefined));
+}
+
+{
+  testing.expectEqual(false, URL.canParse('foo.js', 'not a url'));
+  testing.expectEqual(false, URL.canParse('foo.js', 'bar/baz'));
+  testing.expectEqual(false, URL.canParse('subpath', 'relative/path'));
+}
+
+{
+  testing.expectEqual(false, URL.canParse('http://example.com/absolute', 'invalid base'));
+  testing.expectEqual(false, URL.canParse('https://example.com/path', 'not-a-url'));
+}
+
+{
+  testing.expectEqual(false, URL.canParse('http://example.com', ''));
+  testing.expectEqual(false, URL.canParse('http://example.com', 'relative'));
+}
+
+{
+  testing.expectEqual(true, URL.canParse('http://example.com/absolute', 'http://base.com'));
+  testing.expectEqual(true, URL.canParse('https://example.com/path', 'https://other.com'));
+}
+</script>
+
+<script id=query_encode>
+  {
+    let url = new URL('https://foo.bar/path?a=~&b=%7E#fragment');
+    testing.expectEqual("~", url.searchParams.get('a'));
+    testing.expectEqual("~", url.searchParams.get('b'));
+
+    url.searchParams.append('c', 'foo');
+    testing.expectEqual("foo", url.searchParams.get('c'));
+    testing.expectEqual(1, url.searchParams.getAll('c').length);
+    testing.expectEqual("foo", url.searchParams.getAll('c')[0]);
+    testing.expectEqual(3, url.searchParams.size);
+
+    // search is dynamic
+    testing.expectEqual("?a=%7E&b=%7E&c=foo", url.search);
+  }
+</script>
+
+<script id=objectURL>
+{
+  // Test createObjectURL with Blob
+  const blob = new Blob(['<html><body>Hello</body></html>'], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+
+  testing.expectEqual('string', typeof url);
+  testing.expectEqual(true, url.startsWith('blob:'));
+  testing.expectEqual(true, url.includes('http'));
+}
+
+{
+  // Test revokeObjectURL
+  const blob = new Blob(['test'], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+
+  testing.expectEqual(true, url.startsWith('blob:'));
+
+  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(url); // Second revoke should be safe
+}
+
+{
+  // Test with non-blob URL (should be safe/silent)
+  URL.revokeObjectURL('http://example.com/notblob');
+  URL.revokeObjectURL('');
+  testing.expectEqual(true, true);
+}
+
+{
+  // Test uniqueness
+  const blob1 = new Blob(['test1']);
+  const blob2 = new Blob(['test2']);
+  const url1 = URL.createObjectURL(blob1);
+  const url2 = URL.createObjectURL(blob2);
+
+  testing.expectEqual(false, url1 === url2);
+  testing.expectEqual(true, url1.startsWith('blob:'));
+  testing.expectEqual(true, url2.startsWith('blob:'));
+}
+</script>
+
+<script id="about:blank">
+  {
+    const url = new URL('about:blank');
+    testing.expectEqual('about:blank', url.href);
+    testing.expectEqual('null', url.origin);
+    testing.expectEqual('about:', url.protocol);
+    testing.expectEqual('blank', url.pathname);
+    testing.expectEqual('', url.username);
+    testing.expectEqual('', url.password);
+    testing.expectEqual('', url.host);
+    testing.expectEqual('', url.hostname);
+    testing.expectEqual('', url.port);
+    testing.expectEqual('', url.search);
+  }
+</script>

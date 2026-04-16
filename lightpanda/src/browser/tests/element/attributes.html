@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<div id=attr1 ClasS="sHow"></div>
+
+<script id=attributes>
+  const el1 = $('#attr1');
+  testing.expectEqual(null, el1.getAttribute('other'));
+
+  testing.expectEqual('attr1', el1.id);
+  testing.expectEqual('attr1', el1.getAttribute('id'));
+  testing.expectEqual('attr1', el1.getAttribute('Id'));
+  testing.expectEqual('sHow', el1.getAttribute('CLASS'));
+  testing.expectEqual('sHow', el1.getAttribute('class'));
+  testing.expectEqual(['id', 'class'], el1.getAttributeNames());
+
+  el1.setAttribute('other', 'attr-1')
+  testing.expectEqual('attr-1', el1.getAttribute('other'));
+  testing.expectEqual(['id', 'class', 'other'], el1.getAttributeNames());
+  el1.removeAttribute('other');
+  testing.expectEqual(null, el1.getAttribute('other'));
+  testing.expectEqual(['id', 'class'], el1.getAttributeNames());
+
+  testing.expectEqual(null, el1.getAttributeNode('unknown'));
+
+  let an1 = el1.getAttributeNode('class');
+  testing.expectEqual(an1 , el1.setAttributeNode(an1));
+  testing.expectEqual(el1, an1.ownerElement);
+  testing.expectEqual('class', an1.name);
+  testing.expectEqual('class', an1.localName);
+  testing.expectEqual('sHow', an1.value);
+  testing.expectEqual(el1.getAttributeNode('class'), an1);
+  testing.expectEqual(null, an1.namespaceURI);
+
+  const script_id_node = $('#attributes').getAttributeNode('id')
+  testing.withError((err) => {
+    testing.expectEqual(8, err.code);
+    testing.expectEqual("NotFoundError", err.name);
+  }, () => el1.removeAttributeNode(script_id_node));
+
+  testing.expectEqual(an1, el1.removeAttributeNode(an1));
+  testing.expectEqual(null, an1.ownerElement);
+  testing.expectEqual(null, el1.getAttributeNode('class'));
+
+  testing.expectEqual(null, el1.setAttributeNode(an1))
+  testing.expectEqual(el1, an1.ownerElement);
+</script>
+
+<script id=namednodemap>
+  testing.expectEqual(true, el1.attributes instanceof NamedNodeMap);
+  testing.expectEqual(el1.attributes, el1.attributes);
+  function assertAttributes(expected) {
+    const attributes = el1.attributes;
+    testing.expectEqual(expected.length, attributes.length);
+
+    for (let i = 0; i < expected.length; i++) {
+      const ex = expected[i];
+      let attribute = attributes[ex.name];
+      testing.expectEqual('[object Attr]', attribute.toString());
+      testing.expectEqual(ex.name, attribute.name)
+      testing.expectEqual(ex.value, attribute.value)
+
+      attribute = attributes.getNamedItem(ex.name);
+      testing.expectEqual(ex.name, attribute.name)
+      testing.expectEqual(ex.value, attribute.value)
+
+      attribute = attributes.item(i);
+      testing.expectEqual(ex.name, attribute.name)
+      testing.expectEqual(ex.value, attribute.value)
+    }
+    testing.expectEqual(undefined, attributes["nope"]);
+    testing.expectEqual('attr1', attributes.id.value);
+    testing.expectEqual(null, attributes.getNamedItem("nope"));
+    testing.expectEqual(null, attributes.item(100));
+    testing.expectEqual(null, attributes.item(-3));
+
+    let acc = [];
+    for (let attribute of attributes) {
+      acc.push({name: attribute.name, value: attribute.value});
+    }
+    testing.expectEqual(expected, acc);
+  }
+
+  assertAttributes([{name: 'id', value: 'attr1'}, {name: 'class', value: 'sHow'}]);
+</script>
+
+<script id=hasAttribute>
+{
+  const el1 = $('#attr1');
+
+  testing.expectEqual(true, el1.hasAttribute('id'));
+  testing.expectEqual(true, el1.hasAttribute('ID'));
+  testing.expectEqual(true, el1.hasAttribute('class'));
+  testing.expectEqual(true, el1.hasAttribute('CLASS'));
+  testing.expectEqual(false, el1.hasAttribute('other'));
+  testing.expectEqual(false, el1.hasAttribute('nope'));
+
+  el1.setAttribute('data-test', 'value');
+  testing.expectEqual(true, el1.hasAttribute('data-test'));
+
+  el1.removeAttribute('data-test');
+  testing.expectEqual(false, el1.hasAttribute('data-test'));
+}
+</script>
+
+<script id=toggleAttribute>
+{
+  const el1 = $('#attr1');
+
+  testing.expectEqual(false, el1.hasAttribute('toggle-test'));
+  testing.expectEqual(true, el1.toggleAttribute('toggle-test'));
+  testing.expectEqual(true, el1.hasAttribute('toggle-test'));
+  testing.expectEqual('', el1.getAttribute('toggle-test'));
+
+  testing.expectEqual(false, el1.toggleAttribute('toggle-test'));
+  testing.expectEqual(false, el1.hasAttribute('toggle-test'));
+
+  testing.expectEqual(false, el1.hasAttribute('toggle-test'));
+  testing.expectEqual(true, el1.toggleAttribute('toggle-test', true));
+  testing.expectEqual(true, el1.hasAttribute('toggle-test'));
+
+  testing.expectEqual(true, el1.toggleAttribute('toggle-test', true));
+  testing.expectEqual(true, el1.hasAttribute('toggle-test'));
+
+  testing.expectEqual(false, el1.toggleAttribute('toggle-test', false));
+  testing.expectEqual(false, el1.hasAttribute('toggle-test'));
+
+  testing.expectEqual(false, el1.toggleAttribute('toggle-test', false));
+  testing.expectEqual(false, el1.hasAttribute('toggle-test'));
+}
+</script>
+
+<script id=hasAttributes>
+{
+  const el1 = $('#attr1');
+
+  // Element with attributes should return true
+  testing.expectEqual(true, el1.hasAttributes());
+
+  // Create element with no attributes
+  const div = document.createElement('div');
+  testing.expectEqual(false, div.hasAttributes());
+
+  // Add an attribute
+  div.setAttribute('test', 'value');
+  testing.expectEqual(true, div.hasAttributes());
+
+  // Remove the attribute
+  div.removeAttribute('test');
+  testing.expectEqual(false, div.hasAttributes());
+
+  // Add multiple attributes
+  div.setAttribute('a', '1');
+  div.setAttribute('b', '2');
+  div.setAttribute('c', '3');
+  testing.expectEqual(true, div.hasAttributes());
+
+  // Remove all but one
+  div.removeAttribute('a');
+  div.removeAttribute('b');
+  testing.expectEqual(true, div.hasAttributes());
+
+  // Remove the last one
+  div.removeAttribute('c');
+  testing.expectEqual(false, div.hasAttributes());
+}
+</script>
+
+<script id=invalidAttributeNames>
+{
+  const div = document.createElement('div');
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('0abc', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('123', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('-invalid', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('.foo', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('my attr', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('my@attr', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('attr!', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('~', 'value'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.setAttribute('', 'value'));
+
+  div.setAttribute('valid-name', 'value1');
+  testing.expectEqual('value1', div.getAttribute('valid-name'));
+
+  div.setAttribute('valid_name', 'value2');
+  testing.expectEqual('value2', div.getAttribute('valid_name'));
+
+  div.setAttribute('valid.name', 'value3');
+  testing.expectEqual('value3', div.getAttribute('valid.name'));
+
+  div.setAttribute('a123', 'value4');
+  testing.expectEqual('value4', div.getAttribute('a123'));
+
+  div.setAttribute('data-test-123', 'value5');
+  testing.expectEqual('value5', div.getAttribute('data-test-123'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.toggleAttribute('.invalid'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.toggleAttribute('0invalid'));
+
+  testing.withError((err) => {
+    testing.expectEqual(5, err.code);
+    testing.expectEqual("InvalidCharacterError", err.name);
+  }, () => div.toggleAttribute('-invalid'));
+}
+</script>
+
+<a id=legacy></a>
+<script id=legacy>
+  {
+    let a = document.getElementById('legacy').attributes;
+    testing.expectEqual(1, a.length);
+    testing.expectEqual('[object Attr]', a.item(0).toString());
+    testing.expectEqual(null, a.item(1));
+    testing.expectEqual('[object Attr]', a.getNamedItem('id').toString());
+    testing.expectEqual(null, a.getNamedItem('foo'));
+    testing.expectEqual('[object Attr]', a.setNamedItem(a.getNamedItem('id')).toString());
+
+    testing.expectEqual('id', a['id'].name);
+    testing.expectEqual('legacy', a['id'].value);
+    testing.expectEqual(undefined, a['other']);
+    a[0].value = 'abc123';
+    testing.expectEqual('abc123', a[0].value);
+  }
+</script>
+
+<div id="nsa"></div>
+<script id=non-string-attr>
+  {
+    let nsa = document.getElementById('nsa');
+
+    nsa.setAttribute('int', 1);
+    testing.expectEqual('1', nsa.getAttribute('int'));
+
+    nsa.setAttribute('obj', {});
+    testing.expectEqual('[object Object]', nsa.getAttribute('obj'));
+
+    nsa.setAttribute('arr', []);
+    testing.expectEqual('', nsa.getAttribute('arr'));
+  }
+</script>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<script id=CanvasRenderingContext2D>
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+  testing.expectEqual(true, ctx instanceof CanvasRenderingContext2D);
+  // We can't really test this but let's try to call it at least.
+  ctx.fillRect(0, 0, 0, 0);
+}
+</script>
+
+<script id=CanvasRenderingContext2D#fillStyle>
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+
+  // Black by default.
+  testing.expectEqual(ctx.fillStyle, "#000000");
+  ctx.fillStyle = "red";
+  testing.expectEqual(ctx.fillStyle, "#ff0000");
+  ctx.fillStyle = "rebeccapurple";
+  testing.expectEqual(ctx.fillStyle, "#663399");
+  // No changes made if color is invalid.
+  ctx.fillStyle = "invalid-color";
+  testing.expectEqual(ctx.fillStyle, "#663399");
+  ctx.fillStyle = "#fc0";
+  testing.expectEqual(ctx.fillStyle, "#ffcc00");
+  ctx.fillStyle = "#ff0000";
+  testing.expectEqual(ctx.fillStyle, "#ff0000");
+  ctx.fillStyle = "#fF00000F";
+  testing.expectEqual(ctx.fillStyle, "rgba(255, 0, 0, 0.06)");
+}
+</script>
+
+<script id="CanvasRenderingContext2D#createImageData(width, height)">
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+
+  const imageData = ctx.createImageData(100, 200);
+  testing.expectEqual(true, imageData instanceof ImageData);
+  testing.expectEqual(imageData.width, 100);
+  testing.expectEqual(imageData.height, 200);
+  testing.expectEqual(imageData.data.length, 100 * 200 * 4);
+  testing.expectEqual(true, imageData.data instanceof Uint8ClampedArray);
+
+  // All pixels should be initialized to 0.
+  testing.expectEqual(imageData.data[0], 0);
+  testing.expectEqual(imageData.data[1], 0);
+  testing.expectEqual(imageData.data[2], 0);
+  testing.expectEqual(imageData.data[3], 0);
+}
+</script>
+
+<script id="CanvasRenderingContext2D#createImageData(imageData)">
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+
+  const source = ctx.createImageData(50, 75);
+  const imageData = ctx.createImageData(source);
+  testing.expectEqual(true, imageData instanceof ImageData);
+  testing.expectEqual(imageData.width, 50);
+  testing.expectEqual(imageData.height, 75);
+  testing.expectEqual(imageData.data.length, 50 * 75 * 4);
+}
+</script>
+
+<script id="CanvasRenderingContext2D#putImageData">
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+
+  const imageData = ctx.createImageData(10, 10);
+  testing.expectEqual(true, imageData instanceof ImageData);
+  // Modify some pixel data.
+  imageData.data[0] = 255;
+  imageData.data[1] = 0;
+  imageData.data[2] = 0;
+  imageData.data[3] = 255;
+
+  // putImageData should not throw.
+  ctx.putImageData(imageData, 0, 0);
+  ctx.putImageData(imageData, 10, 20);
+  // With dirty rect parameters.
+  ctx.putImageData(imageData, 0, 0, 0, 0, 5, 5);
+}
+</script>
+
+<script id="CanvasRenderingContext2D#getImageData">
+{
+  const element = document.createElement("canvas");
+  element.width = 100;
+  element.height = 50;
+  const ctx = element.getContext("2d");
+
+  const imageData = ctx.getImageData(0, 0, 10, 20);
+  testing.expectEqual(true, imageData instanceof ImageData);
+  testing.expectEqual(imageData.width, 10);
+  testing.expectEqual(imageData.height, 20);
+  testing.expectEqual(imageData.data.length, 10 * 20 * 4);
+  testing.expectEqual(true, imageData.data instanceof Uint8ClampedArray);
+
+  // Undrawn canvas should return transparent black pixels.
+  testing.expectEqual(imageData.data[0], 0);
+  testing.expectEqual(imageData.data[1], 0);
+  testing.expectEqual(imageData.data[2], 0);
+  testing.expectEqual(imageData.data[3], 0);
+}
+</script>
+
+<script id="CanvasRenderingContext2D#getImageData invalid">
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+
+  // Zero or negative width/height should throw IndexSizeError.
+  testing.expectError('Index or size', () => ctx.getImageData(0, 0, 0, 10));
+  testing.expectError('Index or size', () => ctx.getImageData(0, 0, 10, 0));
+  testing.expectError('Index or size', () => ctx.getImageData(0, 0, -5, 10));
+  testing.expectError('Index or size', () => ctx.getImageData(0, 0, 10, -5));
+}
+</script>
+
+
+<script id="CanvasRenderingContext2D#canvas">
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+  testing.expectEqual(ctx.canvas, element);
+  // Setting dimensions via ctx.canvas should update the element.
+  ctx.canvas.width = 40;
+  ctx.canvas.height = 25;
+  testing.expectEqual(element.width, 40);
+  testing.expectEqual(element.height, 25);
+}
+</script>
+
+<script id="getter">
+{
+  const element = document.createElement("canvas");
+  const ctx = element.getContext("2d");
+  testing.expectEqual('10px sans-serif', ctx.font);
+  ctx.font = 'bold 48px serif'
+  testing.expectEqual('bold 48px serif', ctx.font);
+
+}
+</script>
+
+<script id=identity>
+{
+  const element = document.createElement('canvas');
+  const ctx = element.getContext('2d');
+
+  testing.expectTrue(ctx === element.getContext('2d'));
+  testing.expectEqual(null, element.getContext('webgl'));
+}
+</script>

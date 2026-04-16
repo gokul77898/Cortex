@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<div id="container">
+    <!-- comment -->
+    <p id="p1">Paragraph 1</p>
+    <div id="div1">Div 1</div>
+    <!-- comment -->
+    <span id="span1">Span 1</span>
+    <p id="p2">Paragraph 2</p>
+</div>
+<div id="empty" dir=ltr></div>
+
+<script id="relatedElements">
+    const container = $('#container');
+    const p1 = $('#p1');
+    const div1 = $('#div1');
+    const span1 = $('#span1');
+    const p2 = $('#p2');
+    const empty = $('#empty');
+
+    testing.expectEqual(p1, container.firstElementChild);
+    testing.expectEqual(p2, container.lastElementChild);
+
+    testing.expectEqual(div1, p1.nextElementSibling);
+    testing.expectEqual(span1, div1.nextElementSibling);
+    testing.expectEqual(p2, span1.nextElementSibling);
+    testing.expectEqual(null, p2.nextElementSibling);
+
+    testing.expectEqual(span1, p2.previousElementSibling);
+    testing.expectEqual(div1, span1.previousElementSibling);
+    testing.expectEqual(p1, div1.previousElementSibling);
+    testing.expectEqual(null, p1.previousElementSibling);
+
+    testing.expectEqual(null, empty.firstElementChild);
+    testing.expectEqual(null, empty.lastElementChild);
+</script>
+
+<script id=children>
+    const cc = container.children;
+    testing.expectEqual(4, cc.length);
+    testing.expectEqual(p1, cc[0]);
+    testing.expectEqual(p1, cc.item(0));
+    testing.expectEqual(div1, cc[1]);
+    testing.expectEqual(div1, cc.item(1));
+    testing.expectEqual(span1, cc[2]);
+    testing.expectEqual(span1, cc.item(2));
+    testing.expectEqual(p2, cc[3]);
+    testing.expectEqual(p2, cc.item(3));
+
+    const ec = empty.children;
+    testing.expectEqual(0, ec.length);
+    testing.expectEqual(undefined, ec[0]);
+</script>
+
+<script id=nonBreakingSpace>
+  // Test non-breaking space encoding (critical for React hydration)
+  const div = document.createElement('div');
+  div.innerHTML = 'hello\xa0world';
+  testing.expectEqual('hello\xa0world', div.textContent);
+  testing.expectEqual('hello&nbsp;world', div.innerHTML);
+
+  // Test that outerHTML also encodes non-breaking spaces correctly
+  const p = document.createElement('p');
+  p.textContent = 'XAnge\xa0Privacy';
+  testing.expectEqual('<p>XAnge&nbsp;Privacy</p>', p.outerHTML);
+</script>
+
+<script id=element>
+  {
+    const empty = $('#empty');
+    testing.expectEqual('empty', empty.id);
+    testing.expectEqual('ltr', empty.dir);
+
+    // good enough that it doesn't throw
+    empty.scrollIntoViewIfNeeded();
+    empty.scrollIntoViewIfNeeded(false);
+  }
+</script>
+
+<script id=before>
+{
+  const parent = document.createElement('div');
+  const existing = document.createElement('span');
+  parent.appendChild(existing);
+
+  const div1 = document.createElement('div');
+  const div2 = document.createElement('div');
+  existing.before(div1, div2);
+
+  testing.expectEqual(3, parent.childNodes.length);
+  testing.expectEqual(div1, parent.childNodes[0]);
+  testing.expectEqual(div2, parent.childNodes[1]);
+  testing.expectEqual(existing, parent.childNodes[2]);
+
+  existing.before('text node');
+  testing.expectEqual(4, parent.childNodes.length);
+  testing.expectEqual(3, parent.childNodes[2].nodeType);
+  testing.expectEqual('text node', parent.childNodes[2].textContent);
+  testing.expectEqual(existing, parent.childNodes[3]);
+
+  const detached = document.createElement('div');
+  detached.before(document.createElement('p'));
+  testing.expectEqual(null, detached.parentNode);
+}
+</script>
+
+<script id=after>
+{
+  const parent = document.createElement('div');
+  const existing = document.createElement('span');
+  parent.appendChild(existing);
+
+  const div1 = document.createElement('div');
+  const div2 = document.createElement('div');
+  existing.after(div1, div2);
+
+  testing.expectEqual(3, parent.childNodes.length);
+  testing.expectEqual(existing, parent.childNodes[0]);
+  testing.expectEqual(div1, parent.childNodes[1]);
+  testing.expectEqual(div2, parent.childNodes[2]);
+
+  existing.after('text node');
+  testing.expectEqual(4, parent.childNodes.length);
+  testing.expectEqual(existing, parent.childNodes[0]);
+  testing.expectEqual(3, parent.childNodes[1].nodeType);
+  testing.expectEqual('text node', parent.childNodes[1].textContent);
+
+  const detached = document.createElement('div');
+  detached.after(document.createElement('p'));
+  testing.expectEqual(null, detached.parentNode);
+}
+</script>
+
+<script id=beforeAfterOrdering>
+{
+  const parent = document.createElement('div');
+  const a = document.createElement('a');
+  const b = document.createElement('b');
+  const c = document.createElement('c');
+  const d = document.createElement('d');
+
+  parent.appendChild(b);
+  parent.appendChild(c);
+
+  b.before(a);
+  c.after(d);
+
+  testing.expectEqual(4, parent.childNodes.length);
+  testing.expectEqual(a, parent.childNodes[0]);
+  testing.expectEqual(b, parent.childNodes[1]);
+  testing.expectEqual(c, parent.childNodes[2]);
+  testing.expectEqual(d, parent.childNodes[3]);
+}
+</script>
+
+<script id=textContent>
+{
+  const parent = document.createElement('div');
+  parent.appendChild(document.createElement('div'));
+  testing.expectEqual(1, parent.childNodes.length);
+  parent.textContent = '';
+  testing.expectEqual(0, parent.childNodes.length);
+
+  parent.textContent = ' ';
+  testing.expectEqual(1, parent.childNodes.length);
+}
+</script>
+
+<script id=click>
+{
+  let clicked = 0;
+  window.addEventListener('click', (e) => {
+    testing.expectEqual(0, e.clientX);
+    testing.expectEqual(0, e.clientY);
+    clicked += 1;
+  });
+  $('#container').click();
+  testing.expectEqual(1, clicked);
+}
+</script>

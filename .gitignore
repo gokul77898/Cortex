@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.openclaude-profile.json
+reports/
+coverage/
+.cortex/
+.cortex-profile.json
+python/venv/
+bin/lightpanda

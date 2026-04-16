@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<script src="../testing.js"></script>
+
+<script id=navigator>
+  // Navigator should be accessible from window
+  testing.expectEqual(navigator, window.navigator);
+  testing.expectEqual(true, navigator.userAgent.length > 0);
+  testing.expectEqual(true, navigator.userAgent.includes('Lightpanda'));
+  testing.expectEqual('Netscape', navigator.appName);
+  testing.expectEqual('1.0', navigator.appVersion);
+  testing.expectEqual(true, navigator.platform.length > 0);
+
+  // Platform should be one of the known values
+  const validPlatforms = ['MacIntel', 'Win32', 'Linux x86_64', 'FreeBSD', 'Unknown'];
+  testing.expectEqual(true, validPlatforms.includes(navigator.platform));
+  testing.expectEqual('en-US', navigator.language);
+  testing.expectEqual(true, Array.isArray(navigator.languages));
+  testing.expectEqual(2, navigator.languages.length);
+  testing.expectEqual('en-US', navigator.languages[0]);
+  testing.expectEqual('en', navigator.languages[1]);
+  testing.expectEqual(true, navigator.onLine);
+  testing.expectEqual(true, navigator.cookieEnabled);
+  testing.expectEqual(true, navigator.hardwareConcurrency > 0);
+  testing.expectEqual(4, navigator.hardwareConcurrency);
+  testing.expectEqual(0, navigator.maxTouchPoints);
+  testing.expectEqual('', navigator.vendor);
+  testing.expectEqual('Gecko', navigator.product);
+  testing.expectEqual(false, navigator.javaEnabled());
+  testing.expectEqual(false, navigator.webdriver);
+</script>
+
+<script id=permission_query>
+    testing.async(async (restore) => {
+      const p = navigator.permissions.query({ name: 'notifications' });
+      testing.expectTrue(p instanceof Promise);
+      const status = await p;
+      restore();
+      testing.expectEqual('prompt', status.state);
+      testing.expectEqual('notifications', status.name);
+  });
+</script>
+
+<script id=storage_estimate>
+  testing.async(async (restore) => {
+    const p = navigator.storage.estimate();
+    testing.expectTrue(p instanceof Promise);
+
+    const estimate = await p;
+    restore();
+    testing.expectEqual(0, estimate.usage);
+    testing.expectEqual(1024 * 1024 * 1024, estimate.quota);
+  });
+</script>
+
+<script id=deviceMemory>
+  testing.expectEqual(8, navigator.deviceMemory);
+</script>
+
+<script id=getBattery>
+  testing.async(async (restore) => {
+    const p = navigator.getBattery();
+    try {
+      await p;
+      testing.fail('getBattery should reject');
+    } catch (err) {
+      restore();
+      testing.expectEqual('NotSupportedError', err.name);
+    }
+  });
+</script>
+
