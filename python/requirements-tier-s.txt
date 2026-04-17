@@ -1,0 +1,12 @@
+# CORTEX Tier S dependencies
+# Install: pip install -r python/requirements-tier-s.txt
+
+# RAG (cortex_rag.py)
+psycopg2-binary>=2.9.9
+requests>=2.31.0
+
+# Voice I/O (cortex_voice.py)
+sounddevice>=0.4.6
+numpy>=1.24.0
+
+# Autonomous (cortex_autonomous.py) — uses only stdlib

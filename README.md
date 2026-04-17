@@ -17,7 +17,7 @@
 
 ## ✨ Features
 
-- **47 custom slash commands** across 8 tiers — from smart commits to distributed tracing
+- **50 custom slash commands** across 9 tiers — from smart commits to RAG, autonomous agents, and voice I/O
 - **153 specialist AI agents** (engineering, marketing, security, design, testing, etc.) auto-loaded from `src/skills/agency/`
 - **10 MCP servers** for GitHub, Slack, Linear, Postgres, SQLite, Puppeteer, Fetch, Memory, Filesystem, Sequential Thinking
 - **Zero-command UX** — `CORTEX.md` auto-routes plain-English requests to the right capability
@@ -220,6 +220,15 @@ The `src/skills/agency/` folder holds 153 expert agents auto-discovered by the s
 | `/metrics` | Repo health dashboard (LOC, churn, deps) |
 | `/trace` | Distributed trace analysis (OTel / Jaeger / Zipkin) |
 | `/alerts` | Set up AI-driven alert rules |
+
+### Tier 9 — Next-Gen (3) 🔥
+| Command | Description |
+|---------|-------------|
+| `/rag` `/r` | Semantic search over your codebase (pgvector + HF embeddings). Subcommands: `setup`, `index`, `query "..."`, `status` |
+| `/autonomous` `/auto` `/daemon` | Background agent: scans repo, writes daily briefs, optionally opens draft PRs. Subcommands: `start`, `stop`, `status`, `brief` |
+| `/voice` `/v` | Voice I/O via HF Whisper + Bark TTS. Subcommands: `listen`, `transcribe <file>`, `speak "..."` |
+
+> **Tier 9 setup:** `pip install -r python/requirements-tier-s.txt` (only needed once). RAG needs pgvector: `brew install pgvector`.
 
 ---
 

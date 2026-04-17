@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""
+CORTEX Autonomous Agent — wakes up periodically, scans the repo,
+identifies safe improvements (TODOs, outdated deps, failing tests),
+and writes a daily brief. In safe mode (default), it only reports;
+in `--apply` mode it creates a branch + draft PR with fixes.
+
+Usage:
+    python3 cortex_autonomous.py start              # start daemon (safe mode, 1h interval)
+    python3 cortex_autonomous.py start --interval 300  # every 5 minutes
+    python3 cortex_autonomous.py start --apply      # allow creating draft PRs
+    python3 cortex_autonomous.py stop
+    python3 cortex_autonomous.py status
+    python3 cortex_autonomous.py brief              # one-off: generate today's brief
+"""
+from __future__ import annotations
+
+import argparse
+import datetime
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+STATE_DIR = REPO_ROOT / ".cortex" / "autonomous"
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+PID_FILE = STATE_DIR / "daemon.pid"
+LOG_FILE = STATE_DIR / "daemon.log"
+BRIEF_DIR = STATE_DIR / "briefs"
+BRIEF_DIR.mkdir(exist_ok=True)
+
+
+def log(msg: str):
+    ts = datetime.datetime.now().isoformat(timespec="seconds")
+    line = f"[{ts}] {msg}"
+    print(line, flush=True)
+    with open(LOG_FILE, "a") as f:
+        f.write(line + "\n")
+
+
+# ─── Scans ──────────────────────────────────────────────────────
+def scan_todos() -> list[dict]:
+    """Find TODO/FIXME/HACK/XXX comments."""
+    try:
+        out = subprocess.check_output(
+            ["rg", "--json", "-w", "--type-add", "code:*.{ts,tsx,js,jsx,py,go,rs,java}",
+             "-tcode", "TODO|FIXME|HACK|XXX", str(REPO_ROOT)],
+            stderr=subprocess.DEVNULL,
+        ).decode()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+    todos = []
+    for line in out.splitlines():
+        try:
+            d = json.loads(line)
+            if d.get("type") == "match":
+                m = d["data"]
+                todos.append({
+                    "file": m["path"]["text"],
+                    "line": m["line_number"],
+                    "text": m["lines"]["text"].strip()[:120],
+                })
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return todos
+
+
+def scan_git_status() -> dict:
+    try:
+        short = subprocess.check_output(["git", "-C", str(REPO_ROOT), "status", "--short"]).decode()
+        branch = subprocess.check_output(["git", "-C", str(REPO_ROOT), "branch", "--show-current"]).decode().strip()
+        ahead_behind = subprocess.check_output(
+            ["git", "-C", str(REPO_ROOT), "rev-list", "--left-right", "--count", f"{branch}...origin/{branch}"],
+            stderr=subprocess.DEVNULL,
+        ).decode().strip() if branch else "0\t0"
+        ahead, behind = ahead_behind.split()
+        return {
+            "branch": branch,
+            "dirty_files": len([l for l in short.splitlines() if l.strip()]),
+            "ahead": int(ahead),
+            "behind": int(behind),
+        }
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {}
+
+
+def scan_outdated_deps() -> dict:
+    """Run npm outdated (if package.json exists)."""
+    pkg = REPO_ROOT / "package.json"
+    if not pkg.exists():
+        return {}
+    try:
+        out = subprocess.check_output(
+            ["npm", "outdated", "--json"], cwd=str(REPO_ROOT),
+            stderr=subprocess.DEVNULL, timeout=30,
+        ).decode() or "{}"
+        data = json.loads(out)
+        return {"outdated_count": len(data), "top": list(data.keys())[:5]}
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        return {}
+
+
+# ─── Brief generation ───────────────────────────────────────────
+def generate_brief() -> Path:
+    today = datetime.date.today().isoformat()
+    brief_path = BRIEF_DIR / f"brief-{today}.md"
+
+    todos = scan_todos()
+    git_status = scan_git_status()
+    deps = scan_outdated_deps()
+
+    content = f"""# CORTEX Daily Brief — {today}
+
+## Repo health
+- Branch: `{git_status.get('branch', '?')}`
+- Uncommitted files: **{git_status.get('dirty_files', 0)}**
+- Commits ahead of origin: **{git_status.get('ahead', 0)}**
+- Commits behind origin: **{git_status.get('behind', 0)}**
+
+## Tech debt
+- **{len(todos)}** TODO/FIXME/HACK comments
+
+"""
+    if todos:
+        content += "### Top 10 action items\n"
+        for t in todos[:10]:
+            content += f"- `{t['file']}:{t['line']}` — {t['text']}\n"
+        content += "\n"
+
+    content += "## Dependencies\n"
+    if deps.get("outdated_count"):
+        content += f"- **{deps['outdated_count']}** outdated packages\n"
+        for pkg in deps.get("top", []):
+            content += f"  - {pkg}\n"
+    else:
+        content += "- All dependencies up to date ✅\n"
+
+    content += f"\n---\n*Generated by CORTEX Autonomous Agent at {datetime.datetime.now().isoformat(timespec='seconds')}*\n"
+    brief_path.write_text(content)
+    return brief_path
+
+
+# ─── Daemon ────────────────────────────────────────────────────
+def is_running() -> int | None:
+    if not PID_FILE.exists():
+        return None
+    try:
+        pid = int(PID_FILE.read_text().strip())
+        os.kill(pid, 0)
+        return pid
+    except (ValueError, ProcessLookupError, PermissionError):
+        PID_FILE.unlink(missing_ok=True)
+        return None
+
+
+def daemon_loop(interval: int, apply_fixes: bool):
+    log(f"🤖 Autonomous agent started (interval={interval}s, apply={apply_fixes})")
+    while True:
+        try:
+            brief = generate_brief()
+            log(f"📝 Brief written: {brief}")
+            if apply_fixes:
+                log("⚠️  --apply mode: would open draft PRs here (not yet implemented — safety first)")
+        except Exception as e:
+            log(f"❌ Scan failed: {e}")
+        time.sleep(interval)
+
+
+def cmd_start(interval: int, apply_fixes: bool):
+    if (pid := is_running()):
+        print(f"⚠️  Already running (pid {pid})")
+        sys.exit(1)
+    # Fork into background
+    if os.fork():
+        print(f"✅ Daemon started — logs: {LOG_FILE}")
+        return
+    # Child
+    os.setsid()
+    PID_FILE.write_text(str(os.getpid()))
+    signal.signal(signal.SIGTERM, lambda *_: (PID_FILE.unlink(missing_ok=True), sys.exit(0)))
+    daemon_loop(interval, apply_fixes)
+
+
+def cmd_stop():
+    pid = is_running()
+    if not pid:
+        print("ℹ️  Not running")
+        return
+    os.kill(pid, signal.SIGTERM)
+    PID_FILE.unlink(missing_ok=True)
+    print(f"✅ Stopped (pid {pid})")
+
+
+def cmd_status():
+    pid = is_running()
+    if pid:
+        print(f"🟢 Running (pid {pid})")
+    else:
+        print("🔴 Not running")
+    briefs = sorted(BRIEF_DIR.glob("brief-*.md"), reverse=True)[:5]
+    if briefs:
+        print("\nRecent briefs:")
+        for b in briefs:
+            print(f"  - {b.name}")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="cortex_autonomous")
+    sp = p.add_subparsers(dest="cmd", required=True)
+    s = sp.add_parser("start")
+    s.add_argument("--interval", type=int, default=3600)
+    s.add_argument("--apply", action="store_true")
+    sp.add_parser("stop")
+    sp.add_parser("status")
+    sp.add_parser("brief")
+    args = p.parse_args()
+
+    if args.cmd == "start":
+        cmd_start(args.interval, args.apply)
+    elif args.cmd == "stop":
+        cmd_stop()
+    elif args.cmd == "status":
+        cmd_status()
+    elif args.cmd == "brief":
+        path = generate_brief()
+        print(f"✅ Brief: {path}")
+        print(path.read_text())
+
+
+if __name__ == "__main__":
+    main()

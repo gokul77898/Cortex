@@ -107,6 +107,9 @@ import tier8Logs from './commands/tier8/logs.js'
 import tier8Metrics from './commands/tier8/metrics.js'
 import tier8Trace from './commands/tier8/trace.js'
 import tier8Alerts from './commands/tier8/alerts.js'
+import tier9Rag from './commands/tier9/rag.js'
+import tier9Autonomous from './commands/tier9/autonomous.js'
+import tier9Voice from './commands/tier9/voice.js'
 import bughunter from './commands/bughunter/index.js'
 import terminalSetup from './commands/terminalSetup/index.js'
 import usage from './commands/usage/index.js'
@@ -422,6 +425,9 @@ const COMMANDS = memoize((): Command[] => [
   tier8Metrics,
   tier8Trace,
   tier8Alerts,
+  tier9Rag,
+  tier9Autonomous,
+  tier9Voice,
   rewind,
   securityReview,
   terminalSetup,

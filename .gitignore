@@ -17,3 +17,7 @@ integrations/
 libs/openbb/
 logs/openbb_monitor.log
 python/openbb_monitor.py
+
+# Local-only test scripts (never commit)
+test-*.sh
+test-agents.sh
