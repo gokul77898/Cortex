@@ -267,10 +267,12 @@
   </div>
 
   <div class="pane" id="pane">
-    <div class="msg system">🎤 Hold <b>Space</b> or click mic to speak · ⌨️ Type below and press <b>Enter</b> · <b>⌘⇧A</b> toggles window globally</div>
+    <div class="msg system">⚡ <b>Fast</b>: instant chat · 🧠 <b>AGI</b>: full CLI (tools, MCP) · 👁 <b>Watch</b>: I see your screen · 🎤 <b>Space</b>: talk · <b>⌘⇧A</b>: toggle window</div>
   </div>
 
   <div class="toggles">
+    <button class="toggle on" id="fastToggle">⚡ Fast</button>
+    <button class="toggle" id="watchToggle">👁 Watch Screen</button>
     <button class="toggle on" id="ttsToggle">🔊 TTS</button>
     <button class="toggle" id="continuousToggle">♾ Continuous</button>
     <button class="toggle" id="clearBtn">🗑 Clear</button>
@@ -309,10 +311,16 @@
   const ttsToggle = document.getElementById('ttsToggle')
   const continuousToggle = document.getElementById('continuousToggle')
   const clearBtn = document.getElementById('clearBtn')
+  const fastToggle = document.getElementById('fastToggle')
+  const watchToggle = document.getElementById('watchToggle')
 
   let ttsOn = true
   let continuous = false
   let pinned = true
+  let fastMode = true         // ⚡ default: direct HF, <2s
+  let watching = false        // 👁 screen monitor on/off
+  let screenContext = ''      // latest screen description
+  let watchTimer = null
   let recognition = null
   let recording = false
   let finalTranscript = ''
@@ -340,6 +348,45 @@
   clearBtn.onclick = () => {
     pane.innerHTML = ''
     addMsg('system', 'Conversation cleared. Type or speak to start.')
+  }
+  fastToggle.onclick = () => {
+    fastMode = !fastMode
+    fastToggle.classList.toggle('on', fastMode)
+    fastToggle.textContent = fastMode ? '⚡ Fast' : '🧠 Full AGI'
+    setHint(fastMode ? 'Fast chat — <2s responses' : 'Full AGI — tools + MCP (slower)')
+  }
+  watchToggle.onclick = () => {
+    watching = !watching
+    watchToggle.classList.toggle('on', watching)
+    watchToggle.textContent = watching ? '👁 Watching…' : '👁 Watch Screen'
+    if (watching) startWatching(); else stopWatching()
+  }
+
+  // ─── Screen watcher (Tier A) ──────────────────────────
+  async function tickWatch() {
+    if (!watching) return
+    try {
+      const snap = await window.cortex.screenSnapshot()
+      if (snap.error) { setHint('👁 ' + snap.error); return }
+      const d = await window.cortex.screenDescribe({ dataUrl: snap.dataUrl })
+      if (d.text) {
+        screenContext = d.text
+        setHint('👁 ' + d.text.slice(0, 90))
+      } else if (d.error) {
+        setHint('👁 vision error (set CORTEX_VISION_MODEL)')
+      }
+    } catch (e) { setHint('👁 ' + e.message) }
+  }
+  function startWatching() {
+    tickWatch()
+    watchTimer = setInterval(tickWatch, 10_000)
+    addMsg('system', '👁 Watching your screen — I\'ll see what you\'re doing every 10s.')
+  }
+  function stopWatching() {
+    if (watchTimer) clearInterval(watchTimer)
+    watchTimer = null
+    screenContext = ''
+    addMsg('system', '👁 Stopped watching.')
   }
 
   // ─── Text input ──────────────────────────────────────────────
@@ -440,25 +487,28 @@
     if (recognition && recording) recognition.stop()
   }
 
-  // ─── Ask AGI ─────────────────────────────────────────────────
+  // ─── Ask AGI ───────────────────────────────────────
   async function askAGI(prompt) {
-    setHint('🧠 Thinking…')
+    setHint(fastMode ? '⚡ Fast thinking…' : '🧠 Full AGI thinking (can take 1-5 min)…')
     currentAgiMsg = addMsg('agi', '')
     currentAgiMsg.textContent = 'Thinking…'
 
     try {
-      const res = await window.cortex.ask(prompt)
+      const res = fastMode
+        ? await window.cortex.fastAsk({ prompt, context: screenContext })
+        : await window.cortex.ask(prompt)
       if (res.error && !res.text) {
         currentAgiMsg.textContent = `⚠️ ${res.error}`
         currentAgiMsg.style.color = 'var(--danger)'
         setHint('Error')
         return
       }
-      const text = res.text || res.partial || ''
-      currentAgiMsg.textContent = text
+      // Fast mode streams via onChunk; final text is already in the DOM.
+      const text = (res.text === '__streamed__' ? currentAgiMsg.textContent : (res.text || res.partial || ''))
+      if (res.text !== '__streamed__') currentAgiMsg.textContent = text
       pane.scrollTop = pane.scrollHeight
       setHint('Ready')
-      if (ttsOn && text) speakText(text)
+      if (ttsOn && text && text !== 'Thinking…') speakText(text)
     } catch (err) {
       currentAgiMsg.textContent = `⚠️ ${err.message}`
       setHint('Error')

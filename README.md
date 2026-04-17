@@ -232,6 +232,31 @@ The `src/skills/agency/` folder holds 153 expert agents auto-discovered by the s
 
 ---
 
+## 🖥 Tier A — Floating UI with Screen Watcher
+
+Launch the always-on-top Electron app:
+
+```bash
+./bin/AGI-ui
+```
+
+**What you get:**
+- **⚡ Fast mode** (default) — direct HF chat completion, **<2s** responses. No CLI boot lag.
+- **🧠 Full AGI mode** — routes through `cortex.mjs -p --dangerously-skip-permissions`. Full tools + MCP + filesystem. **All permissions auto-approved.** No yes/no prompts.
+- **👁 Watch Screen** — Electron's `desktopCapturer` snaps your screen every 10s, sends it to a vision model (`meta-llama/Llama-3.2-11B-Vision-Instruct` by default), and injects the description into every prompt. Ask *"what am I doing?"* and CORTEX answers from what it literally sees.
+- **🎤 Voice** — Web Speech API for STT, native `speechSynthesis` for TTS. Zero lag.
+- **⌨️ Text** — type + Enter. Same brain as voice.
+- **Global hotkey** — `⌘⇧A` shows/hides the window from anywhere.
+
+**Screen-watcher model override:**
+```bash
+export CORTEX_VISION_MODEL="Qwen/Qwen2-VL-7B-Instruct"   # or any HF vision model
+```
+
+First launch triggers a macOS **Screen Recording** permission prompt — approve it once in *System Settings → Privacy → Screen Recording* and you're done.
+
+---
+
 ## 🏗 Project Structure
 
 ```
