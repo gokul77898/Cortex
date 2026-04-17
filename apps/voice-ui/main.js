@@ -128,7 +128,27 @@ ipcMain.handle('agi:ask', async (_evt, prompt) => {
 // ─── IPC: Fast chat (direct HF router, <2s) ──────────────────────
 // Bypasses the whole CLI boot. No tools, no MCP — just a blazing fast
 // chat completion for conversation / Q&A. Perfect for the UI's default mode.
-function hfChat({ messages, model, stream = false, onChunk, stage = 'hf.chat' }) {
+async function hfChat(opts) {
+  // Try primary model; on 5xx or empty response, retry once with HF_MODEL_FALLBACK
+  try {
+    const res = await _hfChatOnce(opts)
+    if (!res.text && process.env.HF_MODEL_FALLBACK && !opts.model) {
+      throw new Error('empty response from primary')
+    }
+    return res
+  } catch (err) {
+    const fallback = process.env.HF_MODEL_FALLBACK
+    const msg = String(err.message || err)
+    const isServerErr = /HTTP 5\d\d|Internal server error|empty response|Bad JSON/i.test(msg)
+    if (fallback && isServerErr && !opts.model) {
+      log('warn', opts.stage || 'hf.chat', `primary failed (${msg.slice(0,80)}), retrying with fallback: ${fallback}`)
+      return _hfChatOnce({ ...opts, model: fallback })
+    }
+    throw err
+  }
+}
+
+function _hfChatOnce({ messages, model, stream = false, onChunk, stage = 'hf.chat' }) {
   return new Promise((resolve, reject) => {
     const token = process.env.HF_TOKEN
     if (!token) return reject(new Error('HF_TOKEN not set'))

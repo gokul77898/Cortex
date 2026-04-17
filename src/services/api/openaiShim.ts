@@ -980,6 +980,26 @@ class OpenAIShimMessages {
         continue
       }
       const errorBody = await response.text().catch(() => 'unknown error')
+
+      // Model fallback: retry with HF_MODEL_FALLBACK on 5xx errors (provider outage)
+      const fallbackModel = process.env.HF_MODEL_FALLBACK || process.env.OPENAI_MODEL_FALLBACK
+      const isRetryable = response.status >= 500 && response.status < 600
+      if (isRetryable && fallbackModel && fallbackModel !== body.model) {
+        const originalModel = body.model
+        console.error(`[cortex] primary model ${originalModel} failed (HTTP ${response.status}), retrying with fallback: ${fallbackModel}`)
+        body.model = fallbackModel
+        fetchInit.body = JSON.stringify(body)
+        const fallbackResp = await fetch(chatCompletionsUrl, fetchInit)
+        if (fallbackResp.ok) return fallbackResp
+        const fbErr = await fallbackResp.text().catch(() => 'unknown')
+        throw APIError.generate(
+          fallbackResp.status,
+          undefined,
+          `Both models failed. Primary (${originalModel}) ${response.status}: ${errorBody}. Fallback (${fallbackModel}) ${fallbackResp.status}: ${fbErr}`,
+          fallbackResp.headers as unknown as Headers,
+        )
+      }
+
       const rateHint =
         isGithub && response.status === 429 ? formatRetryAfterHint(response) : ''
       let errorResponse: object | undefined
