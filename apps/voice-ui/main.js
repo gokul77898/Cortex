@@ -247,18 +247,27 @@ ipcMain.handle('agi:fastAsk', async (_evt, { prompt, context }) => {
 ipcMain.handle('screen:snapshot', async () => {
   const t0 = Date.now()
   try {
-    const sources = await desktopCapturer.getSources({
-      types: ['screen'],
-      thumbnailSize: { width: 1024, height: 640 },
-    })
-    if (!sources.length) {
-      log('warn', 'screen.snap', 'no sources — grant Screen Recording permission')
-      return { error: 'no screen sources (grant Screen Recording permission)' }
-    }
-    const src = sources[0]
-    const dataUrl = src.thumbnail.toDataURL()
-    log('info', 'screen.snap', `captured "${src.name}" ${Math.round(dataUrl.length / 1024)}KB in ${Date.now() - t0}ms`)
-    return { dataUrl, name: src.name }
+    log('info', 'screen.snap', 'capturing...')
+    const img = await screen.getPrimaryDisplay().thumbnail({ size: { width: 1920, height: 1080 } })
+    const dataUrl = img.toDataURL()
+    log('info', 'screen.snap', `captured "Entire screen" ${Math.round(dataUrl.length / 1024)}KB in ${Date.now() - t0}ms`)
+    return { dataUrl }
+  } catch (e) {
+    log('error', 'screen.snap', String(e.message || e))
+    return { error: String(e.message || e) }
+  }
+})
+
+ipcMain.handle('screen:snap', async () => {
+  try {
+    log('info', 'screen.snap', 'capturing...')
+    const t0 = Date.now()
+    const img = await screen.getPrimaryDisplay().thumbnail({ size: { width: 1920, height: 1080 } })
+    // Downscale to max 512px for vision API (avoids 413 errors)
+    const resized = img.resize({ width: 512, height: 512 })
+    const dataUrl = resized.toDataURL('image/jpeg', 0.7)
+    log('info', 'screen.snap', `captured "Entire screen" ${Math.round(dataUrl.length / 1024)}KB in ${Date.now() - t0}ms`)
+    return { dataUrl }
   } catch (e) {
     log('error', 'screen.snap', String(e.message || e))
     return { error: String(e.message || e) }
