@@ -284,43 +284,37 @@ ipcMain.handle('screen:snap', async () => {
 
 ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
   try {
-    const token = process.env.HF_TOKEN
-    if (!token) { log('error', 'screen.vision', 'HF_TOKEN not set'); return { error: 'HF_TOKEN not set' } }
-    // Use HF Inference API directly for vision (router doesn't support vision models)
-    const model = process.env.CORTEX_VISION_MODEL || 'Salesforce/blip-image-captioning-base'
+    // Use local Ollama with vision model (llava, moondream, etc)
+    const model = process.env.CORTEX_VISION_MODEL || 'moondream'
+    const ollamaUrl = process.env.OLLAMA_HOST || 'http://localhost:11434'
     const t0 = Date.now()
-    log('info', 'screen.vision', `POST api-inference.huggingface.co/models/${model} body=${dataUrl.length}B`)
-    const response = await fetch('https://api-inference.huggingface.co/models/' + model, {
+    // Extract base64 (strip "data:image/...;base64," prefix)
+    const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
+    log('info', 'screen.vision', `POST ${ollamaUrl}/api/generate model=${model} body=${base64.length}B`)
+    const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: dataUrl }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt: 'Describe what is on this screen in 2-3 short sentences. Focus on: the active app, what the user is doing, any visible errors. Be concrete (app names, file names, error text).',
+        images: [base64],
+        stream: false,
+      }),
     })
     const firstByte = Date.now() - t0
     log('info', 'screen.vision', `first-byte ${firstByte}ms`)
     if (!response.ok) {
       const err = await response.text().catch(() => '')
-      log('error', 'screen.vision', `HTTP ${response.status} ${err}`)
-      return { error: `HTTP ${response.status}` }
+      log('error', 'screen.vision', `HTTP ${response.status} ${err.slice(0, 200)}`)
+      return { error: `Ollama HTTP ${response.status} — is ollama running? (brew services start ollama)` }
     }
     const data = await response.json()
-    let text = ''
-    if (Array.isArray(data) && data[0]?.generated_text) {
-      text = data[0].generated_text
-    } else if (data?.generated_text) {
-      text = data.generated_text
-    } else if (typeof data === 'string') {
-      text = data
-    } else {
-      text = JSON.stringify(data)
-    }
+    const text = (data.response || '').trim()
     log('info', 'screen.vision', `done ${Date.now() - t0}ms chars=${text.length}`)
-    return { text: text.trim() }
+    return { text }
   } catch (e) {
     log('error', 'screen.vision', String(e.message || e))
-    return { error: String(e.message || e) }
+    return { error: `Ollama not reachable — run: ollama serve` }
   }
 })
 
