@@ -21,3 +21,12 @@ python/openbb_monitor.py
 # Local-only test scripts (never commit)
 test-*.sh
 test-agents.sh
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Local data (SQLite DB, briefs, logs)
+data/
+!data/.gitkeep
