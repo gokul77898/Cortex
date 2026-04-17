@@ -265,26 +265,38 @@ ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
   try {
     const token = process.env.HF_TOKEN
     if (!token) { log('error', 'screen.vision', 'HF_TOKEN not set'); return { error: 'HF_TOKEN not set' } }
-    // Use a vision-capable model. User can override via CORTEX_VISION_MODEL.
-    const model = process.env.CORTEX_VISION_MODEL || 'meta-llama/Llama-3.2-11B-Vision-Instruct'
-    log('info', 'screen.vision', `describe via ${model}`)
-    const messages = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text:
-              'Describe what is on this screen in 2-3 short sentences. ' +
-              'Focus on: the active app, the task the user appears to be doing, ' +
-              'any visible errors or dialogs. Be concrete (app names, file names, error text).',
-          },
-          { type: 'image_url', image_url: { url: dataUrl } },
-        ],
+    // Use HF Inference API directly for vision (router doesn't support vision models)
+    const model = process.env.CORTEX_VISION_MODEL || 'Salesforce/blip-image-captioning-large'
+    const t0 = Date.now()
+    log('info', 'screen.vision', `POST api-inference.huggingface.co model=${model} body=${dataUrl.length}B`)
+    const response = await fetch('https://api-inference.huggingface.co/models/' + model, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    ]
-    const res = await hfChat({ messages, model, stream: false, stage: 'screen.vision' })
-    return { text: (res.text || '').trim() }
+      body: JSON.stringify({ inputs: dataUrl }),
+    })
+    const firstByte = Date.now() - t0
+    log('info', 'screen.vision', `first-byte ${firstByte}ms`)
+    if (!response.ok) {
+      const err = await response.text().catch(() => '')
+      log('error', 'screen.vision', `HTTP ${response.status} ${err}`)
+      return { error: `HTTP ${response.status}` }
+    }
+    const data = await response.json()
+    let text = ''
+    if (Array.isArray(data) && data[0]?.generated_text) {
+      text = data[0].generated_text
+    } else if (data?.generated_text) {
+      text = data.generated_text
+    } else if (typeof data === 'string') {
+      text = data
+    } else {
+      text = JSON.stringify(data)
+    }
+    log('info', 'screen.vision', `done ${Date.now() - t0}ms chars=${text.length}`)
+    return { text: text.trim() }
   } catch (e) {
     log('error', 'screen.vision', String(e.message || e))
     return { error: String(e.message || e) }
