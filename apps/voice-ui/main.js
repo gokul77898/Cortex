@@ -25,6 +25,22 @@ loadDotenv()
 
 let win = null
 
+// ─── Structured logger (streamed to renderer + stderr) ──────────
+// Each call becomes a bubble in the UI log panel AND a line in the
+// terminal where you launched `./bin/AGI-ui`, so you always see what
+// the app is doing — exactly like watching the CLI.
+function log(level, stage, msg, extra) {
+  const ts = new Date().toISOString().slice(11, 23)
+  const line = `[${ts}] ${level.toUpperCase().padEnd(5)} ${stage.padEnd(14)} ${msg}`
+  // Main-process console → terminal
+  process.stderr.write(line + (extra ? '  ' + JSON.stringify(extra) : '') + '\n')
+  // Renderer → UI log panel
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('log:event', { ts, level, stage, msg, extra })
+  }
+}
+
+
 function createWindow() {
   const { width: sw } = screen.getPrimaryDisplay().workAreaSize
   win = new BrowserWindow({
@@ -56,21 +72,24 @@ function createWindow() {
 // Runs with --dangerously-skip-permissions so NO yes/no prompts ever block.
 ipcMain.handle('agi:ask', async (_evt, prompt) => {
   if (!fs.existsSync(AGI_BIN)) {
+    log('error', 'agi.spawn', `binary missing at ${AGI_BIN}`)
     return { error: `AGI binary not found at ${AGI_BIN}` }
   }
+  const argv = ['-p', '--dangerously-skip-permissions', '--permission-mode', 'bypassPermissions', prompt]
+  log('info', 'agi.spawn', `cortex.mjs ${argv.slice(0, 4).join(' ')}  <prompt ${prompt.length} chars>`)
+  const t0 = Date.now()
   return new Promise((resolve) => {
-    const child = spawn(
-      AGI_BIN,
-      ['-p', '--dangerously-skip-permissions', '--permission-mode', 'bypassPermissions', prompt],
-      {
-        cwd: REPO_ROOT,
-        env: { ...process.env, CORTEX_NONINTERACTIVE: '1' },
-      },
-    )
+    const child = spawn(AGI_BIN, argv, {
+      cwd: REPO_ROOT,
+      env: { ...process.env, CORTEX_NONINTERACTIVE: '1' },
+    })
+    log('info', 'agi.pid', `pid=${child.pid}`)
     let out = ''
     let err = ''
+    let stderrLines = 0
     // 10 min — AGI may be doing tool loops, file reads, web fetches, etc.
     const timer = setTimeout(() => {
+      log('warn', 'agi.timeout', '600s exceeded, killing child')
       child.kill('SIGTERM')
       resolve({ error: 'AGI timed out after 600s', partial: stripAnsi(out).trim() })
     }, 600_000)
@@ -80,10 +99,22 @@ ipcMain.handle('agi:ask', async (_evt, prompt) => {
       out += text
       if (win) win.webContents.send('agi:chunk', text)
     })
-    child.stderr.on('data', (chunk) => { err += chunk.toString() })
+    child.stderr.on('data', (chunk) => {
+      const s = chunk.toString()
+      err += s
+      // Surface the first ~20 stderr lines so users see progress
+      if (stderrLines < 20) {
+        for (const ln of s.split('\n').filter(Boolean)) {
+          if (stderrLines++ >= 20) break
+          log('debug', 'agi.stderr', stripAnsi(ln).slice(0, 200))
+        }
+      }
+    })
     child.on('close', (code) => {
       clearTimeout(timer)
       const cleaned = stripAnsi(out).trim()
+      const ms = Date.now() - t0
+      log('info', 'agi.done', `exit=${code} ${ms}ms out=${cleaned.length}ch`)
       if (code === 0 || cleaned) resolve({ text: cleaned })
       else resolve({ error: err.trim() || `exit ${code}`, text: cleaned })
     })
@@ -93,19 +124,25 @@ ipcMain.handle('agi:ask', async (_evt, prompt) => {
 // ─── IPC: Fast chat (direct HF router, <2s) ──────────────────────
 // Bypasses the whole CLI boot. No tools, no MCP — just a blazing fast
 // chat completion for conversation / Q&A. Perfect for the UI's default mode.
-function hfChat({ messages, model, stream = false, onChunk }) {
+function hfChat({ messages, model, stream = false, onChunk, stage = 'hf.chat' }) {
   return new Promise((resolve, reject) => {
     const token = process.env.HF_TOKEN
     if (!token) return reject(new Error('HF_TOKEN not set'))
     const base = process.env.HF_BASE_URL || 'https://router.huggingface.co/v1'
     const url = new URL(base.replace(/\/$/, '') + '/chat/completions')
+    const resolvedModel = model || process.env.HF_MODEL_ID || 'zai-org/GLM-5:together'
     const body = JSON.stringify({
-      model: model || process.env.HF_MODEL_ID || 'zai-org/GLM-5:together',
+      model: resolvedModel,
       messages,
       stream,
       max_tokens: 1024,
       temperature: 0.4,
     })
+    const t0 = Date.now()
+    let firstByteMs = null
+    let chunkCount = 0
+    let charCount = 0
+    log('info', stage, `POST ${url.hostname} model=${resolvedModel} stream=${stream} body=${body.length}B`)
     const req = https.request(
       {
         method: 'POST',
@@ -118,8 +155,13 @@ function hfChat({ messages, model, stream = false, onChunk }) {
         },
       },
       (res) => {
+        log('info', stage, `HTTP ${res.statusCode}`)
         let buf = ''
         res.on('data', (c) => {
+          if (firstByteMs === null) {
+            firstByteMs = Date.now() - t0
+            log('info', stage, `first-byte ${firstByteMs}ms`)
+          }
           const s = c.toString()
           buf += s
           if (stream && onChunk) {
@@ -133,28 +175,39 @@ function hfChat({ messages, model, stream = false, onChunk }) {
               try {
                 const j = JSON.parse(payload)
                 const delta = j.choices?.[0]?.delta?.content
-                if (delta) onChunk(delta)
+                if (delta) { chunkCount++; charCount += delta.length; onChunk(delta) }
               } catch { /* partial frame */ }
             }
           }
         })
         res.on('end', () => {
-          if (stream) return resolve({ ok: true })
+          const ms = Date.now() - t0
+          if (stream) {
+            log('info', stage, `done ${ms}ms chunks=${chunkCount} chars=${charCount}`)
+            return resolve({ ok: true })
+          }
           try {
             const j = JSON.parse(buf)
-            if (j.error) return reject(new Error(j.error.message || JSON.stringify(j.error)))
-            resolve({ text: j.choices?.[0]?.message?.content || '' })
+            if (j.error) {
+              log('error', stage, `api-error: ${j.error.message || JSON.stringify(j.error)}`)
+              return reject(new Error(j.error.message || JSON.stringify(j.error)))
+            }
+            const text = j.choices?.[0]?.message?.content || ''
+            const usage = j.usage || {}
+            log('info', stage, `done ${ms}ms chars=${text.length} in=${usage.prompt_tokens ?? '?'}tok out=${usage.completion_tokens ?? '?'}tok`)
+            resolve({ text })
           } catch (e) { reject(new Error('Bad JSON from HF: ' + buf.slice(0, 200))) }
         })
       },
     )
-    req.on('error', reject)
+    req.on('error', (e) => { log('error', stage, `network: ${e.message}`); reject(e) })
     req.write(body)
     req.end()
   })
 }
 
 ipcMain.handle('agi:fastAsk', async (_evt, { prompt, context }) => {
+  log('info', 'fast.ask', `prompt="${prompt.slice(0, 60)}"${context ? ' +screen-ctx' : ''}`)
   try {
     const messages = [
       {
@@ -176,26 +229,34 @@ ipcMain.handle('agi:fastAsk', async (_evt, { prompt, context }) => {
     await hfChat({
       messages,
       stream: true,
+      stage: 'fast.ask',
       onChunk: (d) => win && win.webContents.send('agi:chunk', d),
     })
     return { text: '__streamed__' }
   } catch (e) {
+    log('error', 'fast.ask', String(e.message || e))
     return { error: String(e.message || e) }
   }
 })
 
 // ─── IPC: screen capture + describe (Tier A — watch my desktop) ──
 ipcMain.handle('screen:snapshot', async () => {
+  const t0 = Date.now()
   try {
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: { width: 1024, height: 640 },
     })
-    if (!sources.length) return { error: 'no screen sources' }
-    // Prefer the primary display
+    if (!sources.length) {
+      log('warn', 'screen.snap', 'no sources — grant Screen Recording permission')
+      return { error: 'no screen sources (grant Screen Recording permission)' }
+    }
     const src = sources[0]
-    return { dataUrl: src.thumbnail.toDataURL(), name: src.name }
+    const dataUrl = src.thumbnail.toDataURL()
+    log('info', 'screen.snap', `captured "${src.name}" ${Math.round(dataUrl.length / 1024)}KB in ${Date.now() - t0}ms`)
+    return { dataUrl, name: src.name }
   } catch (e) {
+    log('error', 'screen.snap', String(e.message || e))
     return { error: String(e.message || e) }
   }
 })
@@ -203,9 +264,10 @@ ipcMain.handle('screen:snapshot', async () => {
 ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
   try {
     const token = process.env.HF_TOKEN
-    if (!token) return { error: 'HF_TOKEN not set' }
+    if (!token) { log('error', 'screen.vision', 'HF_TOKEN not set'); return { error: 'HF_TOKEN not set' } }
     // Use a vision-capable model. User can override via CORTEX_VISION_MODEL.
     const model = process.env.CORTEX_VISION_MODEL || 'meta-llama/Llama-3.2-11B-Vision-Instruct'
+    log('info', 'screen.vision', `describe via ${model}`)
     const messages = [
       {
         role: 'user',
@@ -221,9 +283,10 @@ ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
         ],
       },
     ]
-    const res = await hfChat({ messages, model, stream: false })
+    const res = await hfChat({ messages, model, stream: false, stage: 'screen.vision' })
     return { text: (res.text || '').trim() }
   } catch (e) {
+    log('error', 'screen.vision', String(e.message || e))
     return { error: String(e.message || e) }
   }
 })
@@ -241,6 +304,8 @@ function stripAnsi(s) {
 
 app.whenReady().then(() => {
   createWindow()
+  log('info', 'app.ready', `electron=${process.versions.electron} node=${process.versions.node} repo=${REPO_ROOT}`)
+  log('info', 'app.env', `HF_TOKEN=${process.env.HF_TOKEN ? 'set' : 'MISSING'} model=${process.env.HF_MODEL_ID || 'zai-org/GLM-5:together'}`)
 
   // Global hotkey: Cmd+Shift+A to toggle window
   globalShortcut.register('CommandOrControl+Shift+A', () => {

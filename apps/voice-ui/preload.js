@@ -10,6 +10,11 @@ contextBridge.exposeInMainWorld('cortex', {
     ipcRenderer.on('agi:chunk', listener)
     return () => ipcRenderer.removeListener('agi:chunk', listener)
   },
+  onLog: (cb) => {
+    const listener = (_e, evt) => cb(evt)
+    ipcRenderer.on('log:event', listener)
+    return () => ipcRenderer.removeListener('log:event', listener)
+  },
   windowClose: () => ipcRenderer.invoke('window:close'),
   windowMinimize: () => ipcRenderer.invoke('window:minimize'),
   windowPin: (p) => ipcRenderer.invoke('window:pin', p),
