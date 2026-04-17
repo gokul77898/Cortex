@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CORTEX Voice</title>
+  <style>
+    :root {
+      --bg: rgba(15, 15, 22, 0.85);
+      --fg: #e8e8f0;
+      --muted: #8a8ab0;
+      --accent: #7dd3fc;
+      --accent-2: #f472b6;
+      --danger: #ef4444;
+      --ok: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif;
+      color: var(--fg);
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+    }
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    /* Title bar */
+    .titlebar {
+      -webkit-app-region: drag;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .title {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .title .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 50% { opacity: 0.3; } }
+    .controls {
+      -webkit-app-region: no-drag;
+      display: flex;
+      gap: 6px;
+    }
+    .ctrl {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .ctrl:hover { opacity: 1; }
+    .ctrl.pin { background: #fbbf24; }
+    .ctrl.pin.off { background: #555; }
+    .ctrl.min { background: #84cc16; }
+    .ctrl.close { background: var(--danger); }
+
+    /* Conversation pane */
+    .pane {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      user-select: text;
+    }
+    .pane::-webkit-scrollbar { width: 6px; }
+    .pane::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .msg {
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      max-width: 90%;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #0a0a14;
+      font-weight: 500;
+    }
+    .msg.agi {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--fg);
+      white-space: pre-wrap;
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    /* Mic bar */
+    .micbar {
+      padding: 14px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .micbtn {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #0a0a14;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+    }
+    .micbtn:hover { transform: scale(1.05); }
+    .micbtn:active { transform: scale(0.95); }
+    .micbtn.recording {
+      background: var(--danger);
+      color: white;
+      animation: rec 1s infinite;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+    }
+    @keyframes rec {
+      0%, 100% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5); }
+      50% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.8); }
+    }
+    .statusline {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow: hidden;
+    }
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+    .transcript {
+      font-size: 12px;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 16px;
+    }
+    .waves {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+    }
+    .wave {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      opacity: 0.3;
+    }
+    .recording .wave { animation: wave 1s infinite ease-in-out; opacity: 1; }
+    .wave:nth-child(1) { height: 40%; animation-delay: 0s; }
+    .wave:nth-child(2) { height: 70%; animation-delay: 0.1s; }
+    .wave:nth-child(3) { height: 100%; animation-delay: 0.2s; }
+    .wave:nth-child(4) { height: 60%; animation-delay: 0.3s; }
+    .wave:nth-child(5) { height: 80%; animation-delay: 0.4s; }
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.5); }
+      50%      { transform: scaleY(1.2); }
+    }
+
+    .toggles {
+      display: flex;
+      gap: 8px;
+      padding: 0 14px 10px;
+      font-size: 11px;
+    }
+    .toggle {
+      -webkit-app-region: no-drag;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle.on { color: var(--accent); border-color: var(--accent); }
+    .toggle:hover { background: rgba(255,255,255,0.1); }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="titlebar">
+    <div class="title"><span class="dot"></span>CORTEX VOICE</div>
+    <div class="controls">
+      <button class="ctrl pin" id="pinBtn" title="Always on top"></button>
+      <button class="ctrl min" id="minBtn" title="Minimize"></button>
+      <button class="ctrl close" id="closeBtn" title="Close"></button>
+    </div>
+  </div>
+
+  <div class="pane" id="pane">
+    <div class="msg system">Press the mic or hold <b>Space</b> to speak. Press <b>⌘⇧A</b> globally to toggle this window.</div>
+  </div>
+
+  <div class="toggles">
+    <button class="toggle on" id="ttsToggle">🔊 TTS</button>
+    <button class="toggle" id="continuousToggle">♾ Continuous</button>
+  </div>
+
+  <div class="micbar">
+    <button class="micbtn" id="micBtn" title="Hold to speak (or Space)">🎤</button>
+    <div class="statusline">
+      <div class="hint" id="hint">Click or hold Space to speak</div>
+      <div class="transcript" id="transcript"></div>
+    </div>
+    <div class="waves" id="waves">
+      <div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const pane = document.getElementById('pane')
+  const micBtn = document.getElementById('micBtn')
+  const waves = document.getElementById('waves')
+  const hint = document.getElementById('hint')
+  const transcriptEl = document.getElementById('transcript')
+  const pinBtn = document.getElementById('pinBtn')
+  const minBtn = document.getElementById('minBtn')
+  const closeBtn = document.getElementById('closeBtn')
+  const ttsToggle = document.getElementById('ttsToggle')
+  const continuousToggle = document.getElementById('continuousToggle')
+
+  let ttsOn = true
+  let continuous = false
+  let pinned = true
+  let recognition = null
+  let recording = false
+  let finalTranscript = ''
+  let currentAgiMsg = null
+
+  // ─── Window controls ─────────────────────────────────────────
+  closeBtn.onclick = () => window.cortex.windowClose()
+  minBtn.onclick = () => window.cortex.windowMinimize()
+  pinBtn.onclick = async () => {
+    pinned = !pinned
+    await window.cortex.windowPin(pinned)
+    pinBtn.classList.toggle('off', !pinned)
+  }
+
+  ttsToggle.onclick = () => {
+    ttsOn = !ttsOn
+    ttsToggle.classList.toggle('on', ttsOn)
+    ttsToggle.textContent = ttsOn ? '🔊 TTS' : '🔇 TTS'
+    if (!ttsOn) window.speechSynthesis.cancel()
+  }
+  continuousToggle.onclick = () => {
+    continuous = !continuous
+    continuousToggle.classList.toggle('on', continuous)
+  }
+
+  // ─── UI helpers ──────────────────────────────────────────────
+  function addMsg(role, text = '') {
+    const el = document.createElement('div')
+    el.className = `msg ${role}`
+    el.textContent = text
+    pane.appendChild(el)
+    pane.scrollTop = pane.scrollHeight
+    return el
+  }
+  function setHint(t) { hint.textContent = t }
+  function setRecording(on) {
+    recording = on
+    micBtn.classList.toggle('recording', on)
+    waves.classList.toggle('recording', on)
+  }
+
+  // ─── Speech recognition (local, zero-lag) ────────────────────
+  function initRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      setHint('❌ SpeechRecognition not supported in this Electron build')
+      return null
+    }
+    const r = new SR()
+    r.continuous = false
+    r.interimResults = true
+    r.lang = 'en-US'
+
+    r.onstart = () => {
+      finalTranscript = ''
+      transcriptEl.textContent = ''
+      setRecording(true)
+      setHint('Listening…')
+    }
+    r.onresult = (e) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript
+        if (e.results[i].isFinal) finalTranscript += t
+        else interim += t
+      }
+      transcriptEl.textContent = (finalTranscript + interim).trim()
+    }
+    r.onerror = (e) => {
+      setHint(`⚠️ ${e.error}`)
+      setRecording(false)
+    }
+    r.onend = async () => {
+      setRecording(false)
+      transcriptEl.textContent = ''
+      const text = finalTranscript.trim()
+      if (!text) {
+        setHint('(nothing heard — try again)')
+        return
+      }
+      addMsg('user', text)
+      await askAGI(text)
+      if (continuous) startRecording()
+    }
+    return r
+  }
+
+  function startRecording() {
+    if (!recognition) recognition = initRecognition()
+    if (!recognition || recording) return
+    try { recognition.start() } catch (e) { /* already running */ }
+  }
+  function stopRecording() {
+    if (recognition && recording) recognition.stop()
+  }
+
+  // ─── Ask AGI ─────────────────────────────────────────────────
+  async function askAGI(prompt) {
+    setHint('🧠 Thinking…')
+    currentAgiMsg = addMsg('agi', '')
+    currentAgiMsg.textContent = 'Thinking…'
+
+    try {
+      const res = await window.cortex.ask(prompt)
+      if (res.error && !res.text) {
+        currentAgiMsg.textContent = `⚠️ ${res.error}`
+        currentAgiMsg.style.color = 'var(--danger)'
+        setHint('Error')
+        return
+      }
+      const text = res.text || res.partial || ''
+      currentAgiMsg.textContent = text
+      pane.scrollTop = pane.scrollHeight
+      setHint('Ready')
+      if (ttsOn && text) speakText(text)
+    } catch (err) {
+      currentAgiMsg.textContent = `⚠️ ${err.message}`
+      setHint('Error')
+    }
+  }
+
+  // ─── TTS (local, zero-lag) ───────────────────────────────────
+  function speakText(text) {
+    // Strip code blocks and markdown bullets — TTS reading code is useless
+    const clean = text
+      .replace(/```[\s\S]*?```/g, ' (code block omitted) ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/[*_#>]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 1200)
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(clean)
+    u.rate = 1.05
+    u.pitch = 1.0
+    const voices = window.speechSynthesis.getVoices()
+    const preferred = voices.find(v => /samantha|karen|siri|kate/i.test(v.name))
+    if (preferred) u.voice = preferred
+    window.speechSynthesis.speak(u)
+  }
+
+  // ─── Streaming chunks from main ──────────────────────────────
+  window.cortex.onChunk((chunk) => {
+    if (!currentAgiMsg) return
+    const current = currentAgiMsg.textContent === 'Thinking…' ? '' : currentAgiMsg.textContent
+    currentAgiMsg.textContent = current + chunk.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '')
+    pane.scrollTop = pane.scrollHeight
+  })
+
+  // ─── Mic button + Space hotkey ───────────────────────────────
+  let spaceDown = false
+  micBtn.addEventListener('mousedown', startRecording)
+  micBtn.addEventListener('mouseup', stopRecording)
+  micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording() })
+  micBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording() })
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !spaceDown && e.target.tagName !== 'INPUT') {
+      e.preventDefault()
+      spaceDown = true
+      startRecording()
+    }
+    if (e.code === 'Escape') {
+      stopRecording()
+      window.speechSynthesis.cancel()
+    }
+  })
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      spaceDown = false
+      stopRecording()
+    }
+  })
+
+  // Prime the voice list (Chrome loads them async)
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices()
+  window.speechSynthesis.getVoices()
+</script>
+</body>
+</html>

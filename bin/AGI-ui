@@ -1,0 +1,16 @@
+#!/bin/bash
+# CORTEX Voice UI — always-on-top Electron app with zero-lag voice.
+# Run: ./bin/AGI-ui
+set -e
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+APP_DIR="$REPO_ROOT/apps/voice-ui"
+
+if [ ! -d "$APP_DIR/node_modules/electron" ]; then
+  echo "📦 Installing Electron (one-time, ~2 min, ~150MB)..."
+  cd "$APP_DIR"
+  bun install 2>/dev/null || npm install
+  cd - >/dev/null
+fi
+
+cd "$APP_DIR"
+exec ./node_modules/.bin/electron . "$@"
