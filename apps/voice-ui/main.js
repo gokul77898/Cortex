@@ -265,13 +265,15 @@ ipcMain.handle('screen:snap', async () => {
   try {
     log('info', 'screen.snap', 'capturing...')
     const t0 = Date.now()
-    const sources = await desktopCapturer.getSources({ types: ['screen'] })
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } })
     if (!sources.length) throw new Error('No screen sources found')
     const source = sources[0]
+    if (!source.thumbnail) throw new Error('No thumbnail in source')
     const thumbnail = source.thumbnail
     // Downscale to max 512px for vision API (avoids 413 errors)
     const resized = thumbnail.resize({ width: 512, height: 512 })
     const dataUrl = resized.toDataURL('image/jpeg', 0.7)
+    if (!dataUrl || dataUrl.length < 100) throw new Error('Empty screenshot')
     log('info', 'screen.snap', `captured "Entire screen" ${Math.round(dataUrl.length / 1024)}KB in ${Date.now() - t0}ms`)
     return { dataUrl }
   } catch (e) {
@@ -285,9 +287,9 @@ ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
     const token = process.env.HF_TOKEN
     if (!token) { log('error', 'screen.vision', 'HF_TOKEN not set'); return { error: 'HF_TOKEN not set' } }
     // Use HF Inference API directly for vision (router doesn't support vision models)
-    const model = process.env.CORTEX_VISION_MODEL || 'nlpconnect/vit-gpt2-image-captioning'
+    const model = process.env.CORTEX_VISION_MODEL || 'Salesforce/blip-image-captioning-base'
     const t0 = Date.now()
-    log('info', 'screen.vision', `POST api-inference.huggingface.co model=${model} body=${dataUrl.length}B`)
+    log('info', 'screen.vision', `POST api-inference.huggingface.co/models/${model} body=${dataUrl.length}B`)
     const response = await fetch('https://api-inference.huggingface.co/models/' + model, {
       method: 'POST',
       headers: {
