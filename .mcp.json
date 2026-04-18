@@ -64,6 +64,88 @@
       "env": {
         "LINEAR_API_KEY": "${LINEAR_API_KEY}"
       }
+    },
+
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/Users/gokul/Documents/openclaude"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "jupyter": {
+      "command": "uvx",
+      "args": ["jupyter-mcp-server"],
+      "env": {
+        "DOCUMENT_URL": "http://localhost:8888",
+        "DOCUMENT_TOKEN": "${JUPYTER_TOKEN}"
+      }
+    },
+    "automation-mac": {
+      "command": "npx",
+      "args": ["-y", "automation-mcp"]
+    },
+
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "/Users/gokul/Documents/openclaude"]
+    },
+    "desktop-commander": {
+      "command": "npx",
+      "args": ["-y", "@wonderwhy-er/desktop-commander"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": {
+        "EXA_API_KEY": "${EXA_API_KEY}"
+      }
+    },
+    "tavily": {
+      "command": "npx",
+      "args": ["-y", "tavily-mcp"],
+      "env": {
+        "TAVILY_API_KEY": "${TAVILY_API_KEY}"
+      }
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      }
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+      }
+    },
+    "duckduckgo": {
+      "command": "uvx",
+      "args": ["duckduckgo-mcp-server"]
+    },
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time"]
+    },
+    "everything": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-everything"]
     }
   }
 }

@@ -10,9 +10,16 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Ensure uvx (Python MCP runner) is in PATH
+const __uvBin = resolve(process.env.HOME || '', '.local/bin');
+process.env.PATH = __uvBin + ':' + (process.env.PATH || '');
+
 // Block ALL browser opens by injecting a fake `open` binary first in PATH
-const __binDir = resolve(__dirname, '.bin');
-process.env.PATH = __binDir + ':' + (process.env.PATH || '');
+// (disabled if CORTEX_ALLOW_OPEN=1 is set)
+if (process.env.CORTEX_ALLOW_OPEN !== '1') {
+  const __binDir = resolve(__dirname, '.bin');
+  process.env.PATH = __binDir + ':' + (process.env.PATH || '');
+}
 
 // Load .env from project root
 try {
