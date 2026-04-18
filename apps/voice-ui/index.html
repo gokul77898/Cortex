@@ -294,11 +294,10 @@
   </div>
 
   <div class="pane" id="pane">
-    <div class="msg system">⚡ <b>Fast</b>: instant chat · 🧠 <b>AGI</b>: full CLI (tools, MCP) · 👁 <b>Watch</b>: I see your screen · 🎤 <b>Space</b>: talk · <b>⌘⇧A</b>: toggle window</div>
+    <div class="msg system">⚡ <b>Fast Chat</b>: instant AI · 👁 <b>Watch</b>: I see your screen · 🎤 <b>Space</b>: talk · <b>⌘⇧A</b>: toggle window</div>
   </div>
 
   <div class="toggles">
-    <button class="toggle on" id="fastToggle">⚡ Fast</button>
     <button class="toggle" id="watchToggle">👁 Watch Screen</button>
     <button class="toggle on" id="ttsToggle">🔊 TTS</button>
     <button class="toggle" id="continuousToggle">♾ Continuous</button>
@@ -341,7 +340,6 @@
   const ttsToggle = document.getElementById('ttsToggle')
   const continuousToggle = document.getElementById('continuousToggle')
   const clearBtn = document.getElementById('clearBtn')
-  const fastToggle = document.getElementById('fastToggle')
   const watchToggle = document.getElementById('watchToggle')
   const logsToggle = document.getElementById('logsToggle')
   const logpanel = document.getElementById('logpanel')
@@ -349,7 +347,6 @@
   let ttsOn = true
   let continuous = false
   let pinned = true
-  let fastMode = true         // ⚡ default: direct HF, <2s
   let watching = false        // 👁 screen monitor on/off
   let screenContext = ''      // latest screen description
   let watchTimer = null
@@ -382,12 +379,6 @@
   clearBtn.onclick = () => {
     pane.innerHTML = ''
     addMsg('system', 'Conversation cleared. Type or speak to start.')
-  }
-  fastToggle.onclick = () => {
-    fastMode = !fastMode
-    fastToggle.classList.toggle('on', fastMode)
-    fastToggle.textContent = fastMode ? '⚡ Fast' : '🧠 Full AGI'
-    setHint(fastMode ? 'Fast chat — <2s responses' : 'Full AGI — tools + MCP (slower)')
   }
   watchToggle.onclick = () => {
     watching = !watching
@@ -561,14 +552,12 @@
 
   // ─── Ask AGI ───────────────────────────────────────
   async function askAGI(prompt) {
-    setHint(fastMode ? '⚡ Fast thinking…' : '🧠 Full AGI thinking (can take 1-5 min)…')
+    setHint('⚡ Fast thinking…')
     currentAgiMsg = addMsg('agi', '')
     currentAgiMsg.textContent = 'Thinking…'
 
     try {
-      const res = fastMode
-        ? await window.cortex.fastAsk({ prompt, context: screenContext })
-        : await window.cortex.ask(prompt)
+      const res = await window.cortex.fastAsk({ prompt, context: screenContext })
       if (res.error && !res.text) {
         currentAgiMsg.textContent = `⚠️ ${res.error}`
         currentAgiMsg.style.color = 'var(--danger)'
