@@ -99,11 +99,23 @@ const autoLaunchOctogent = () => {
   const outLog = openSync(join(logsDir, 'octogent.out.log'), 'a');
   const errLog = openSync(join(logsDir, 'octogent.err.log'), 'a');
 
+  // IMPORTANT: strip the browser-blocking `.bin` shim from PATH so Octogent
+  // can actually call `open`/`xdg-open`. venv bin stays prepended.
+  const blockedBin = resolve(__dirname, '.bin');
+  const cleanPath = (process.env.PATH || '')
+    .split(':')
+    .filter((p) => p && p !== blockedBin)
+    .join(':');
+
   const child = spawn('node', [octogentLauncher], {
     cwd: __dirname,
     detached: true,
     stdio: ['ignore', outLog, errLog],
-    env: { ...process.env },
+    env: {
+      ...process.env,
+      PATH: cleanPath,
+      CORTEX_ALLOW_OPEN: '1',
+    },
   });
   child.unref();
   return child.pid;
