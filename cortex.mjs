@@ -4,10 +4,11 @@
  * Loads .env, enforces Python venv, and surfaces Octogent status
  * before handing off to the main CLI.
  */
-import { readFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { readFileSync, existsSync, mkdirSync, openSync, readdirSync } from 'fs';
+import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { spawnSync } from 'child_process';
+import { spawnSync, spawn } from 'child_process';
+import { homedir } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const QUIET = process.env.CORTEX_QUIET === '1';
@@ -66,30 +67,73 @@ try {
 } catch { /* no .env — fine */ }
 
 // ---------------------------------------------------------------------------
-// 3. Preflight status — venv + Octogent visibility
+// 3. Preflight — check venv, auto-launch Octogent in background, open browser
 // ---------------------------------------------------------------------------
+const detectRunningOctogent = () => {
+  // Octogent writes runtime.json into ~/.octogent/projects/<id>/state/runtime.json
+  // We scan them all and pick one whose PID is alive.
+  const root = join(homedir(), '.octogent', 'projects');
+  if (!existsSync(root)) return null;
+  try {
+    for (const entry of readdirSync(root)) {
+      const metaPath = join(root, entry, 'state', 'runtime.json');
+      if (!existsSync(metaPath)) continue;
+      try {
+        const meta = JSON.parse(readFileSync(metaPath, 'utf-8'));
+        if (meta?.apiBaseUrl && meta?.pid) {
+          try { process.kill(meta.pid, 0); return meta.apiBaseUrl; } catch {}
+        }
+      } catch {}
+    }
+  } catch {}
+  return null;
+};
+
+const autoLaunchOctogent = () => {
+  const octogentLauncher = resolve(__dirname, 'bin/cortex-octogent');
+  const octogentDist = resolve(__dirname, 'apps/octogent/dist/api/cli.js');
+  if (!existsSync(octogentLauncher) || !existsSync(octogentDist)) return null;
+
+  const logsDir = resolve(__dirname, 'logs');
+  try { mkdirSync(logsDir, { recursive: true }); } catch {}
+  const outLog = openSync(join(logsDir, 'octogent.out.log'), 'a');
+  const errLog = openSync(join(logsDir, 'octogent.err.log'), 'a');
+
+  const child = spawn('node', [octogentLauncher], {
+    cwd: __dirname,
+    detached: true,
+    stdio: ['ignore', outLog, errLog],
+    env: { ...process.env },
+  });
+  child.unref();
+  return child.pid;
+};
+
 if (!QUIET && process.env.CORTEX_NO_PREFLIGHT !== '1') {
   const venvActive = existsSync(__venvPython);
   const octogentDist = resolve(__dirname, 'apps/octogent/dist/api/cli.js');
   const octogentBuilt = existsSync(octogentDist);
 
-  // Check if Octogent is currently running by reading its runtime metadata
-  let octogentRunning = null;
-  try {
-    const runtimeMeta = resolve(__dirname, '.octogent/state/runtime.json');
-    if (existsSync(runtimeMeta)) {
-      const meta = JSON.parse(readFileSync(runtimeMeta, 'utf-8'));
-      if (meta?.apiBaseUrl && meta?.pid) {
-        // Verify PID is still alive
-        try { process.kill(meta.pid, 0); octogentRunning = meta.apiBaseUrl; } catch {}
-      }
-    }
-  } catch {}
+  let octogentRunning = detectRunningOctogent();
+  let octogentStatus;
+
+  if (octogentRunning) {
+    octogentStatus = `✓ running @ ${octogentRunning}`;
+  } else if (!octogentBuilt) {
+    octogentStatus = '✗ not built (run: make build)';
+  } else if (process.env.CORTEX_NO_OCTOGENT === '1') {
+    octogentStatus = '● built (auto-launch disabled: CORTEX_NO_OCTOGENT=1)';
+  } else {
+    const pid = autoLaunchOctogent();
+    octogentStatus = pid
+      ? `🚀 launching in background (pid ${pid}) — UI will auto-open`
+      : '✗ failed to launch';
+  }
 
   log('┌─ CORTEX preflight ──────────────────────────────────────────');
   log(`│ venv:     ${venvActive ? '✓ active' : '✗ missing'}  (${__venvDir})`);
-  log(`│ octogent: ${octogentRunning ? `✓ running @ ${octogentRunning}` : octogentBuilt ? '● built (start: ./bin/cortex-octogent)' : '✗ not built (make build)'}`);
-  log(`│ logs:     ${resolve(__dirname, 'logs/')} · octogent: .octogent/`);
+  log(`│ octogent: ${octogentStatus}`);
+  log(`│ logs:     ${resolve(__dirname, 'logs/')} (cortex + octogent.out.log)`);
   log('└─────────────────────────────────────────────────────────────');
 }
 
