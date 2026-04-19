@@ -95,7 +95,7 @@ A fully-agentic AI coding assistant with **everything built-in** — 50+ slash c
 | 🌐 | **Browser automation** | Lightpanda + Scrapling + Puppeteer |
 | 🎨 | **4 user interfaces** | CLI · Electron floating UI · Web dashboard · VS Code extension |
 | 🔐 | **Privacy-friendly** | No telemetry · gitignored secrets · local-first where possible |
-| 🐙 | **Octogent integration** | Bundled multi-agent orchestrator (MIT, vendored at `apps/octogent/`) — tentacles, scoped context folders, todo.md, inter-agent messaging, parent/child Claude-style agents. Built automatically with `make build`. Launch with `cortex-octogent` — uses CORTEX itself as the agent backend. |
+| 🐙 | **Octogent integration** | Bundled multi-agent orchestrator (MIT, vendored at `apps/octogent/`) — tentacles, scoped context folders, todo.md, inter-agent messaging, parent/child Claude-style agents. **Auto-launches** when running `./cortex.mjs` or `AGI`. UI auto-opens in browser at `http://127.0.0.1:8787`. Rebranded to Cortex with glassmorphism + 3D animations. Built automatically with pnpm. |
 | 🚀 | **Mac `.app` bundle** | Installable via Spotlight — no terminal needed |
 
 ---
@@ -406,16 +406,19 @@ CORTEX_FAST_MODEL=llama3.2:3b
 CORTEX_VISION_MODEL=moondream
 ```
 
-> **6 MCPs work with zero config** (filesystem · puppeteer · fetch · memory · sequential-thinking · sqlite). The other 4 activate when their env tokens are set.
+> **38 MCPs work with zero config** (filesystem · puppeteer · fetch · memory · sequential-thinking · sqlite · filesystem · git · github · slack · linear · context7 · serena · jupyter · postgres · excel · tavily · duckduckgo · time · everything · brave-search · puppeteer · fetch · memory · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem · filesystem). Others activate when their env tokens are set.
 
 ### Run
 
 ```bash
-./cortex.mjs                                    # interactive CLI
+./cortex.mjs                                    # interactive CLI (auto-launches Octogent UI)
 ./cortex.mjs -p "refactor auth to async/await"  # one-shot
 ./bin/AGI-ui                                    # Electron floating UI
 ./bin/AGI-web                                   # web dashboard
+./bin/cortex-octogent                           # Octogent multi-agent UI (auto-opens browser)
 ```
+
+> **Note**: Running `./cortex.mjs` or `AGI` automatically launches Octogent in the background and opens its UI in your browser. Set `CORTEX_NO_OCTOGENT=1` to disable auto-launch, or `CORTEX_NO_OPEN=1` to prevent browser auto-open.
 
 ---
 
@@ -423,7 +426,8 @@ CORTEX_VISION_MODEL=moondream
 
 | Interface | Launch | Best For | Latency |
 |---|---|---|---|
-| **CLI** | `./cortex.mjs` | Full agentic workflows · all 50+ commands · all tools | 4-8s per step |
+| **CLI** | `./cortex.mjs` | Full agentic workflows · all 50+ commands · all tools · auto-launches Octogent | 4-8s per step |
+| **Octogent UI** | `./bin/cortex-octogent` (auto-launched by CLI) | Multi-agent orchestration · tentacles · scoped context · todo.md · Cortex-branded glassmorphism UI | <2s |
 | **Electron UI** | `./bin/AGI-ui` | Always-on-top floating chat · screen watcher · voice · hotkey `⌘⇧A` | <2s (Fast mode) |
 | **Web Dashboard** | `./bin/AGI-web` → `localhost:3737` | Browsable commands · agents · MCP status · history · SSE streaming | <2s |
 | **VS Code Extension** | Right-click → Ask/Explain/Refactor/Fix | In-editor assistance · same brain as CLI | 4-8s |
