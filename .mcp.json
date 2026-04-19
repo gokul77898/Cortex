@@ -96,7 +96,7 @@
     },
     "automation-mac": {
       "command": "npx",
-      "args": ["-y", "automation-mcp"]
+      "args": ["-y", "@steipete/macos-automator-mcp@latest"]
     },
 
     "git": {
