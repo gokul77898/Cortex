@@ -22,6 +22,8 @@
   <a href="#-153-specialist-agents"><img src="https://img.shields.io/badge/Agents-153-orange" /></a>
   <a href="#-mcp-servers-20-registered"><img src="https://img.shields.io/badge/MCP%20Servers-20-cyan" /></a>
   <a href="#-quick-start"><img src="https://img.shields.io/badge/Install-1%20command-green" /></a>
+  <a href="#-docker"><img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" /></a>
+  <a href="https://www.npmjs.com/package/@gitlawb/cortex"><img src="https://img.shields.io/badge/npm-%40gitlawb%2Fcortex-red?logo=npm" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" /></a>
 </p>
 
@@ -317,18 +319,62 @@ User → Electron / CLI → HF fails (no internet)
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 🏎 Fastest: One-command install (recommended)
+
+```bash
+git clone https://github.com/gokul77898/Cortex.git
+cd Cortex
+./install.sh          # creates .venv, installs Python + Node deps, builds CLI
+cp .env.example .env  # add your HF_TOKEN
+./cortex.mjs "hello"
+```
+
+### 🐳 Docker (zero local deps)
+
+```bash
+git clone https://github.com/gokul77898/Cortex.git
+cd Cortex
+cp .env.example .env  # add your HF_TOKEN
+docker build -t cortex .
+docker run -it --rm --env-file .env -v "$(pwd)/workspace:/workspace" cortex "hello"
+```
+
+Or with docker-compose:
+```bash
+docker-compose up -d
+docker-compose run cortex "hello"
+```
+
+### 📦 npm (global install)
+
+```bash
+npm install -g @gitlawb/cortex
+cortex "hello"
+```
+
+### 🔧 Makefile shortcuts
+
+```bash
+make install       # one-command setup
+make run ARGS="hello"
+make docker-build
+make test
+```
+
+### Prerequisites (for manual install only)
 
 - **Node.js** ≥ 20 & **Bun** ≥ 1.1  —  `brew install bun`
 - **Python** ≥ 3.9  (for RAG, voice, media helpers)
 - **HuggingFace token**  →  [hf.co/settings/tokens](https://huggingface.co/settings/tokens) (free)
 - **Optional:** Ollama for offline mode  →  `brew install ollama`
 
-### Install
+### Manual install (if you skip `install.sh`)
 
 ```bash
 git clone https://github.com/gokul77898/Cortex.git
 cd Cortex
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r python/requirements.txt uv
 bun install
 bun run build
 ```
