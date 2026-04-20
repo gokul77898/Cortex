@@ -799,6 +799,7 @@ Dashboard → **Overview** tab shows green Ollama indicator when reachable.
 
 | Key | Action |
 |---|---|
+| `⌘E` / `Ctrl+E` | Show and focus the window |
 | `⌘⇧A` | Toggle window visibility |
 | `⌘⇧F` | Toggle fullscreen |
 | `⌘⇧S` | Snap screen immediately |

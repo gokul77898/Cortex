@@ -423,6 +423,13 @@ app.whenReady().then(() => {
     if (win.isVisible()) win.hide(); else win.show()
   })
 
+  // Global hotkey: Cmd+E to show/focus the window (same as Cmd+Shift+A but easier)
+  globalShortcut.register('CommandOrControl+E', () => {
+    if (!win) return createWindow()
+    if (!win.isVisible()) win.show()
+    win.focus()
+  })
+
   // Global hotkey: Cmd+Shift+F to toggle fullscreen
   globalShortcut.register('CommandOrControl+Shift+F', () => {
     if (win) win.setFullScreen(!win.isFullScreen())
