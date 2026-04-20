@@ -56,6 +56,13 @@ const agentsPlatform =
 import securityReview from './commands/security-review.js'
 import smartCommit from './commands/smart-commit.js'
 import prReview from './commands/pr-review.js'
+// --- Advanced: Phase 1 (high-impact quick-wins) ---
+import templateCmd from './commands/template.js'
+import apiDocs from './commands/api-docs.js'
+import reviewSummarize from './commands/review-summarize.js'
+import erDiagram from './commands/er-diagram.js'
+import migrate from './commands/migrate.js'
+import rollback from './commands/rollback.js'
 import db from './commands/db/index.js'
 import testGen from './commands/test-gen/index.js'
 import securityScan from './commands/security-scan/index.js'
@@ -384,6 +391,13 @@ const COMMANDS = memoize((): Command[] => [
   securityScan,
   perfAnalyze,
   scanReport,
+  // Advanced Phase 1
+  templateCmd,
+  apiDocs,
+  reviewSummarize,
+  erDiagram,
+  migrate,
+  rollback,
   // Tier 2
   tier2Refactor,
   tier2Explain,

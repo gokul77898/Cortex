@@ -583,6 +583,19 @@ The AI picks the playbook from `CORTEX.md` and executes. Slash commands remain a
 Also available as a standalone shell command: `octo` (opens), `octo --status` (check), `octo --no-open` (launch only).
 </details>
 
+<details>
+<summary><strong>Advanced · Phase 1 (high-impact quick-wins)</strong></summary>
+
+| Command | Description |
+|---|---|
+| `/template <stack>` `/scaffold` | Scaffold a new project from a real official starter (Next.js, Django, Rails, FastAPI, Expo, Svelte, Astro, Hono, NestJS, Vite, Express). Runs the official CLI + git init + first commit. |
+| `/api-docs` `/openapi` | Generate a real OpenAPI 3.1 spec + JSDoc/docstrings from your actual HTTP routes (Express, NestJS, Next.js, FastAPI, Flask, Rails, Hono, Go). Validates with Redocly. |
+| `/review-summarize` `/rs` | Structured, evidence-backed AI summary of a PR diff — classifies each file, flags risks, lists missing tests, suggests reviewers from CODEOWNERS / git log. |
+| `/er-diagram` `/erd` | Introspect your real schema (Prisma, Drizzle, SQLAlchemy, Django, TypeORM, Rails, live Postgres/SQLite) and emit a Mermaid ER diagram to `docs/er-diagram.md`. |
+| `/migrate` | Generate a real, reversible DB migration by diffing two schema states. Prefers official tooling (Prisma, Alembic, Django, Rails, Drizzle, Knex) and falls back to safe hand-written SQL with rollback. |
+| `/rollback` | Roll back the last deployment on Vercel / Netlify / Fly.io / Railway / Render / Heroku using the real provider CLI. Always requires explicit user approval before executing. |
+</details>
+
 ---
 
 ## 👥 153 Specialist Agents
