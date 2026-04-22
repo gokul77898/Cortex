@@ -54,3 +54,5 @@ apps/web-ui/package-lock.json
 
 # macOS
 .DS_Store
+
+.octogent

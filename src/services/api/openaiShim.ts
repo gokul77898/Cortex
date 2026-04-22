@@ -299,6 +299,44 @@ function convertMessages(
 }
 
 /**
+ * Aggressive sanitization for MiniMax - strips union types, anyOf, oneOf
+ */
+function sanitizeSchemaForMiniMax(schema: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...schema }
+  
+  // Remove union types - convert to first type only
+  if (Array.isArray(result.type)) {
+    result.type = result.type[0]
+  }
+  
+  // Remove anyOf, oneOf, allOf - MiniMax doesn't support them
+  delete result.anyOf
+  delete result.oneOf
+  delete result.allOf
+  
+  // Recurse into properties
+  if (result.type === 'object' && result.properties) {
+    const props = result.properties as Record<string, Record<string, unknown>>
+    const sanitizedProps: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(props)) {
+      sanitizedProps[key] = sanitizeSchemaForMiniMax(value)
+    }
+    result.properties = sanitizedProps
+  }
+  
+  // Recurse into array items
+  if (result.items) {
+    if (Array.isArray(result.items)) {
+      result.items = result.items.map(item => sanitizeSchemaForMiniMax(item as Record<string, unknown>))
+    } else {
+      result.items = sanitizeSchemaForMiniMax(result.items as Record<string, unknown>)
+    }
+  }
+  
+  return result
+}
+
+/**
  * OpenAI requires every key in `properties` to also appear in `required`.
  * CORTEX schemas often mark fields as optional (omitted from `required`),
  * which causes 400 errors on OpenAI/Codex endpoints. This normalizes the
@@ -307,8 +345,14 @@ function convertMessages(
 function normalizeSchemaForOpenAI(
   schema: Record<string, unknown>,
   strict = true,
+  isMiniMax = false,
 ): Record<string, unknown> {
-  const record = sanitizeSchemaForOpenAICompat(schema)
+  let record = sanitizeSchemaForOpenAICompat(schema)
+  
+  // MiniMax needs extra aggressive sanitization
+  if (isMiniMax) {
+    record = sanitizeSchemaForMiniMax(record)
+  }
 
   if (record.type === 'object' && record.properties) {
     const properties = record.properties as Record<string, Record<string, unknown>>
@@ -320,6 +364,7 @@ function normalizeSchemaForOpenAI(
       normalizedProps[key] = normalizeSchemaForOpenAI(
         value as Record<string, unknown>,
         strict,
+        isMiniMax,
       )
     }
     record.properties = normalizedProps
@@ -341,10 +386,10 @@ function normalizeSchemaForOpenAI(
   if ('items' in record) {
     if (Array.isArray(record.items)) {
       record.items = (record.items as unknown[]).map(
-        item => normalizeSchemaForOpenAI(item as Record<string, unknown>, strict),
+        item => normalizeSchemaForOpenAI(item as Record<string, unknown>, strict, isMiniMax),
       )
     } else {
-      record.items = normalizeSchemaForOpenAI(record.items as Record<string, unknown>, strict)
+      record.items = normalizeSchemaForOpenAI(record.items as Record<string, unknown>, strict, isMiniMax)
     }
   }
 
@@ -352,7 +397,7 @@ function normalizeSchemaForOpenAI(
   for (const key of ['anyOf', 'oneOf', 'allOf'] as const) {
     if (key in record && Array.isArray(record[key])) {
       record[key] = (record[key] as unknown[]).map(
-        item => normalizeSchemaForOpenAI(item as Record<string, unknown>, strict),
+        item => normalizeSchemaForOpenAI(item as Record<string, unknown>, strict, isMiniMax),
       )
     }
   }
@@ -362,8 +407,11 @@ function normalizeSchemaForOpenAI(
 
 function convertTools(
   tools: Array<{ name: string; description?: string; input_schema?: Record<string, unknown> }>,
+  model?: string,
 ): OpenAITool[] {
   const isGemini = isEnvTruthy(process.env.CORTEX_USE_GEMINI)
+  // MiniMax doesn't support strict schema normalization (additionalProperties: false, forced required[])
+  const isMiniMax = model?.toLowerCase().includes('minimax')
 
   return tools
     .filter(t => t.name !== 'ToolSearchTool') // Not relevant for OpenAI
@@ -386,7 +434,7 @@ function convertTools(
         function: {
           name: t.name,
           description: t.description ?? '',
-          parameters: normalizeSchemaForOpenAI(schema, !isGemini),
+          parameters: normalizeSchemaForOpenAI(schema, !isGemini && !isMiniMax, isMiniMax),
         },
       }
     })
@@ -895,6 +943,7 @@ class OpenAIShimMessages {
           description?: string
           input_schema?: Record<string, unknown>
         }>,
+        selectedModel,
       )
       if (converted.length > 0) {
         body.tools = converted

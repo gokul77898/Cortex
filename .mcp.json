@@ -81,14 +81,6 @@
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
     },
-    "jupyter": {
-      "command": "uvx",
-      "args": ["jupyter-mcp-server"],
-      "env": {
-        "DOCUMENT_URL": "http://localhost:8888",
-        "DOCUMENT_TOKEN": "${JUPYTER_TOKEN}"
-      }
-    },
     "automation-mac": {
       "command": "npx",
       "args": ["-y", "@steipete/macos-automator-mcp@latest"]
