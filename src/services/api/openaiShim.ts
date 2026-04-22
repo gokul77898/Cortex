@@ -299,7 +299,8 @@ function convertMessages(
 }
 
 /**
- * Aggressive sanitization for MiniMax - strips union types, anyOf, oneOf
+ * Aggressive sanitization for MiniMax - strips union types, anyOf, oneOf,
+ * ensures every schema has a type, strips unsupported keywords
  */
 function sanitizeSchemaForMiniMax(schema: Record<string, unknown>): Record<string, unknown> {
   const result = { ...schema }
@@ -313,6 +314,29 @@ function sanitizeSchemaForMiniMax(schema: Record<string, unknown>): Record<strin
   delete result.anyOf
   delete result.oneOf
   delete result.allOf
+  // Remove other JSON Schema keywords MiniMax chokes on
+  delete result.$ref
+  delete result.$defs
+  delete result.definitions
+  delete result.const
+  delete result.not
+  delete result.if
+  delete result.then
+  delete result.else
+  
+  // Ensure schema has a type - default to 'object' if it has properties, else 'string'
+  if (!result.type) {
+    if (result.properties) {
+      result.type = 'object'
+    } else if (result.items) {
+      result.type = 'array'
+    } else if (result.enum) {
+      result.type = 'string'
+    } else {
+      // Schemas with only title/description and no type - default to string
+      result.type = 'string'
+    }
+  }
   
   // Recurse into properties
   if (result.type === 'object' && result.properties) {
