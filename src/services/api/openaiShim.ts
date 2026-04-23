@@ -1080,22 +1080,86 @@ class OpenAIShimMessages {
       }
       const errorBody = await response.text().catch(() => 'unknown error')
 
-      // Model fallback: retry with HF_MODEL_FALLBACK on 5xx errors (provider outage)
-      const fallbackModel = process.env.HF_MODEL_FALLBACK || process.env.OPENAI_MODEL_FALLBACK
-      const isRetryable = response.status >= 500 && response.status < 600
-      if (isRetryable && fallbackModel && fallbackModel !== body.model) {
+      // Model fallback: retry with HF_MODEL_FALLBACK on recoverable errors
+      // Supports comma-separated list of fallback models (tried in order).
+      // Triggers on: 5xx (provider outage), 401/403 (auth/permission), 429 (rate limit)
+      const fallbackRaw = process.env.HF_MODEL_FALLBACK || process.env.OPENAI_MODEL_FALLBACK || ''
+      const fallbackList = fallbackRaw.split(',').map(s => s.trim()).filter(Boolean)
+      const isRetryable =
+        (response.status >= 500 && response.status < 600) ||
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 429
+      if (isRetryable && fallbackList.length > 0) {
         const originalModel = body.model
-        console.error(`[cortex] primary model ${originalModel} failed (HTTP ${response.status}), retrying with fallback: ${fallbackModel}`)
-        body.model = fallbackModel
-        fetchInit.body = JSON.stringify(body)
-        const fallbackResp = await fetch(chatCompletionsUrl, fetchInit)
-        if (fallbackResp.ok) return fallbackResp
-        const fbErr = await fallbackResp.text().catch(() => 'unknown')
+        const attempted: string[] = [`${originalModel}:${response.status}`]
+        for (const fbModel of fallbackList) {
+          if (fbModel === body.model) continue
+          console.error(`[cortex] model ${body.model} failed (HTTP ${response.status}), retrying with fallback: ${fbModel}`)
+          body.model = fbModel
+          fetchInit.body = JSON.stringify(body)
+          const fallbackResp = await fetch(chatCompletionsUrl, fetchInit)
+          if (fallbackResp.ok) return fallbackResp
+          const fbErr = await fallbackResp.text().catch(() => 'unknown')
+          attempted.push(`${fbModel}:${fallbackResp.status}`)
+          // Keep trying next fallback if still retryable
+          if (
+            !(fallbackResp.status >= 500 && fallbackResp.status < 600) &&
+            fallbackResp.status !== 401 &&
+            fallbackResp.status !== 403 &&
+            fallbackResp.status !== 429
+          ) {
+            throw APIError.generate(
+              fallbackResp.status,
+              undefined,
+              `All HF models failed. Attempts: ${attempted.join(', ')}. Last error: ${fbErr}`,
+              fallbackResp.headers as unknown as Headers,
+            )
+          }
+        }
+
+        // All HF models exhausted - try Groq fallback if configured
+        const groqKey = process.env.GROQ_API_KEY
+        const groqModel = process.env.CORTEX_GROQ_FALLBACK_MODEL || 'openai/gpt-oss-120b'
+        const groqUrl = process.env.CORTEX_GROQ_FALLBACK_URL || 'https://api.groq.com/openai/v1'
+        if (groqKey) {
+          console.error(`[cortex] all HF models failed, falling back to Groq (${groqModel})`)
+          body.model = groqModel
+          const groqInit = { ...fetchInit }
+          groqInit.headers = { ...fetchInit.headers, Authorization: `Bearer ${groqKey}` }
+          groqInit.body = JSON.stringify(body)
+          const groqResp = await fetch(`${groqUrl}/chat/completions`, groqInit)
+          if (groqResp.ok) return groqResp
+          const grErr = await groqResp.text().catch(() => 'unknown')
+          attempted.push(`groq:${groqModel}:${groqResp.status}`)
+          console.error(`[cortex] Groq fallback failed (${groqResp.status}): ${grErr}`)
+        }
+
+        // Groq exhausted - try Ollama fallback if configured
+        const ollamaUrl = process.env.CORTEX_OLLAMA_FALLBACK_URL || 'http://localhost:11434/v1'
+        const ollamaModel = process.env.CORTEX_OLLAMA_FALLBACK_MODEL
+        if (ollamaModel) {
+          console.error(`[cortex] all HF models failed, falling back to Ollama (${ollamaModel} @ ${ollamaUrl})`)
+          body.model = ollamaModel
+          const ollamaInit = { ...fetchInit }
+          ollamaInit.headers = { ...fetchInit.headers, Authorization: 'Bearer ollama' }
+          ollamaInit.body = JSON.stringify(body)
+          const ollamaResp = await fetch(`${ollamaUrl}/chat/completions`, ollamaInit)
+          if (ollamaResp.ok) return ollamaResp
+          const olErr = await ollamaResp.text().catch(() => 'unknown')
+          throw APIError.generate(
+            ollamaResp.status,
+            undefined,
+            `All providers failed. HF attempts: ${attempted.join(', ')}. Ollama (${ollamaModel}) ${ollamaResp.status}: ${olErr}`,
+            ollamaResp.headers as unknown as Headers,
+          )
+        }
+
         throw APIError.generate(
-          fallbackResp.status,
+          response.status,
           undefined,
-          `Both models failed. Primary (${originalModel}) ${response.status}: ${errorBody}. Fallback (${fallbackModel}) ${fallbackResp.status}: ${fbErr}`,
-          fallbackResp.headers as unknown as Headers,
+          `All HF models exhausted. Attempts: ${attempted.join(', ')}. Set CORTEX_OLLAMA_FALLBACK_MODEL to enable local fallback.`,
+          response.headers as unknown as Headers,
         )
       }
 

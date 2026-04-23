@@ -56,3 +56,7 @@ apps/web-ui/package-lock.json
 .DS_Store
 
 .octogent
+
+# Local-only test files (not committed)
+*.local.test.ts
+
