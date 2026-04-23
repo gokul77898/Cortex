@@ -168,7 +168,17 @@ function SpinnerWithVerbInner({
   // Leader's own verb (always the leader's, regardless of who is foregrounded)
   const leaderVerb = overrideMessage ?? currentTodo?.activeForm ?? currentTodo?.subject ?? randomVerb;
   const effectiveVerb = foregroundedTeammate && !foregroundedTeammate.isIdle ? foregroundedTeammate.spinnerVerb ?? randomVerb : leaderVerb;
-  const message = effectiveVerb + '…';
+  // Append a short model tag so the user always sees which model is active
+  // e.g. "Twisting… · Kimi-K2.6". Strips org/provider parts for brevity.
+  const _activeModel = getMainLoopModel();
+  const _shortModel = (() => {
+    if (!_activeModel) return '';
+    const afterSlash = _activeModel.includes('/') ? _activeModel.split('/').pop() ?? _activeModel : _activeModel;
+    return afterSlash.split(':')[0];
+  })();
+  const message = _shortModel
+    ? `${effectiveVerb}… · ${_shortModel}`
+    : effectiveVerb + '…';
 
   // Track CLI activity when spinner is active
   useEffect(() => {
