@@ -10,7 +10,7 @@ export type ShareMessage = {
   user: string
   text: string
   ts: number
-  kind: 'msg' | 'system' | 'task' | 'result'
+  kind: 'msg' | 'system' | 'task' | 'result' | 'session_ended'
 }
 
 export type TunnelProvider = 'cloudflared' | 'localhost.run' | 'serveo' | 'none'
@@ -83,7 +83,56 @@ const renderWrongSessionPage = (): string => `<!doctype html>
   </div>
 </body></html>`
 
-const renderUI = (sessionId: string, token: string): string => `<!doctype html>
+const renderLateJoinPage = (): string => `<!doctype html>
+<html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cortex · You're late</title>
+<style>
+  html,body{margin:0;height:100%;background:radial-gradient(ellipse at top,#1a0f20,#000);color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;display:grid;place-items:center;text-align:center;padding:24px}
+  .card{max-width:520px;padding:32px;background:rgba(17,21,26,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:14px;backdrop-filter:blur(14px)}
+  h1{margin:0 0 10px;font-size:20px;color:#d29922}
+  .sub{color:#8b949e;font-size:13px;line-height:1.6;margin-bottom:18px}
+  .x{font-size:42px;margin-bottom:8px}
+  code{background:rgba(0,0,0,0.35);padding:2px 6px;border-radius:4px;color:#58a6ff}
+</style></head>
+<body>
+  <div class="card">
+    <div class="x">⏰</div>
+    <h1>You're late</h1>
+    <div class="sub">
+      This invite link was shared over 20 minutes ago and has expired.<br/>
+      Session links are only valid for 20 minutes from when they are first shared.
+    </div>
+    <div class="sub">Contact the team to get a fresh invite link or QR code.</div>
+  </div>
+</body></html>`
+
+const renderSessionEndedPage = (): string => `<!doctype html>
+<html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cortex · Session completed</title>
+<style>
+  html,body{margin:0;height:100%;background:radial-gradient(ellipse at top,#0f1a1f,#000);color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;display:grid;place-items:center;text-align:center;padding:24px}
+  .card{max-width:520px;padding:40px;background:rgba(17,21,26,0.85);border:1px solid rgba(126,231,135,0.15);border-radius:16px;backdrop-filter:blur(16px);box-shadow:0 0 40px rgba(126,231,135,0.1)}
+  h1{margin:0 0 12px;font-size:22px;color:#7ee787}
+  .sub{color:#8b949e;font-size:14px;line-height:1.7;margin-bottom:24px}
+  .x{font-size:52px;margin-bottom:12px;animation:scale 2s ease-in-out infinite}
+  @keyframes scale { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .check{color:#7ee787;font-size:48px;margin-bottom:8px}
+</style></head>
+<body>
+  <div class="card">
+    <div class="check">✓</div>
+    <h1>Session completed</h1>
+    <div class="sub">
+      The host has ended this Cortex session.<br/>
+      All team members have been disconnected.
+    </div>
+    <div class="sub">Thank you for collaborating!</div>
+  </div>
+</body></html>`
+
+const renderUI = (sessionId: string, token: string, createdAt: number): string => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -138,6 +187,20 @@ const renderUI = (sessionId: string, token: string): string => `<!doctype html>
   #sendBtn:hover { box-shadow:0 6px 18px rgba(46,160,67,0.4); }
   #taskBtn { background:linear-gradient(135deg,#a371f7,#8957e5); color:#fff; box-shadow:0 4px 12px rgba(163,113,247,0.25); }
   #taskBtn:hover { box-shadow:0 6px 18px rgba(163,113,247,0.4); }
+
+  /* Mobile-specific styles */
+  @media (max-width: 768px) {
+    .shell { grid-template-rows:auto auto 1fr auto; }
+    footer { order: 2; padding:10px 14px 12px; }
+    #log { order: 3; padding:12px 14px; }
+    .hint { order: 4; }
+    #name { width:100px; padding:8px 10px; font-size:11px; }
+    #text { min-height:36px; max-height:100px; font-size:12px; padding:8px 10px; }
+    button { padding:8px 14px; font-size:11px; }
+    header { padding:10px 14px; }
+    header .sid { display:none; }
+    header .who .dlqr { display:none; }
+  }
 </style>
 </head>
 <body>
@@ -152,18 +215,18 @@ const renderUI = (sessionId: string, token: string): string => `<!doctype html>
         <a class="dlqr" href="qr.png?download=1" download="cortex-share-qr.png">⬇ QR png</a>
       </div>
     </header>
-    <div id="log"></div>
-    <div class="hint"><span class="live"><span class="d"></span>live · real-time</span> · tasks run sequentially · everyone sees every message</div>
     <footer>
       <input id="name" placeholder="your name" />
       <textarea id="text" placeholder="type a message… (Enter chat · Shift+Enter newline · Cmd/Ctrl+Enter task)"></textarea>
       <button id="sendBtn">Chat</button>
       <button id="taskBtn">▸ Task</button>
     </footer>
+    <div id="log"></div>
+    <div class="hint"><span class="live"><span class="d"></span>live · real-time</span> · tasks run sequentially · everyone sees every message</div>
   </div>
 <script>
 (() => {
-  // --- animated 3D-ish particle field -----------------------------------
+  // --- enhanced animated 3D particle field --------------------------------
   const cv = document.getElementById('bg');
   const ctx = cv.getContext('2d');
   let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -175,54 +238,119 @@ const renderUI = (sessionId: string, token: string): string => `<!doctype html>
   };
   resize(); window.addEventListener('resize', resize);
 
-  const N = 140;
+  const N = 180;
   const pts = Array.from({length:N}, () => ({
     x:(Math.random()-0.5)*2, y:(Math.random()-0.5)*2, z:Math.random()*2+0.5,
-    vx:(Math.random()-0.5)*0.0008, vy:(Math.random()-0.5)*0.0008, vz:(Math.random()-0.5)*0.002,
+    vx:(Math.random()-0.5)*0.0006, vy:(Math.random()-0.5)*0.0006, vz:(Math.random()-0.5)*0.0015,
+    phase: Math.random() * Math.PI * 2,
+    size: 0.5 + Math.random() * 1.5,
   }));
-  const COLORS = ['#7ee787','#58a6ff','#bc8cff'];
+  const COLORS = ['#7ee787','#58a6ff','#bc8cff','#f78166'];
   let t0 = performance.now();
   const draw = (now) => {
     const dt = Math.min(64, now - t0); t0 = now;
     ctx.clearRect(0,0,W,H);
     const cx = W/2, cy = H/2;
-    const angle = now * 0.00008;
+    const angle = now * 0.00006;
     const sA = Math.sin(angle), cA = Math.cos(angle);
-    const proj = pts.map(p => {
+    const wavePhase = now * 0.002;
+    
+    const proj = pts.map((p, idx) => {
       p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt;
-      if (Math.abs(p.x)>1.2) p.vx*=-1; if (Math.abs(p.y)>1.2) p.vy*=-1;
-      if (p.z<0.4||p.z>2.8) p.vz*=-1;
-      const x = p.x*cA - p.z*sA;
-      const z = p.x*sA + p.z*cA;
-      const f = 320/(z+1.5);
-      return { sx: cx + x*f*0.9, sy: cy + p.y*f*0.9, depth:z, r: 1.6*f/200 };
+      p.phase += 0.02;
+      if (Math.abs(p.x)>1.3) p.vx*=-1; if (Math.abs(p.y)>1.3) p.vy*=-1;
+      if (p.z<0.3||p.z>3.0) p.vz*=-1;
+      
+      // Add wave motion
+      const wave = Math.sin(p.phase + wavePhase) * 0.05;
+      const x = (p.x + wave) * cA - p.z * sA;
+      const z = p.x * sA + p.z * cA;
+      const f = 380/(z+1.8);
+      return { sx: cx + x*f*0.85, sy: cy + (p.y + wave)*f*0.85, depth:z, r: p.size * f/200, phase: p.phase };
     });
+    
     ctx.globalCompositeOperation='lighter';
+    
+    // Draw connections with gradient colors
     for (let i=0;i<proj.length;i++){
       const a = proj[i];
       for (let j=i+1;j<proj.length;j++){
         const b = proj[j];
         const dx=a.sx-b.sx, dy=a.sy-b.sy;
         const d = dx*dx+dy*dy;
-        if (d < 14000) {
-          const op = (1 - d/14000) * 0.18;
-          ctx.strokeStyle = 'rgba(126,231,135,' + op.toFixed(3) + ')';
-          ctx.lineWidth = 0.6;
+        if (d < 12000) {
+          const op = (1 - d/12000) * 0.22;
+          const colorIdx = i % COLORS.length;
+          ctx.strokeStyle = 'rgba(' + hexToRgb(COLORS[colorIdx]) + ',' + op.toFixed(3) + ')';
+          ctx.lineWidth = 0.5 + Math.sin(a.phase + b.phase) * 0.2;
           ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
         }
       }
     }
+    
+    // Draw particles with glow effect
     for (let i=0;i<proj.length;i++){
       const p = proj[i];
-      const color = COLORS[i%3];
+      const color = COLORS[i%COLORS.length];
+      const pulse = Math.sin(p.phase + wavePhase) * 0.3 + 0.7;
+      const baseAlpha = Math.max(0.1, Math.min(1, 1/(p.depth+0.15)));
+      
+      // Outer glow
+      const gradient = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, p.r * 4);
+      gradient.addColorStop(0, 'rgba(' + hexToRgb(color) + ',' + (baseAlpha * 0.4 * pulse).toFixed(3) + ')');
+      gradient.addColorStop(1, 'rgba(' + hexToRgb(color) + ',0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath(); ctx.arc(p.sx, p.sy, p.r * 4, 0, Math.PI*2); ctx.fill();
+      
+      // Core
       ctx.fillStyle = color;
-      ctx.globalAlpha = Math.max(0.15, Math.min(1, 1/(p.depth+0.2)));
-      ctx.beginPath(); ctx.arc(p.sx, p.sy, Math.max(0.7, p.r*2.6), 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = baseAlpha * pulse;
+      ctx.beginPath(); ctx.arc(p.sx, p.sy, Math.max(0.6, p.r * 2.4), 0, Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation='source-over';
     requestAnimationFrame(draw);
   };
+  
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? \`\${parseInt(result[1], 16)},\${parseInt(result[2], 16)},\${parseInt(result[3], 16)}\` : '255,255,255';
+  };
+  
   requestAnimationFrame(draw);
+
+  // --- session expiry check (20 min) -----------------------------------
+  const SESSION_CREATED_AT = ${createdAt};
+  const SESSION_EXPIRY_MS = 20 * 60 * 1000; // 20 minutes
+  const checkExpiry = () => {
+    if (Date.now() - SESSION_CREATED_AT > SESSION_EXPIRY_MS) {
+      document.body.innerHTML = \`<!doctype html><html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cortex · You're late</title>
+<style>
+  html,body{margin:0;height:100%;background:radial-gradient(ellipse at top,#1a0f20,#000);color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;display:grid;place-items:center;text-align:center;padding:24px}
+  .card{max-width:520px;padding:32px;background:rgba(17,21,26,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:14px;backdrop-filter:blur(14px)}
+  h1{margin:0 0 10px;font-size:20px;color:#d29922}
+  .sub{color:#8b949e;font-size:13px;line-height:1.6;margin-bottom:18px}
+  .x{font-size:42px;margin-bottom:8px}
+  code{background:rgba(0,0,0,0.35);padding:2px 6px;border-radius:4px;color:#58a6ff}
+</style></head>
+<body>
+  <div class="card">
+    <div class="x">⏰</div>
+    <h1>You're late</h1>
+    <div class="sub">
+      This invite link was shared over 20 minutes ago and has expired.<br/>
+      Session links are only valid for 20 minutes from when they are first shared.
+    </div>
+    <div class="sub">Contact the team to get a fresh invite link or QR code.</div>
+  </div>
+</body></html>\`;
+      es.close();
+      return true;
+    }
+    return false;
+  };
+  if (checkExpiry()) return;
 
   // --- chat wire --------------------------------------------------------
   const TOKEN = ${JSON.stringify(token)};
@@ -252,14 +380,47 @@ const renderUI = (sessionId: string, token: string): string => `<!doctype html>
 
   const es = new EventSource('events?token=' + encodeURIComponent(TOKEN));
   es.onmessage = (ev) => {
-    try { render(JSON.parse(ev.data)); } catch {}
+    if (checkExpiry()) return;
+    try { 
+      const msg = JSON.parse(ev.data);
+      if (msg.kind === 'session_ended') {
+        document.body.innerHTML = \`<!doctype html><html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cortex · Session completed</title>
+<style>
+  html,body{margin:0;height:100%;background:radial-gradient(ellipse at top,#0f1a1f,#000);color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;display:grid;place-items:center;text-align:center;padding:24px}
+  .card{max-width:520px;padding:40px;background:rgba(17,21,26,0.85);border:1px solid rgba(126,231,135,0.15);border-radius:16px;backdrop-filter:blur(16px);box-shadow:0 0 40px rgba(126,231,135,0.1)}
+  h1{margin:0 0 12px;font-size:22px;color:#7ee787}
+  .sub{color:#8b949e;font-size:14px;line-height:1.7;margin-bottom:24px}
+  .x{font-size:52px;margin-bottom:12px;animation:scale 2s ease-in-out infinite}
+  @keyframes scale { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .check{color:#7ee787;font-size:48px;margin-bottom:8px}
+</style></head>
+<body>
+  <div class="card">
+    <div class="check">✓</div>
+    <h1>Session completed</h1>
+    <div class="sub">
+      The host has ended this Cortex session.<br/>
+      All team members have been disconnected.
+    </div>
+    <div class="sub">Thank you for collaborating!</div>
+  </div>
+</body></html>\`;
+        es.close();
+        return;
+      }
+      render(msg);
+    } catch {}
   };
   es.onerror = () => {
+    if (checkExpiry()) return;
     // EventSource auto-reconnects; on hard failure session is gone.
     render({ user:'system', kind:'system', text:'connection lost — retrying…', ts:Date.now() });
   };
 
   const send = async (kind) => {
+    if (checkExpiry()) return;
     const text = textEl.value.trim();
     if (!text) return;
     const user = nameEl.value.trim() || 'guest';
@@ -295,12 +456,15 @@ export async function startShareServer(opts: {
   // Session ID appears in every URL; rotates on every CLI start so old invites die.
   const sessionId = randomBytes(6).toString('hex')
   const token = randomUUID().split('-')[0]
+  const sessionCreatedAt = Date.now()
+  const SESSION_EXPIRY_MS = 20 * 60 * 1000 // 20 minutes
   const transcript: ShareMessage[] = []
   const clients = new Set<Client>()
   const listeners = new Set<(m: ShareMessage) => void>()
   let publicUrl: string | null = null
   let tunnelProvider: TunnelProvider = 'none'
   let tunnelProc: ChildProcess | null = null
+  let sessionEnded = false
 
   const sessionPath = `/s/${sessionId}/`
 
@@ -347,8 +511,14 @@ export async function startShareServer(opts: {
     const auth = url.searchParams.get('token')
 
     if (rel === '' || rel === 'index.html') {
+      // Check 20-minute expiry
+      if (Date.now() - sessionCreatedAt > SESSION_EXPIRY_MS) {
+        res.writeHead(410, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(renderLateJoinPage())
+        return
+      }
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(renderUI(sessionId, token))
+      res.end(renderUI(sessionId, token, sessionCreatedAt))
       return
     }
 
@@ -544,6 +714,10 @@ export async function startShareServer(opts: {
     get tunnelProvider(): TunnelProvider { return tunnelProvider },
     get shareUrl(): string { return currentShareUrl() },
     stop: () => new Promise<void>(resolve => {
+      if (sessionEnded) { resolve(); return }
+      sessionEnded = true
+      // Send session ended message to all clients
+      broadcast({ id: randomUUID(), user: 'system', kind: 'session_ended' as ShareMessage['kind'], text: '', ts: Date.now() })
       for (const c of clients) { try { c.res.end() } catch { /* ignore */ } }
       clients.clear()
       if (tunnelProc && !tunnelProc.killed) {
