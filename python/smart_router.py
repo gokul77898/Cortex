@@ -136,6 +136,22 @@ def build_default_providers() -> list[Provider]:
             big_model=os.getenv("HF_MODEL_ID", "zai-org/GLM-5:together"),
             small_model=os.getenv("HF_MODEL_ID", "zai-org/GLM-5:together"),
         ),
+        Provider(
+            name="nvidia",
+            ping_url="https://integrate.api.nvidia.com/v1/models",
+            api_key_env="NVIDIA_API_KEY",
+            cost_per_1k_tokens=0.0007,
+            big_model=os.getenv("NVIDIA_MODEL_ID", "z-ai/glm-5.1"),
+            small_model=os.getenv("NVIDIA_MODEL_ID", "z-ai/glm-5.1"),
+        ),
+        Provider(
+            name="groq",
+            ping_url="https://api.groq.com/openai/v1/models",
+            api_key_env="GROQ_API_KEY",
+            cost_per_1k_tokens=0.0001,
+            big_model=os.getenv("CORTEX_GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b"),
+            small_model=os.getenv("CORTEX_GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b"),
+        ),
     ]
 
 

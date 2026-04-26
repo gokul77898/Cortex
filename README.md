@@ -432,9 +432,11 @@ Cortex automatically falls back when the primary provider returns
    ↓ fails
 2. HF fallback list    (HF_MODEL_FALLBACK — comma-separated, tried in order)
    ↓ all fail
-3. Groq                (GROQ_API_KEY + CORTEX_GROQ_FALLBACK_MODEL)
+3. NVIDIA              (NVIDIA_API_KEY + NVIDIA_MODEL_ID)
    ↓ fails
-4. Ollama (local)      (CORTEX_OLLAMA_FALLBACK_MODEL — works offline)
+4. Groq                (GROQ_API_KEY + CORTEX_GROQ_FALLBACK_MODEL)
+   ↓ fails
+5. Ollama (local)      (CORTEX_OLLAMA_FALLBACK_MODEL — works offline)
 ```
 
 Every step prints a colored status banner to the terminal so you always see
