@@ -1,0 +1,6 @@
+Octogent startup preflight:
+  Warning: `codex` is not installed.
+    Codex-backed terminals and Codex usage telemetry are unavailable. Install Codex CLI and run `codex login` if you want Codex terminals.
+  Warning: `gh` is not installed.
+    GitHub pull request features are unavailable. Install GitHub CLI and run `gh auth login` to enable PR actions.
+

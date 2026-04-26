@@ -1063,6 +1063,11 @@ class OpenAIShimMessages {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       response = await fetch(chatCompletionsUrl, fetchInit)
       if (response.ok) {
+        // Log successful primary provider usage
+        const GREEN = '\x1b[32m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
+        const primaryModel = String(body.model)
+        const primaryProvider = isGithub ? 'GitHub Models' : 'HF primary'
+        process.stderr.write(`${GREEN}${BOLD}✓ using ${primaryProvider}${RESET} ${DIM}│${RESET} ${primaryModel}\n`)
         return response
       }
       if (
@@ -1132,7 +1137,28 @@ class OpenAIShimMessages {
           }
         }
 
-        // All HF models exhausted - try Groq fallback if configured
+        // All HF models exhausted - try NVIDIA fallback if configured
+        const nvidiaKey = process.env.NVIDIA_API_KEY
+        const nvidiaModel = process.env.NVIDIA_MODEL_ID || 'z-ai/glm-5.1'
+        const nvidiaUrl = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
+        if (nvidiaKey) {
+          logTry(nvidiaModel, 'NVIDIA')
+          body.model = nvidiaModel
+          const nvidiaInit = { ...fetchInit }
+          nvidiaInit.headers = { ...fetchInit.headers, Authorization: `Bearer ${nvidiaKey}` }
+          nvidiaInit.body = JSON.stringify(body)
+          const nvidiaResp = await fetch(`${nvidiaUrl}/chat/completions`, nvidiaInit)
+          if (nvidiaResp.ok) {
+            logSuccess(nvidiaModel, 'NVIDIA')
+            return nvidiaResp
+          }
+          const nvErr = await nvidiaResp.text().catch(() => 'unknown')
+          attempted.push(`nvidia:${nvidiaModel}:${nvidiaResp.status}`)
+          logFail(nvidiaModel, nvidiaResp.status, 'NVIDIA')
+          void nvErr
+        }
+
+        // NVIDIA exhausted - try Groq fallback if configured
         const groqKey = process.env.GROQ_API_KEY
         const groqModel = process.env.CORTEX_GROQ_FALLBACK_MODEL || 'openai/gpt-oss-120b'
         const groqUrl = process.env.CORTEX_GROQ_FALLBACK_URL || 'https://api.groq.com/openai/v1'

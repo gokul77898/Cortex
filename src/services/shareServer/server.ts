@@ -1742,7 +1742,9 @@ export async function startShareServer(opts: {
           
           // Chat and typing messages bypass queue, Cortex commands go through queue
           if (kind === 'chat' || kind === 'typing') {
-            broadcast({ id: randomUUID(), user, text, ts: Date.now(), kind, data: { user } })
+            const msg = { id: randomUUID(), user, text, ts: Date.now(), kind, data: { user } }
+            transcript.push(msg)
+            broadcast(msg)
             res.writeHead(200); res.end('ok')
             return
           }
