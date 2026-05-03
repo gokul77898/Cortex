@@ -1058,6 +1058,37 @@ class OpenAIShimMessages {
       signal: options?.signal,
     }
 
+    // ── NVIDIA-ONLY short-circuit ────────────────────────────────────────────
+    // When CORTEX_NVIDIA_ONLY=1 and NVIDIA_API_KEY is configured, route every
+    // request directly to NVIDIA and disable all other providers/fallbacks.
+    // All fallback code below remains untouched — just skipped. Unset the env
+    // var to restore the full fallback chain (HF → NVIDIA → Groq → Ollama).
+    if (process.env.CORTEX_NVIDIA_ONLY === '1' && process.env.NVIDIA_API_KEY) {
+      const GREEN = '\x1b[32m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
+      const nvidiaKey = process.env.NVIDIA_API_KEY
+      const nvidiaModel = process.env.NVIDIA_MODEL_ID || 'z-ai/glm-5.1'
+      const nvidiaUrl = (process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, '')
+      body.model = nvidiaModel
+      const nvInit = {
+        ...fetchInit,
+        headers: { ...fetchInit.headers, Authorization: `Bearer ${nvidiaKey}` },
+        body: JSON.stringify(body),
+      }
+      const resp = await fetch(`${nvidiaUrl}/chat/completions`, nvInit)
+      if (resp.ok) {
+        process.stderr.write(`${GREEN}${BOLD}✓ using NVIDIA (only)${RESET} ${DIM}│${RESET} ${nvidiaModel}\n`)
+        return resp
+      }
+      const errText = await resp.text().catch(() => 'unknown')
+      process.stderr.write(`${RED}${BOLD}✗ NVIDIA-only mode failed${RESET} ${DIM}│${RESET} ${nvidiaModel} ${DIM}(HTTP ${resp.status})${RESET}\n`)
+      throw APIError.generate(
+        resp.status,
+        undefined,
+        `NVIDIA-only mode failed (${nvidiaModel}, HTTP ${resp.status}): ${errText}. Unset CORTEX_NVIDIA_ONLY=1 to re-enable the full fallback chain.`,
+        resp.headers as unknown as Headers,
+      )
+    }
+
     const maxAttempts = isGithub ? GITHUB_429_MAX_RETRIES : 1
     let response: Response | undefined
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
