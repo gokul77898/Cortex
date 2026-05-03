@@ -1064,16 +1064,18 @@ class OpenAIShimMessages {
     // All fallback code below remains untouched — just skipped. Unset the env
     // var to restore the full fallback chain (HF → NVIDIA → Groq → Ollama).
     if (process.env.CORTEX_NVIDIA_ONLY === '1' && process.env.NVIDIA_API_KEY) {
-      const GREEN = '\x1b[32m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
+      const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
       const nvidiaKey = process.env.NVIDIA_API_KEY
       const nvidiaModel = process.env.NVIDIA_MODEL_ID || 'z-ai/glm-5.1'
       const nvidiaUrl = (process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, '')
+      const originalModel = String(body.model)
       body.model = nvidiaModel
       const nvInit = {
         ...fetchInit,
         headers: { ...fetchInit.headers, Authorization: `Bearer ${nvidiaKey}` },
         body: JSON.stringify(body),
       }
+      process.stderr.write(`${YELLOW}↻ NVIDIA-only${RESET} ${DIM}│${RESET} switching ${originalModel} → ${nvidiaModel}\n`)
       const resp = await fetch(`${nvidiaUrl}/chat/completions`, nvInit)
       if (resp.ok) {
         process.stderr.write(`${GREEN}${BOLD}✓ using NVIDIA (only)${RESET} ${DIM}│${RESET} ${nvidiaModel}\n`)
