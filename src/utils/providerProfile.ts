@@ -6,14 +6,14 @@ import {
   isCodexBaseUrl,
   resolveCodexApiCredentials,
   resolveProviderRequest,
-} from '../services/api/providerConfig.ts'
+} from '../services/api/providerConfig.js'
 import {
   getGoalDefaultOpenAIModel,
   normalizeRecommendationGoal,
   type RecommendationGoal,
-} from './providerRecommendation.ts'
-import { readGeminiAccessToken } from './geminiCredentials.ts'
-import { getOllamaChatBaseUrl } from './providerDiscovery.ts'
+} from './providerRecommendation.js'
+import { readGeminiAccessToken } from './geminiCredentials.js'
+import { getOllamaChatBaseUrl } from './providerDiscovery.js'
 
 export const PROFILE_FILE_NAME = '.cortex-profile.json'
 export const DEFAULT_GEMINI_BASE_URL =
@@ -256,11 +256,11 @@ export function buildGeminiProfileEnv(options: {
   const env: ProfileEnv = {
     GEMINI_AUTH_MODE: authMode,
     GEMINI_MODEL:
-      sanitizeProviderConfigValue(options.model, { GEMINI_API_KEY: key }, processEnv) ||
+      sanitizeProviderConfigValue(options.model, { GEMINI_API_KEY: key }, processEnv as unknown as SecretValueSource) ||
       sanitizeProviderConfigValue(
         processEnv.GEMINI_MODEL,
         { GEMINI_API_KEY: key },
-        processEnv,
+        processEnv as unknown as SecretValueSource,
       ) ||
       DEFAULT_GEMINI_MODEL,
   }
@@ -270,11 +270,11 @@ export function buildGeminiProfileEnv(options: {
   }
 
   const baseUrl =
-    sanitizeProviderConfigValue(options.baseUrl, { GEMINI_API_KEY: key }, processEnv) ||
+    sanitizeProviderConfigValue(options.baseUrl, { GEMINI_API_KEY: key }, processEnv as unknown as SecretValueSource) ||
     sanitizeProviderConfigValue(
       processEnv.GEMINI_BASE_URL,
       { GEMINI_API_KEY: key },
-      processEnv,
+      processEnv as unknown as SecretValueSource,
     )
   if (baseUrl) {
     env.GEMINI_BASE_URL = baseUrl
@@ -300,12 +300,12 @@ export function buildOpenAIProfileEnv(options: {
   const shellOpenAIModel = sanitizeProviderConfigValue(
     processEnv.OPENAI_MODEL,
     { OPENAI_API_KEY: key },
-    processEnv,
+    processEnv as unknown as SecretValueSource,
   )
   const shellOpenAIBaseUrl = sanitizeProviderConfigValue(
     processEnv.OPENAI_BASE_URL,
     { OPENAI_API_KEY: key },
-    processEnv,
+    processEnv as unknown as SecretValueSource,
   )
   const shellOpenAIRequest = resolveProviderRequest({
     model: shellOpenAIModel,
@@ -319,7 +319,7 @@ export function buildOpenAIProfileEnv(options: {
       sanitizeProviderConfigValue(
         options.baseUrl,
         { OPENAI_API_KEY: key },
-        processEnv,
+        processEnv as unknown as SecretValueSource,
       ) ||
       (useShellOpenAIConfig ? shellOpenAIBaseUrl : undefined) ||
       DEFAULT_OPENAI_BASE_URL,
@@ -327,7 +327,7 @@ export function buildOpenAIProfileEnv(options: {
       sanitizeProviderConfigValue(
         options.model,
         { OPENAI_API_KEY: key },
-        processEnv,
+        processEnv as unknown as SecretValueSource,
       ) ||
       (useShellOpenAIConfig ? shellOpenAIModel : undefined) ||
       defaultModel,
@@ -456,35 +456,35 @@ export async function buildLaunchEnv(options: {
       : {}
   const persistedOpenAIModel = sanitizeProviderConfigValue(
     persistedEnv.OPENAI_MODEL,
-    persistedEnv,
+    persistedEnv as unknown as SecretValueSource,
   )
   const persistedOpenAIBaseUrl = sanitizeProviderConfigValue(
     persistedEnv.OPENAI_BASE_URL,
-    persistedEnv,
+    persistedEnv as unknown as SecretValueSource,
   )
   const shellOpenAIModel = sanitizeProviderConfigValue(
     processEnv.OPENAI_MODEL,
-    processEnv,
+    processEnv as unknown as SecretValueSource,
   )
   const shellOpenAIBaseUrl = sanitizeProviderConfigValue(
     processEnv.OPENAI_BASE_URL,
-    processEnv,
+    processEnv as unknown as SecretValueSource,
   )
   const persistedGeminiModel = sanitizeProviderConfigValue(
     persistedEnv.GEMINI_MODEL,
-    persistedEnv,
+    persistedEnv as unknown as SecretValueSource,
   )
   const persistedGeminiBaseUrl = sanitizeProviderConfigValue(
     persistedEnv.GEMINI_BASE_URL,
-    persistedEnv,
+    persistedEnv as unknown as SecretValueSource,
   )
   const shellGeminiModel = sanitizeProviderConfigValue(
     processEnv.GEMINI_MODEL,
-    processEnv,
+    processEnv as unknown as SecretValueSource,
   )
   const shellGeminiBaseUrl = sanitizeProviderConfigValue(
     processEnv.GEMINI_BASE_URL,
-    processEnv,
+    processEnv as unknown as SecretValueSource,
   )
   const shellGeminiAccessToken =
     processEnv.GEMINI_ACCESS_TOKEN?.trim() || undefined

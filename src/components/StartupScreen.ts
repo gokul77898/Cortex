@@ -79,7 +79,7 @@ interface MissionConfig {
   model: string
   baseUrl: string
   apiKey: string
-  provider: 'cortex' | 'openai' | 'gemini' | 'github' | 'bedrock' | 'vertex' | 'huggingface' | 'local'
+  provider: 'cortex' | 'openai' | 'gemini' | 'github' | 'bedrock' | 'vertex' | 'huggingface' | 'nvidia' | 'local'
 }
 
 /**
@@ -144,6 +144,19 @@ function getMissionsFromEnv(): MissionConfig[] {
     provider: 'openai'
   })
 
+  // 6. NVIDIA (primary when CORTEX_NVIDIA_ONLY=1)
+  const nvKey = process.env.NVIDIA_API_KEY || content.match(/^\s*NVIDIA_API_KEY=([^\s#]+)/m)?.[1]
+  const nvModel = process.env.NVIDIA_MODEL_ID || content.match(/^\s*NVIDIA_MODEL_ID=([^\s#]+)/m)?.[1]
+  const nvCodeModel = process.env.NVIDIA_CODE_MODEL_ID || content.match(/^\s*NVIDIA_CODE_MODEL_ID=([^\s#]+)/m)?.[1]
+  const nvBase = process.env.NVIDIA_BASE_URL || content.match(/^\s*NVIDIA_BASE_URL=([^\s#]+)/m)?.[1]
+  missions.push({
+    name: `✦ Mission 06: Neural-Core (NVIDIA ${nvModel?.split('/').pop() || 'deepseek-v4-pro'})`,
+    model: nvModel || 'deepseek-ai/deepseek-v4-pro',
+    baseUrl: nvBase || 'https://integrate.api.nvidia.com/v1',
+    apiKey: nvKey || '',
+    provider: 'nvidia'
+  })
+
   // 9. HUGGING FACE / TOGETHER
   const hfToken = process.env.HF_TOKEN || content.match(/^\s*HF_TOKEN=([^\s#]+)/m)?.[1]
   const hfModel = process.env.HF_MODEL_ID || content.match(/^\s*HF_MODEL_ID=([^\s#]+)/m)?.[1]
@@ -189,9 +202,13 @@ export async function printStartupScreen(): Promise<void> {
   process.stdout.write(out.join('\n'))
 
   const missions = getMissionsFromEnv()
-  // Auto-select HuggingFace (Mission 09) — skip the selector
+  // Auto-select mission: NVIDIA-only when CORTEX_NVIDIA_ONLY=1, otherwise HuggingFace
+  const isNvidiaOnly = process.env.CORTEX_NVIDIA_ONLY === '1'
+  const nvMission = missions.find(m => m.provider === 'nvidia')
   const hfMission = missions.find(m => m.provider === 'huggingface')
-  const choice = hfMission ?? missions[missions.length - 1]!
+  const choice = isNvidiaOnly && nvMission?.apiKey
+    ? nvMission
+    : hfMission ?? missions[missions.length - 1]!
   process.stdout.write(`✔ Initialize Mission Engine Interface: ${choice.name}\n                                     \n`)
 
 
@@ -214,6 +231,20 @@ export async function printStartupScreen(): Promise<void> {
     if (originalAntKey && originalAntKey !== choice.apiKey) {
       process.env.MOCK_MCP_HINT_ANT_KEY = originalAntKey;
     }
+  } else if (choice.provider === 'nvidia') {
+    process.env.CORTEX_USE_OPENAI = '1'
+    process.env.CORTEX_NVIDIA_ONLY = '1'
+    process.env.NVIDIA_API_KEY = choice.apiKey
+    process.env.NVIDIA_MODEL_ID = choice.model
+    process.env.NVIDIA_BASE_URL = choice.baseUrl
+    process.env.OPENAI_BASE_URL = choice.baseUrl
+    process.env.OPENAI_API_KEY = choice.apiKey
+    process.env.OPENAI_MODEL = choice.model
+    // Clear HF vars so the shim doesn't accidentally route through HF
+    delete process.env.HF_TOKEN
+    delete process.env.HF_MODEL_ID
+    delete process.env.HF_BASE_URL
+    delete process.env.ANTHROPIC_API_KEY
   } else if (choice.provider === 'huggingface') {
     process.env.CORTEX_USE_OPENAI = '1'
     process.env.HF_TOKEN = choice.apiKey

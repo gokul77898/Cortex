@@ -1075,8 +1075,8 @@ class OpenAIShimMessages {
         process.env.CORTEX_DUAL_MODEL?.toLowerCase() === 'true'
       const isExecutor = dualModelEnabled && request.tools && request.tools.length > 0
       const nvidiaModel = isExecutor
-        ? (process.env.NVIDIA_CODE_MODEL_ID || process.env.NVIDIA_MODEL_ID || 'z-ai/glm-5.1')
-        : (process.env.NVIDIA_MODEL_ID || 'z-ai/glm-5.1')
+        ? (process.env.NVIDIA_CODE_MODEL_ID || process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
+        : (process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
 
       body.model = nvidiaModel
       const nvInit = {
@@ -1182,7 +1182,7 @@ class OpenAIShimMessages {
 
         // All HF models exhausted - try NVIDIA fallback if configured
         const nvidiaKey = process.env.NVIDIA_API_KEY
-        const nvidiaModel = process.env.NVIDIA_MODEL_ID || 'z-ai/glm-5.1'
+        const nvidiaModel = process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro'
         const nvidiaUrl = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
         if (nvidiaKey) {
           logTry(nvidiaModel, 'NVIDIA')
