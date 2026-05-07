@@ -103,7 +103,7 @@ export async function resumeAgentBackground({
     selectedAgent = FORK_AGENT
     isResumedFork = true
   } else if (meta?.agentType) {
-    const found = toolUseContext.options.agentDefinitions.activeAgents.find(
+    const found = toolUseContext.options.agentDefinitions?.activeAgents?.find(
       a => a.agentType === meta.agentType,
     )
     selectedAgent = found ?? GENERAL_PURPOSE_AGENT
@@ -119,7 +119,7 @@ export async function resumeAgentBackground({
       forkParentSystemPrompt = toolUseContext.renderedSystemPrompt
     } else {
       const mainThreadAgentDefinition = appState.agent
-        ? appState.agentDefinitions.activeAgents.find(
+        ? appState.agentDefinitions?.activeAgents?.find(
             a => a.agentType === appState.agent,
           )
         : undefined

@@ -1069,14 +1069,21 @@ class OpenAIShimMessages {
       const nvidiaUrl = (process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, '')
       const originalModel = String(body.model)
 
-      // Support dual-model mode: use NVIDIA_CODE_MODEL_ID for executor (code), NVIDIA_MODEL_ID for planner (reasoning)
       const dualModelEnabled =
         process.env.CORTEX_DUAL_MODEL === '1' ||
         process.env.CORTEX_DUAL_MODEL?.toLowerCase() === 'true'
       const isExecutor = dualModelEnabled && request.tools && request.tools.length > 0
-      const nvidiaModel = isExecutor
-        ? (process.env.NVIDIA_CODE_MODEL_ID || process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
-        : (process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
+      
+      // Honor the user's selected model if it's already set (e.g. via /model)
+      // Only fall back to NVIDIA_MODEL_ID / NVIDIA_CODE_MODEL_ID if using generic defaults
+      const isKnownNvidiaModel = originalModel.includes('/')
+      let nvidiaModel = originalModel
+      
+      if (!isKnownNvidiaModel) {
+        nvidiaModel = isExecutor
+          ? (process.env.NVIDIA_CODE_MODEL_ID || process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
+          : (process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
+      }
 
       body.model = nvidiaModel
       const nvInit = {
@@ -1085,7 +1092,9 @@ class OpenAIShimMessages {
         body: JSON.stringify(body),
       }
       const modelType = isExecutor ? 'executor' : 'planner'
-      process.stderr.write(`${YELLOW}↻ NVIDIA-only${RESET} ${DIM}│${RESET} ${modelType}: ${originalModel} → ${nvidiaModel}\n`)
+      if (originalModel !== nvidiaModel) {
+        process.stderr.write(`${YELLOW}↻ NVIDIA-only${RESET} ${DIM}│${RESET} ${modelType}: ${originalModel} → ${nvidiaModel}\n`)
+      }
       const resp = await fetch(`${nvidiaUrl}/chat/completions`, nvInit)
       if (resp.ok) {
         process.stderr.write(`${GREEN}${BOLD}✓ using NVIDIA (only)${RESET} ${DIM}│${RESET} ${modelType}: ${nvidiaModel}\n`)

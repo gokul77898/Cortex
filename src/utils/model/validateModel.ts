@@ -66,6 +66,13 @@ export async function validateModel(
     return { valid: true }
   }
 
+  // NVIDIA-only mode: trust model names in provider/model format (e.g. deepseek-ai/deepseek-v4-pro)
+  // These can't be validated against the Anthropic API.
+  if (process.env.CORTEX_NVIDIA_ONLY === '1' && normalizedModel.includes('/')) {
+    validModelCache.set(normalizedModel, true)
+    return { valid: true }
+  }
+
   // Check cache first
   if (validModelCache.has(normalizedModel)) {
     return { valid: true }

@@ -136,8 +136,9 @@ export const CORTEX_GUIDE_AGENT: BuiltInAgentDefinition = {
     }
 
     // 2. Custom agents from .cortex/agents/
-    const customAgents =
-      toolUseContext.options.agentDefinitions.activeAgents.filter(
+    const customAgents = (
+      toolUseContext.options.agentDefinitions?.activeAgents ?? []
+    ).filter(
         (a: AgentDefinition) => a.source !== 'built-in',
       )
     if (customAgents.length > 0) {

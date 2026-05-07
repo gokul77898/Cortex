@@ -287,7 +287,7 @@ export const AgentTool = buildTool({
     // Spawn is triggered when team_name is set (from param or context) and name is provided
     if (teamName && name) {
       // Set agent definition color for grouped UI display before spawning
-      const agentDef = subagent_type ? toolUseContext.options.agentDefinitions.activeAgents.find(a => a.agentType === subagent_type) : undefined;
+      const agentDef = subagent_type ? toolUseContext.options.agentDefinitions?.activeAgents?.find(a => a.agentType === subagent_type) : undefined;
       if (agentDef?.color) {
         setAgentColor(subagent_type!, agentDef.color);
       }
@@ -339,10 +339,10 @@ export const AgentTool = buildTool({
       selectedAgent = FORK_AGENT;
     } else {
       // Filter agents to exclude those denied via Agent(AgentName) syntax
-      const allAgents = toolUseContext.options.agentDefinitions.activeAgents;
+      const allAgents = toolUseContext.options.agentDefinitions?.activeAgents ?? [];
       const {
         allowedAgentTypes
-      } = toolUseContext.options.agentDefinitions;
+      } = toolUseContext.options.agentDefinitions ?? {};
       const agents = filterDeniedAgents(
       // When allowedAgentTypes is set (from Agent(x,y) tool spec), restrict to those types
       allowedAgentTypes ? allAgents.filter(a => allowedAgentTypes.includes(a.agentType)) : allAgents, appState.toolPermissionContext, AGENT_TOOL_NAME);
@@ -502,7 +502,7 @@ export const AgentTool = buildTool({
       } else {
         // Fallback: recompute. May diverge from parent's cached bytes if
         // GrowthBook state changed between parent turn-start and fork spawn.
-        const mainThreadAgentDefinition = appState.agent ? appState.agentDefinitions.activeAgents.find(a => a.agentType === appState.agent) : undefined;
+        const mainThreadAgentDefinition = appState.agent ? appState.agentDefinitions?.activeAgents?.find(a => a.agentType === appState.agent) : undefined;
         const additionalWorkingDirectories = Array.from(appState.toolPermissionContext.additionalWorkingDirectories.keys());
         const defaultSystemPrompt = await getSystemPrompt(toolUseContext.options.tools, toolUseContext.options.mainLoopModel, additionalWorkingDirectories, toolUseContext.options.mcpClients);
         forkParentSystemPrompt = buildEffectiveSystemPrompt({

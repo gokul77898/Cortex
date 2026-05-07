@@ -133,7 +133,7 @@ export function useSwarmBanner(): SwarmBannerInfo {
 
   // --agent CLI flag (when not handled above).
   if (agent) {
-    const agentDef = state.agentDefinitions.activeAgents.find(
+    const agentDef = state.agentDefinitions?.activeAgents?.find(
       a => a.agentType === agent,
     )
     return {

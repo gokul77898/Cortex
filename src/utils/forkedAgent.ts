@@ -210,7 +210,7 @@ export async function prepareForkedCommandContext(
 
   // Use command.agent if specified, otherwise 'general-purpose'
   const agentTypeName = command.agent ?? 'general-purpose'
-  const agents = context.options.agentDefinitions.activeAgents
+  const agents = context.options.agentDefinitions?.activeAgents ?? []
   const baseAgent =
     agents.find(a => a.agentType === agentTypeName) ??
     agents.find(a => a.agentType === 'general-purpose') ??
