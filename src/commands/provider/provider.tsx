@@ -78,6 +78,10 @@ type Step =
       authMode: 'api-key' | 'access-token' | 'adc'
     }
   | { name: 'codex-check' }
+  | { name: 'nvidia-key' }
+  | { name: 'groq-key' }
+  | { name: 'huggingface-key' }
+  | { name: 'anthropic-key' }
 
 type CurrentProviderSummary = {
   providerLabel: string
@@ -427,31 +431,39 @@ function ProviderChooser({
   const summary = buildCurrentProviderSummary()
   const options: OptionWithDescription<ProviderChoice>[] = [
     {
-      label: 'Auto',
-      value: 'auto',
-      description:
-        'Prefer local Ollama when available, otherwise guide you into OpenAI-compatible setup',
+      label: 'NVIDIA',
+      value: 'nvidia',
+      description: 'Use NVIDIA NIMs with an API key',
     },
     {
-      label: 'Ollama',
-      value: 'ollama',
-      description: 'Use a local Ollama model with no API key',
+      label: 'Hugging Face',
+      value: 'huggingface',
+      description: 'Use Hugging Face Inference Endpoints',
     },
     {
-      label: 'OpenAI-compatible',
+      label: 'Groq',
+      value: 'groq',
+      description: 'Use Groq Cloud with an API key',
+    },
+    {
+      label: 'Cloud (Claude)',
+      value: 'anthropic',
+      description: 'Use Anthropic API directly with an API key',
+    },
+    {
+      label: 'OpenAI',
       value: 'openai',
-      description:
-        'GPT-4o, DeepSeek, OpenRouter, Groq, LM Studio, and similar APIs',
+      description: 'Use OpenAI GPT-4o and similar models',
     },
     {
       label: 'Gemini',
       value: 'gemini',
-      description: 'Use Google Gemini with API key, access token, or local ADC',
+      description: 'Use Google Gemini with API key',
     },
     {
-      label: 'Codex',
-      value: 'codex',
-      description: 'Use existing ChatGPT Codex CLI auth or env credentials',
+      label: 'Ollama',
+      value: 'ollama',
+      description: 'Use a local Ollama model (no key needed)',
     },
   ]
 
@@ -935,10 +947,14 @@ export function ProviderWizard({
       return (
         <ProviderChooser
           onChoose={value => {
-            if (value === 'auto') {
-              setStep({ name: 'auto-goal' })
-            } else if (value === 'ollama') {
-              setStep({ name: 'ollama-detect' })
+            if (value === 'nvidia') {
+              setStep({ name: 'nvidia-key' })
+            } else if (value === 'huggingface') {
+              setStep({ name: 'huggingface-key' })
+            } else if (value === 'groq') {
+              setStep({ name: 'groq-key' })
+            } else if (value === 'anthropic') {
+              setStep({ name: 'anthropic-key' })
             } else if (value === 'openai') {
               setStep({
                 name: 'openai-key',
@@ -946,6 +962,8 @@ export function ProviderWizard({
               })
             } else if (value === 'gemini') {
               setStep({ name: 'gemini-auth-method' })
+            } else if (value === 'ollama') {
+              setStep({ name: 'ollama-detect' })
             } else if (value === 'clear') {
               const filePath = deleteProfileFile()
               onDone(`Removed saved provider profile at ${filePath}. Restart CORTEX to go back to normal startup.`, {
@@ -1284,6 +1302,100 @@ export function ProviderWizard({
           onSave={(profile, env) => finishProfileSave(onDone, profile, env)}
           onBack={() => setStep({ name: 'choose' })}
           onCancel={() => onDone()}
+        />
+      )
+
+    case 'nvidia-key':
+      return (
+        <TextEntryDialog
+          resetStateKey={step.name}
+          title="NVIDIA setup"
+          description="Enter your NVIDIA API key."
+          initialValue=""
+          placeholder="nvapi-..."
+          mask="*"
+          onSubmit={value => {
+            const env = buildOpenAIProfileEnv({
+              goal: normalizeRecommendationGoal(null),
+              apiKey: value.trim(),
+              baseUrl: 'https://integrate.api.nvidia.com/v1',
+              model: 'meta/llama-3.1-405b-instruct',
+              processEnv: {},
+            })
+            if (env) {
+              finishProfileSave(onDone, 'nvidia', env)
+            }
+          }}
+          onCancel={() => setStep({ name: 'choose' })}
+        />
+      )
+
+    case 'groq-key':
+      return (
+        <TextEntryDialog
+          resetStateKey={step.name}
+          title="Groq setup"
+          description="Enter your Groq API key."
+          initialValue=""
+          placeholder="gsk_..."
+          mask="*"
+          onSubmit={value => {
+            const env = buildOpenAIProfileEnv({
+              goal: normalizeRecommendationGoal(null),
+              apiKey: value.trim(),
+              baseUrl: 'https://api.groq.com/openai/v1',
+              model: 'llama-3.1-70b-versatile',
+              processEnv: {},
+            })
+            if (env) {
+              finishProfileSave(onDone, 'groq', env)
+            }
+          }}
+          onCancel={() => setStep({ name: 'choose' })}
+        />
+      )
+
+    case 'huggingface-key':
+      return (
+        <TextEntryDialog
+          resetStateKey={step.name}
+          title="Hugging Face setup"
+          description="Enter your Hugging Face Token."
+          initialValue=""
+          placeholder="hf_..."
+          mask="*"
+          onSubmit={value => {
+            const env = buildOpenAIProfileEnv({
+              goal: normalizeRecommendationGoal(null),
+              apiKey: value.trim(),
+              baseUrl: 'https://router.huggingface.co/v1',
+              model: 'zai-org/GLM-5:together',
+              processEnv: {},
+            })
+            if (env) {
+              finishProfileSave(onDone, 'huggingface', env)
+            }
+          }}
+          onCancel={() => setStep({ name: 'choose' })}
+        />
+      )
+
+    case 'anthropic-key':
+      return (
+        <TextEntryDialog
+          resetStateKey={step.name}
+          title="Anthropic setup"
+          description="Enter your Anthropic API key."
+          initialValue=""
+          placeholder="sk-ant-..."
+          mask="*"
+          onSubmit={value => {
+            const env: ProfileEnv = {
+              OPENAI_API_KEY: value.trim(),
+            }
+            finishProfileSave(onDone, 'anthropic', env)
+          }}
+          onCancel={() => setStep({ name: 'choose' })}
         />
       )
   }

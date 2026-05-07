@@ -47,7 +47,7 @@ const SECRET_ENV_KEYS = [
   'GOOGLE_API_KEY',
 ] as const
 
-export type ProviderProfile = 'openai' | 'ollama' | 'codex' | 'gemini' | 'atomic-chat' | 'huggingface'
+export type ProviderProfile = 'openai' | 'ollama' | 'codex' | 'gemini' | 'atomic-chat' | 'huggingface' | 'nvidia' | 'groq' | 'anthropic'
 
 export type ProfileEnv = {
   OPENAI_BASE_URL?: string
@@ -580,6 +580,28 @@ export async function buildLaunchEnv(options: {
     delete env.CHATGPT_ACCOUNT_ID
     delete env.CODEX_ACCOUNT_ID
 
+    return env
+  }
+
+  if (options.profile === 'nvidia') {
+    env.CORTEX_USE_OPENAI = '1'
+    env.OPENAI_BASE_URL = persistedEnv.OPENAI_BASE_URL || processEnv.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
+    env.OPENAI_MODEL = persistedEnv.OPENAI_MODEL || processEnv.NVIDIA_MODEL || 'meta/llama-3.1-405b-instruct'
+    env.OPENAI_API_KEY = persistedEnv.OPENAI_API_KEY || processEnv.NVIDIA_API_KEY
+    return env
+  }
+
+  if (options.profile === 'groq') {
+    env.CORTEX_USE_OPENAI = '1'
+    env.OPENAI_BASE_URL = persistedEnv.OPENAI_BASE_URL || processEnv.GROQ_BASE_URL || 'https://api.groq.com/openai/v1'
+    env.OPENAI_MODEL = persistedEnv.OPENAI_MODEL || processEnv.GROQ_MODEL || 'llama-3.1-70b-versatile'
+    env.OPENAI_API_KEY = persistedEnv.OPENAI_API_KEY || processEnv.GROQ_API_KEY
+    return env
+  }
+
+  if (options.profile === 'anthropic') {
+    // Note: This is for using Anthropic API keys, not for the first-party login flow.
+    env.ANTHROPIC_API_KEY = persistedEnv.OPENAI_API_KEY || processEnv.ANTHROPIC_API_KEY
     return env
   }
 
