@@ -5,6 +5,7 @@
   "type": "module",
   "bin": {
     "cortex": "./bin/cortex",
+    "cortex-setup": "./bin/cortex",
     "cortex-octogent": "./bin/cortex-octogent",
     "octo": "./bin/octo"
   },
@@ -15,6 +16,7 @@
     "README.md"
   ],
   "scripts": {
+    "setup": "bun run scripts/setup-wizard.ts",
     "build": "bun run scripts/build.ts",
     "dev": "bun run build && node dist/cli.mjs",
     "dev:profile": "bun run scripts/provider-launch.ts",

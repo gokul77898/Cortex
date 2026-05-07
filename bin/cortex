@@ -1,32 +1,72 @@
 #!/usr/bin/env node
-
 /**
- * CORTEX — CORTEX with any LLM
- *
- * If dist/cli.mjs exists (built), run that.
- * Otherwise, tell the user to build first or use `bun run dev`.
+ * CORTEX CLI entry point
+ * - First run: launches setup wizard (pick provider + API key)
+ * - After setup: launches CORTEX directly
+ * - `cortex setup`: re-run setup wizard anytime
  */
 
-import { existsSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
+import { execFileSync, spawn } from 'child_process'
+import * as fs from 'fs'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const distPath = join(__dirname, '..', 'dist', 'cli.mjs')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = path.resolve(__dirname, '..')
+const ENV_PATH = path.join(ROOT, '.env')
+const CLI_PATH = path.join(ROOT, 'dist', 'cli.mjs')
+const WIZARD_PATH = path.join(ROOT, 'scripts', 'setup-wizard.ts')
 
-if (existsSync(distPath)) {
-  await import(pathToFileURL(distPath).href)
-} else {
-  console.error(`
-  cortex: dist/cli.mjs not found.
+const args = process.argv.slice(2)
 
-  Build first:
-    bun run build
-
-  Or run directly with Bun:
-    bun run dev
-
-  See README.md for setup instructions.
-`)
-  process.exit(1)
+// ── Force setup wizard ─────────────────────────────────────────────────────
+if (args[0] === 'setup' || args[0] === 'init' || args[0] === 'configure') {
+  runWizard()
+  process.exit(0)
 }
+
+// ── First run: no .env or missing keys ────────────────────────────────────
+function needsSetup(): boolean {
+  if (!fs.existsSync(ENV_PATH)) return true
+  const env = fs.readFileSync(ENV_PATH, 'utf8')
+  // Check if any real key is configured
+  const hasNvidia = /^NVIDIA_API_KEY=nvapi-[^\s]+/m.test(env)
+  const hasOpenAI = /^OPENAI_API_KEY=sk-[^\s]+/m.test(env)
+  const hasGemini = /^GEMINI_API_KEY=[^\s]+/m.test(env)
+  const hasHF     = /^HUGGINGFACE_API_KEY=hf_[^\s]+/m.test(env)
+  const hasGroq   = /^GROQ_API_KEY=gsk_[^\s]+/m.test(env)
+  const hasOllama = /^OPENAI_BASE_URL=http:\/\/localhost/m.test(env)
+  return !(hasNvidia || hasOpenAI || hasGemini || hasHF || hasGroq || hasOllama)
+}
+
+function runWizard() {
+  try {
+    execFileSync('bun', [WIZARD_PATH], {
+      stdio: 'inherit',
+      cwd: ROOT,
+    })
+  } catch {
+    // bun not found, try npx tsx
+    try {
+      execFileSync('npx', ['tsx', WIZARD_PATH], {
+        stdio: 'inherit',
+        cwd: ROOT,
+      })
+    } catch {
+      console.error('❌ Could not run setup wizard. Install bun: https://bun.sh')
+      process.exit(1)
+    }
+  }
+}
+
+if (needsSetup()) {
+  runWizard()
+  process.exit(0)
+}
+
+// ── Normal launch ──────────────────────────────────────────────────────────
+const proc = spawn('node', [CLI_PATH, ...args], {
+  stdio: 'inherit',
+  cwd: ROOT,
+})
+proc.on('exit', code => process.exit(code ?? 0))
