@@ -687,6 +687,9 @@ export function extractTag(html: string, tagName: string): string | null {
 }
 
 export function isNotEmptyMessage(message: Message): boolean {
+  // CORTEX: Guard against undefined entries that can appear after provider wizard setup
+  if (!message) return false
+  if (!message.type) return false
   if (
     message.type === 'progress' ||
     message.type === 'attachment' ||
