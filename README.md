@@ -6,7 +6,7 @@
   ╚██████╗ ╚██████╔╝ ██║  ██║    ██║    ███████╗ ██╔╝ ██╗
    ╚═════╝  ╚═════╝  ╚═╝  ╚═╝    ╚═╝    ╚══════╝ ╚═╝  ╚═╝
 
-        C O D E   O R C H E S T R A T I O N   +
+        C O D E   O R C H E S T R A T I O N   
         R E A S O N I N G   T E R M I N A L   E N G I N E
 ```
 
