@@ -1,0 +1,20 @@
+- generic [active] [ref=e1]:
+  - heading "HTTP ERROR 404 Not Found" [level=2] [ref=e2]
+  - table [ref=e3]:
+    - rowgroup [ref=e4]:
+      - 'row "URI: /" [ref=e5]':
+        - rowheader "URI:" [ref=e6]
+        - cell / [ref=e7]
+      - 'row "STATUS: 404" [ref=e8]':
+        - rowheader "STATUS:" [ref=e9]
+        - cell "404" [ref=e10]
+      - 'row "MESSAGE: Not Found" [ref=e11]':
+        - rowheader "MESSAGE:" [ref=e12]
+        - cell "Not Found" [ref=e13]
+      - 'row "SERVLET: org.eclipse.jetty.servlet.ServletHandler$Default404Servlet-3059cbc" [ref=e14]':
+        - rowheader "SERVLET:" [ref=e15]
+        - cell "org.eclipse.jetty.servlet.ServletHandler$Default404Servlet-3059cbc" [ref=e16]
+  - separator [ref=e17]
+  - link "Powered by Jetty:// 9.4.56.v20240826" [ref=e18] [cursor=pointer]:
+    - /url: https://jetty.org/
+  - separator [ref=e19]

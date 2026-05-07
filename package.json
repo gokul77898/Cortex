@@ -1,7 +1,7 @@
 {
-  "name": "@gitlawb/cortex",
+  "name": "@gokul77898/cortex",
   "version": "0.1.7",
-  "description": "CORTEX opened to any LLM — OpenAI, Gemini, DeepSeek, Ollama, and 200+ models",
+  "description": "CORTEX — Autonomous AGI Terminal. Any LLM, one command. NVIDIA, OpenAI, Gemini, Groq, Ollama and more.",
   "type": "module",
   "bin": {
     "cortex": "./bin/cortex",
@@ -12,6 +12,7 @@
   "files": [
     "bin/",
     "dist/cli.mjs",
+    "scripts/setup-wizard.ts",
     "apps/octogent/",
     "README.md"
   ],
