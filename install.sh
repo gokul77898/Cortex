@@ -1,72 +1,57 @@
 #!/usr/bin/env bash
-# =============================================================================
-# CORTEX CLI - One-command installer
-# =============================================================================
-# Creates a Python venv, installs all Python deps, installs uvx for MCP servers,
-# installs npm deps, and builds the CLI. Run once after cloning.
-# =============================================================================
+# CORTEX Global Installer
+# Run via: curl -fsSL https://raw.githubusercontent.com/gokul77898/Cortex/main/install.sh | bash
 
 set -e
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+# ANSI Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
 
-echo "╔════════════════════════════════════════════════════╗"
-echo "║          CORTEX CLI Installer                      ║"
-echo "╚════════════════════════════════════════════════════╝"
-echo ""
+echo -e ""
+echo -e "${CYAN}${BOLD}  ╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}${BOLD}  ║  ${WHITE}CORTEX${CYAN} — Autonomous AGI Terminal                  ║${NC}"
+echo -e "${CYAN}${BOLD}  ║  ${NC}Any LLM · One command · Open source                  ${CYAN}║${NC}"
+echo -e "${CYAN}${BOLD}  ╚══════════════════════════════════════════════════════╝${NC}"
+echo -e ""
 
-# ---------- 1. Python venv ----------
-echo "▶ [1/5] Creating Python venv at .venv/ ..."
-if [ ! -d ".venv" ]; then
-  python3 -m venv .venv
-  echo "  ✓ venv created"
-else
-  echo "  ✓ venv already exists"
+echo -e "🚀 Starting CORTEX installation..."
+
+# Check for Node.js
+if ! command -v node >/dev/null 2>&1; then
+    echo -e "${RED}✗ Node.js is not installed.${NC}"
+    echo -e "Please install Node.js (v18 or higher) from https://nodejs.org/"
+    exit 1
 fi
 
-# Activate venv for this script
-source .venv/bin/activate
-echo "  ✓ venv activated: $(which python)"
-
-# ---------- 2. Python deps ----------
-echo ""
-echo "▶ [2/5] Installing Python dependencies ..."
-pip install --quiet --upgrade pip
-pip install --quiet -r python/requirements.txt
-echo "  ✓ Installed: transformers, torch, huggingface_hub, python-dotenv, openai, httpx, psutil, tiktoken"
-
-# ---------- 3. uvx for MCP servers ----------
-echo ""
-echo "▶ [3/5] Installing uvx (Python MCP runner) ..."
-pip install --quiet uv
-echo "  ✓ uv/uvx installed in venv"
-
-# ---------- 4. Node deps ----------
-echo ""
-echo "▶ [4/5] Installing Node.js dependencies ..."
-if [ -f "bun.lock" ] && command -v bun &> /dev/null; then
-  bun install --silent
-  echo "  ✓ Installed via bun"
-else
-  npm install --silent
-  echo "  ✓ Installed via npm"
+# Check for npm
+if ! command -v npm >/dev/null 2>&1; then
+    echo -e "${RED}✗ npm is not installed.${NC}"
+    echo -e "Please install npm to continue."
+    exit 1
 fi
 
-# ---------- 5. Build CLI ----------
-echo ""
-echo "▶ [5/5] Building CLI (dist/cli.mjs) ..."
-npm run build
-echo "  ✓ Built dist/cli.mjs"
+NODE_VERSION=$(node -v | cut -d'v' -f2)
+echo -e "${GREEN}✓ Found Node.js v${NODE_VERSION}${NC}"
 
-# ---------- Done ----------
-echo ""
-echo "╔════════════════════════════════════════════════════╗"
-echo "║  ✅ CORTEX installed successfully                  ║"
-echo "╚════════════════════════════════════════════════════╝"
-echo ""
-echo "🚀 Quick start:"
-echo "   ./cortex.mjs \"hello world\""
-echo ""
-echo "📝 Configure .env with your API keys (see .env.example)"
-echo ""
+echo -e "\n📦 Installing @gokulvenkatareddy/cortex globally via npm..."
+
+# Run npm install globally
+if npm install -g @gokulvenkatareddy/cortex --loglevel=error; then
+    echo -e "\n${GREEN}${BOLD}🎉 CORTEX installed successfully!${NC}\n"
+    
+    echo -e "To get started, simply run:"
+    echo -e "${CYAN}${BOLD}  cortex${NC}\n"
+    
+    echo -e "The setup wizard will guide you to configure your API keys (NVIDIA, OpenAI, etc.)."
+    echo -e "Your configuration will be safely stored locally in ~/.cortex/.env\n"
+else
+    echo -e "\n${RED}✗ Installation failed.${NC}"
+    echo -e "You might need administrator/root permissions to install global npm packages."
+    echo -e "Try running: ${BOLD}sudo npm install -g @gokulvenkatareddy/cortex${NC}"
+    exit 1
+fi
