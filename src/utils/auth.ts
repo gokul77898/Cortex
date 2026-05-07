@@ -98,8 +98,8 @@ function isManagedOAuthContext(): boolean {
 /** Whether we are supporting direct 1P auth. */
 // this code is closely related to getAuthTokenSource
 export function isCORTEXAuthEnabled(): boolean {
-  // --bare: API-key-only, never OAuth.
-  if (isBareMode()) return false
+  // CORTEX: Anthropic OAuth is permanently disabled.
+  return false
 
   // `cortex ssh` remote: ANTHROPIC_UNIX_SOCKET tunnels API calls through a
   // local auth-injecting proxy. The launcher sets CORTEX_OAUTH_TOKEN as a

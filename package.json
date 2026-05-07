@@ -1,6 +1,6 @@
 {
   "name": "@gokulvenkatareddy/cortex",
-  "version": "0.1.7",
+  "version": "0.1.15",
   "description": "CORTEX — Autonomous AGI Terminal. Any LLM, one command. NVIDIA, OpenAI, Gemini, Groq, Ollama and more.",
   "type": "module",
   "bin": {
@@ -109,7 +109,6 @@
     "react-compiler-runtime": "1.0.0",
     "react-reconciler": "0.33.0",
     "semver": "7.7.4",
-    "sharp": "^0.34.5",
     "shell-quote": "1.8.3",
     "signal-exit": "4.1.0",
     "stack-utils": "2.0.6",
@@ -132,6 +131,9 @@
     "@types/node": "25.5.0",
     "@types/react": "19.2.14",
     "typescript": "5.9.3"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.5"
   },
   "engines": {
     "node": ">=20.0.0"

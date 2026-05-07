@@ -34,7 +34,9 @@ export function getAPIProvider(): APIProvider {
 }
 
 export function usesCORTEXAccountFlow(): boolean {
-  return getAPIProvider() === 'firstParty'
+  // CORTEX is fully decoupled — no Anthropic login screen ever.
+  // Providers: NVIDIA, OpenAI, Gemini, Groq, HuggingFace, Ollama.
+  return false
 }
 function isCodexModel(): boolean {
   const model = (process.env.OPENAI_MODEL || '').trim()

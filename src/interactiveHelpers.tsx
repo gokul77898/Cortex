@@ -112,14 +112,25 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   const config = getGlobalConfig();
   let onboardingShown = false;
 
-  // Skip onboarding dialog for third-party providers (no CORTEX account needed)
-  if (usesCORTEXSetup && (!config.theme || !config.hasCompletedOnboarding) // always show onboarding at least once
-  ) {
+  // CORTEX: Show interactive provider setup on first run when no provider is configured
+  const hasProvider = !!(
+    process.env.CORTEX_USE_OPENAI ||
+    process.env.CORTEX_USE_GEMINI ||
+    process.env.CORTEX_USE_GITHUB ||
+    process.env.CORTEX_USE_BEDROCK ||
+    process.env.CORTEX_USE_VERTEX ||
+    process.env.CORTEX_USE_FOUNDRY ||
+    process.env.HF_TOKEN ||
+    process.env.OPENAI_API_KEY ||
+    process.env.NVIDIA_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GROQ_API_KEY
+  );
+
+  if (!hasProvider && !config.hasCompletedOnboarding) {
     onboardingShown = true;
-    const {
-      Onboarding
-    } = await import('./components/Onboarding.js');
-    await showSetupDialog(root, done => <Onboarding onDone={() => {
+    const { ProviderWizard } = await import('./commands/provider/provider.js');
+    await showSetupDialog(root, done => <ProviderWizard onDone={(result) => {
       completeOnboarding();
       void done();
     }} />, {

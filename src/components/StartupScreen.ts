@@ -1,5 +1,6 @@
 import { select } from '@inquirer/prompts'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 
 /**
@@ -86,7 +87,10 @@ interface MissionConfig {
  * Deep .env parser with strict multiline validation.
  */
 function getMissionsFromEnv(): MissionConfig[] {
-  const envPath = path.resolve(process.cwd(), '.env')
+  // Check ~/.cortex/.env first (global install), then fall back to cwd
+  const homeCortexEnv = path.join(os.homedir(), '.cortex', '.env')
+  const cwdEnv = path.resolve(process.cwd(), '.env')
+  const envPath = fs.existsSync(homeCortexEnv) ? homeCortexEnv : cwdEnv
   if (!fs.existsSync(envPath)) return []
 
   const content = fs.readFileSync(envPath, 'utf8')
@@ -208,7 +212,13 @@ export async function printStartupScreen(): Promise<void> {
   const hfMission = missions.find(m => m.provider === 'huggingface')
   const choice = isNvidiaOnly && nvMission?.apiKey
     ? nvMission
-    : hfMission ?? missions[missions.length - 1]!
+    : hfMission ?? missions[missions.length - 1]
+
+  if (!choice) {
+    process.stdout.write('⚠ No provider configured. Run: cortex setup\n')
+    return
+  }
+
   process.stdout.write(`✔ Initialize Mission Engine Interface: ${choice.name}\n                                     \n`)
 
 

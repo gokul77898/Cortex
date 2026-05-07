@@ -69,6 +69,19 @@ export function ConsoleOAuthFlow({
   forceLoginMethod: forceLoginMethodProp,
   initialStatus
 }: Props): React.ReactNode {
+  // CORTEX: Show the interactive provider wizard instead of Anthropic login.
+  return (
+    <ProviderWizard
+      onDone={(result) => {
+        if (result) {
+          onDone({ type: 'provider-setup', message: typeof result === 'string' ? result : 'Provider configured' })
+        } else {
+          onDone({ type: 'provider-setup', message: 'CORTEX — Provider configured via ~/.cortex/.env' })
+        }
+      }}
+    />
+  )
+  /* --- ORIGINAL ANTHROPIC LOGIN CODE BELOW (DISABLED) ---
   const settings = getSettings_DEPRECATED() || {};
   const forceLoginMethod = forceLoginMethodProp ?? settings.forceLoginMethod;
   const orgUUID = settings.forceLoginOrgUUID;
@@ -558,4 +571,5 @@ function OAuthStatusMessage({
     default:
       return null
   }
+  --- END DISABLED CODE --- */
 }

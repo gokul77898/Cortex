@@ -117,7 +117,8 @@ async function main(): Promise<void> {
     }
   }
 
-  await validateProviderEnvOrExit()
+  // CORTEX: Skip strict provider validation — bin/cortex handles provider detection
+  // await validateProviderEnvOrExit()
 
   // Print the gradient startup screen before the Ink UI loads
   const { printStartupScreen } = await import('../components/StartupScreen.js')
