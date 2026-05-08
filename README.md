@@ -934,6 +934,32 @@ ollama serve                    # listens on :11434
 
 Dashboard → **Overview** tab shows green Ollama indicator when reachable.
 
+### Free Models (No API key required)
+
+CORTEX supports multiple free model providers:
+
+| Provider | Model | How to Use |
+|---|---|---|
+| **OpenRouter** (default) | MiniMax M2.5, Gemma, Llama | Set `OPENAI_MODEL=minimax/minimax-m2.5:free` |
+| **NVIDIA NIM** | DeepSeek V4 Pro, Qwen3 Coder | Use `/model` to select |
+| **Ollama** (local) | llama3.2:3b, moondream | Automatic fallback when offline |
+
+**Model Commands:**
+```
+/model          # Show NVIDIA NIM models only
+/model openrouter  # Show OpenRouter free models
+```
+
+**Environment Variables (`.env`):**
+```bash
+# Default: OpenRouter MiniMax (free)
+OPENAI_MODEL=minimax/minimax-m2.5:free
+
+# NVIDIA models (for /model selection)
+NVIDIA_MODEL_ID=deepseek-ai/deepseek-v4-pro
+NVIDIA_CODE_MODEL_ID=qwen/qwen3-coder-480b-a35b-instruct
+```
+
 ---
 
 ## 🖥 Tier A — Floating Desktop UI with Screen Watcher
