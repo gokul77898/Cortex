@@ -791,3 +791,98 @@ function filterModelOptionsByAllowlist(options: ModelOption[]): ModelOption[] {
     return true
   })
 }
+
+// =============================================================================
+// OpenRouter FREE Models — All free models available
+// =============================================================================
+export function getOpenRouterFreeModels(): ModelOption[] {
+  return [
+    // Vision models (for screen seeing)
+    {
+      value: 'google/gemma-4-26b-a4b-it:free',
+      label: '📸 Gemma 4 26B Vision (Free)',
+      description: 'Best vision · Screen seeing',
+    },
+    {
+      value: 'nvidia/nemotron-nano-12b-v2-vl:free',
+      label: '🔷 Nemotron 12B Vision (Free)',
+      description: 'NVIDIA vision · Fast',
+    },
+    {
+      value: 'google/gemma-4-31b-it:free',
+      label: '🔷 Gemma 4 31B (Free)',
+      description: 'Vision + Tools',
+    },
+    {
+      value: 'openrouter/free',
+      label: '📦 Auto (Free)',
+      description: 'Best available free',
+    },
+    // Top picks
+    {
+      value: 'minimax/minimax-m2.5:free',
+      label: '⭐ MiniMax M2.5 (Free)',
+      description: 'Best text · 1M context',
+    },
+    {
+      value: 'tencent/hy3-preview:free',
+      label: '🔥 Tencent Hy3 (Free)',
+      description: 'Fast reasoning',
+    },
+    {
+      value: 'openrouter/owl-alpha:free',
+      label: '🦉 OWL Alpha (Free)',
+      description: 'OpenRouter flagship',
+    },
+    // Google
+    {
+      value: 'google/lyria-3-pro-preview:free',
+      label: '🎵 Lyria 3 Pro (Free)',
+      description: 'Music generation',
+    },
+    {
+      value: 'google/gemini-2.0-flash-exp:free',
+      label: '⚡ Gemini 2.0 Flash (Free)',
+      description: 'Ultra fast',
+    },
+    // NVIDIA
+    {
+      value: 'nvidia/nemotron-3-super-120b-a12b:free',
+      label: '🚀 Nemotron 3 Super (Free)',
+      description: '120B params',
+    },
+    {
+      value: 'nvidia/nemotron-3-nano-30b:free',
+      label: '🔷 Nemotron 3 Nano (Free)',
+      description: 'Fast · Tools',
+    },
+    // Qwen
+    {
+      value: 'qwen/qwen3-next-80b-a3b-instruct:free',
+      label: '🐼 Qwen3 Next (Free)',
+      description: 'Latest Qwen · 80B',
+    },
+    {
+      value: 'qwen/qwen3-coder:free',
+      label: '💻 Qwen3 Coder (Free)',
+      description: 'Code focused',
+    },
+    // Meta
+    {
+      value: 'meta-llama/llama-3.3-70b-instruct:free',
+      label: '🦙 Llama 3.3 70B (Free)',
+      description: 'Meta flagship',
+    },
+    {
+      value: 'meta-llama/llama-3.2-3b-instruct:free',
+      label: '🦙 Llama 3.2 3B (Free)',
+      description: 'Lightweight',
+    },
+    // DeepSeek
+    {
+      value: 'deepseek/deepseek-r1:free',
+      label: '🧠 DeepSeek R1 (Free)',
+      description: 'Reasoning',
+    },
+  ]
+}

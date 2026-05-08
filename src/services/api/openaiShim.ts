@@ -1058,45 +1058,99 @@ class OpenAIShimMessages {
       signal: options?.signal,
     }
 
-    // ── Puter.js Bridge (free Claude API via Electron) ─────────────────────
-    // Puter.js runs in a hidden Electron window with browser context.
-    // Cortex calls localhost:3847 which bridges to Puter.js.
-    // Fallback: if Puter fails, fall through to NVIDIA.
-    if (process.env.CORTEX_PUTER_ENABLED === '1') {
+    // ── OpenRouter (free models!) ─────────────────────────────────────────────
+    // Any model with :free suffix or openrouter reference
+    const isOpenRouterModel = String(body.model).includes(':free') || 
+      String(body.model).includes('openrouter') ||
+      String(body.model) === 'openrouter'
+    
+    if (process.env.OPENROUTER_API_KEY && isOpenRouterModel) {
       const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
-      const puterUrl = 'http://localhost:3847'
-      const originalModel = String(body.model)
-      const messages = (body.messages || []) as Array<{ role: string; content: string }>
+      const orKey = process.env.OPENROUTER_API_KEY
+      // Default to minimax if just "openrouter" is specified
+      let orModel = String(body.model)
+      if (orModel === 'openrouter' || orModel === 'puter' || !orModel.includes(':')) {
+        orModel = 'minimax/minimax-m2.5:free'
+      }
+      
+      // Map aliases to actual models
+      if (orModel === 'hy3') orModel = 'tencent/hy3-preview:free'
+      if (orModel === 'deepseek-r1') orModel = 'deepseek/deepseek-r1:free'
+      if (orModel === 'qwen3') orModel = 'qwen/qwen3-32b:free'
+      if (orModel === 'llama') orModel = 'meta-llama/llama-3.3-70b-instruct:free'
+      if (orModel === 'gemini') orModel = 'google/gemini-2.0-flash-exp:free'
 
       try {
-        const puterInit = {
-          ...fetchInit,
-          headers: { ...fetchInit.headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: messages[messages.length - 1]?.content || '',
-            model: originalModel,
-            stream: false,
-          }),
+        const orBody = {
+          model: orModel,
+          messages: body.messages,
+          max_tokens: body.max_tokens || 4096,
         }
-        process.stderr.write(`${YELLOW}↻ Puter bridge${RESET} ${DIM}│${RESET} ${originalModel}\n`)
-        const resp = await fetch(puterUrl, puterInit)
+        const orInit = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${orKey}`,
+            'HTTP-Referer': 'https://cortex.dev',
+            'X-Title': 'CORTEX',
+          },
+          body: JSON.stringify(orBody),
+        }
+        process.stderr.write(`${YELLOW}↻ OpenRouter${RESET} ${DIM}│${RESET} ${orModel}\n`)
+        const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', orInit)
         if (resp.ok) {
           const data = await resp.json()
-          process.stderr.write(`${GREEN}${BOLD}✓ using Puter (free Claude)${RESET} ${DIM}│${RESET} ${originalModel}\n`)
-          // Return OpenAI-compatible response
+          const text = data.choices?.[0]?.message?.content || ''
+          process.stderr.write(`${GREEN}${BOLD}✓ using OpenRouter${RESET} ${DIM}│${RESET} ${orModel}\n`)
           return new Response(JSON.stringify({
-            choices: [{ message: { content: data.text, role: 'assistant' } }],
-            model: originalModel,
-          }), {
-            headers: { 'Content-Type': 'application/json' },
-          })
+            choices: [{ message: { content: text, role: 'assistant' } }],
+            model: orModel,
+          }), { headers: { 'Content-Type': 'application/json' } })
         }
         const errText = await resp.text().catch(() => 'unknown')
-        process.stderr.write(`${RED}${BOLD}✗ Puter failed${RESET} ${DIM}│${RESET} ${errText.slice(0, 100)}${RESET}\n`)
-        // Fall through to NVIDIA
+        process.stderr.write(`${RED}${BOLD}✗ OpenRouter failed${RESET} ${DIM}│${RESET} ${errText.slice(0, 50)}\n`)
       } catch (err) {
-        process.stderr.write(`${RED}${BOLD}✗ Puter unreachable${RESET} ${DIM}│${RESET} ${String(err).slice(0, 100)}${RESET}\n`)
-        // Fall through to NVIDIA
+        process.stderr.write(`${RED}${BOLD}✗ OpenRouter error${RESET} ${DIM}│${RESET} ${String(err).slice(0, 50)}\n`)
+      }
+    }
+
+    // ── MiniMax (free credits for new accounts) ───────────────────────────────
+    if (process.env.MINIMAX_API_KEY && process.env.MINIMAX_API_KEY !== 'your_minimax_key_here') {
+      const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
+      const mmKey = process.env.MINIMAX_API_KEY
+      const mmUrl = (process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1').replace(/\/+$/, '')
+      const mmModel = process.env.MINIMAX_MODEL_ID || 'abab6.5s-chat'
+      const originalModel = String(body.model)
+
+      try {
+        const mmBody = {
+          model: mmModel,
+          messages: body.messages,
+          max_tokens: body.max_tokens || 4096,
+        }
+        const mmInit = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${mmKey}`,
+          },
+          body: JSON.stringify(mmBody),
+        }
+        process.stderr.write(`${YELLOW}↻ MiniMax${RESET} ${DIM}│${RESET} ${mmModel}\n`)
+        const resp = await fetch(`${mmUrl}/chat/completions`, mmInit)
+        if (resp.ok) {
+          const data = await resp.json()
+          const text = data.choices?.[0]?.message?.content || ''
+          process.stderr.write(`${GREEN}${BOLD}✓ using MiniMax${RESET} ${DIM}│${RESET} ${mmModel}\n`)
+          return new Response(JSON.stringify({
+            choices: [{ message: { content: text, role: 'assistant' } }],
+            model: mmModel,
+          }), { headers: { 'Content-Type': 'application/json' } })
+        }
+        const errText = await resp.text().catch(() => 'unknown')
+        process.stderr.write(`${RED}${BOLD}✗ MiniMax failed${RESET} ${DIM}│${RESET} ${errText.slice(0, 50)}\n`)
+      } catch (err) {
+        process.stderr.write(`${RED}${BOLD}✗ MiniMax error${RESET} ${DIM}│${RESET} ${String(err).slice(0, 50)}\n`)
       }
     }
 

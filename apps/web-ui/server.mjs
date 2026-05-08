@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
 const AGI_BIN = path.join(REPO_ROOT, 'cortex.mjs')
-const PORT = Number(process.env.CORTEX_WEB_PORT || 3737)
+const PORT = Number(process.env.CORTEX_WEB_PORT || 3738)
 
 // ─── Load .env ─────────────────────────────────────────────
 ;(() => {
@@ -129,6 +129,78 @@ app.get('/api/history', (_req, res) => {
   res.json(lines.slice(-50).reverse().map(l => { try { return JSON.parse(l) } catch { return null } }).filter(Boolean))
 })
 
+// Puter.js proxy endpoint - simplified
+// Store pending requests for browser to pick up
+const pendingRequests = new Map()
+
+// Use broadcast to notify browser via SSE-like mechanism
+function notifyBrowser(prompt, model) {
+  const requestId = Date.now().toString()
+  
+  // Store pending request
+  const promise = new Promise((resolve, reject) => {
+    pendingRequests.set(requestId, { 
+      resolve, 
+      reject, 
+      timeout: setTimeout(() => {
+        pendingRequests.delete(requestId)
+        reject(new Error('Puter request timeout (45s)'))
+      }, 45000) 
+    })
+  })
+  
+  // Broadcast to all connected sockets
+  broadcast({ type: 'puter-request', prompt, model: model || 'claude-sonnet-4-6', id: requestId })
+  
+  return { promise, requestId }
+}
+
+app.post('/api/puter', async (req, res) => {
+  try {
+    const { prompt, model } = req.body
+    if (!prompt) return res.status(400).json({ error: 'prompt required' })
+
+    console.log('[Puter] Got request, prompt:', prompt.slice(0, 30), 'sockets:', sockets.size)
+    
+    // Broadcast request to all sockets
+    const { promise, requestId } = notifyBrowser(prompt, model)
+    console.log('[Puter] Waiting for response, requestId:', requestId)
+    
+    // Wait for response
+    const result = await promise
+    console.log('[Puter] Got response, text:', result.text?.slice(0, 50))
+    res.json(result)
+  } catch (error) {
+    console.log('[Puter] Error:', error.message)
+    res.status(500).json({ error: String(error.message || error) })
+  }
+})
+
+// Browser calls this to submit Puter response
+app.post('/api/puter-response', (req, res) => {
+  const { id, text, error, type } = req.body
+  console.log('[Puter] Received response from browser:', type, id, 'text length:', text?.length || 0)
+  
+  const pending = pendingRequests.get(id)
+  if (pending) {
+    const { resolve, reject, timeout } = pending
+    clearTimeout(timeout)
+    pendingRequests.delete(id)
+    
+    console.log('[Puter] Resolving promise for:', id)
+    
+    if (type === 'puter-response') {
+      resolve({ text: text || '' })
+    } else {
+      reject(new Error(error || 'Unknown error'))
+    }
+  } else {
+    console.log('[Puter] Warning: no pending request for id:', id, 'pending keys:', [...pendingRequests.keys()])
+  }
+  
+  res.json({ ok: true })
+})
+
 // SSE stream for /api/ask (works without websocket)
 app.post('/api/ask', (req, res) => {
   const prompt = String(req.body?.prompt || '').slice(0, 4000)
@@ -177,7 +249,15 @@ wss.on('connection', (ws) => {
 })
 function broadcast(msg) {
   const s = JSON.stringify(msg)
-  for (const ws of sockets) { try { ws.send(s) } catch {} }
+  console.log(`[Broadcast] sending to ${sockets.size} sockets:`, msg.type, msg.id)
+  for (const ws of sockets) { 
+    try { 
+      ws.send(s) 
+      console.log('[Broadcast] sent to one socket')
+    } catch (e) { 
+      console.log('[Broadcast] error:', e.message)
+    } 
+  }
 }
 
 server.listen(PORT, () => {

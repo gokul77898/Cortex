@@ -25,8 +25,6 @@ function loadDotenv() {
 loadDotenv()
 
 let win = null
-let puterWin = null
-let puterServer = null
 
 // ─── Structured logger (streamed to renderer + stderr) ──────────
 // Each call becomes a bubble in the UI log panel AND a line in the
@@ -128,193 +126,74 @@ ipcMain.handle('agi:ask', async (_evt, prompt) => {
   })
 })
 
-// ─── IPC: Fast chat (direct HF router, <2s) ──────────────────────
-// Bypasses the whole CLI boot. No tools, no MCP — just a blazing fast
-// chat completion for conversation / Q&A. Perfect for the UI's default mode.
-async function hfChat(opts) {
-  // Try primary model; on 5xx or empty response, retry once with HF_MODEL_FALLBACK
-  try {
-    const res = await _hfChatOnce(opts)
-    if (!res.text && process.env.HF_MODEL_FALLBACK && !opts.model) {
-      throw new Error('empty response from primary')
-    }
-    return res
-  } catch (err) {
-    const fallback = process.env.HF_MODEL_FALLBACK
-    const msg = String(err.message || err)
-    const isServerErr = /HTTP 5\d\d|Internal server error|empty response|Bad JSON/i.test(msg)
-    if (fallback && isServerErr && !opts.model) {
-      log('warn', opts.stage || 'hf.chat', `primary failed (${msg.slice(0,80)}), retrying with fallback: ${fallback}`)
-      return _hfChatOnce({ ...opts, model: fallback })
-    }
-    throw err
+// ─── IPC: Fast chat with OpenRouter free models ──────────────────────
+async function openrouterChat(opts) {
+  const { messages, onChunk, stage = 'or.chat' } = opts
+  const key = process.env.OPENROUTER_API_KEY
+  if (!key) throw new Error('OPENROUTER_API_KEY not set')
+  
+  // Auto-select model based on prompt
+  const lastMsg = messages[messages.length - 1]?.content || ''
+  const hasImage = typeof lastMsg === 'string' && lastMsg.includes('data:image')
+  let model = 'minimax/minimax-m2.5:free'
+  
+  // Vision models for screen seeing
+  if (hasImage || lastMsg.toLowerCase().includes('screen') || lastMsg.toLowerCase().includes('screenshot')) {
+    // Gemma is often rate-limited, use Nemotron instead
+    model = 'nvidia/nemotron-nano-12b-v2-vl:free'
+    log('info', stage, 'Auto-selected vision model (Nemotron)')
   }
-}
-
-function _hfChatOnce({ messages, model, stream = false, onChunk, stage = 'hf.chat' }) {
-  return new Promise((resolve, reject) => {
-    const token = process.env.HF_TOKEN
-    if (!token) return reject(new Error('HF_TOKEN not set'))
-    const base = process.env.HF_BASE_URL || 'https://router.huggingface.co/v1'
-    const url = new URL(base.replace(/\/$/, '') + '/chat/completions')
-    const resolvedModel = model || process.env.HF_MODEL_ID || 'zai-org/GLM-5:together'
-    const body = JSON.stringify({
-      model: resolvedModel,
-      messages,
-      stream,
-      max_tokens: 4096,
-      temperature: 0.4,
-    })
-    const t0 = Date.now()
-    let firstByteMs = null
-    let chunkCount = 0
-    let charCount = 0
-    log('info', stage, `POST ${url.hostname} model=${resolvedModel} stream=${stream} body=${body.length}B`)
-    const req = https.request(
-      {
-        method: 'POST',
-        hostname: url.hostname,
-        path: url.pathname,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body),
-        },
-      },
-      (res) => {
-        log('info', stage, `HTTP ${res.statusCode}`)
-        let buf = ''
-        res.on('data', (c) => {
-          if (firstByteMs === null) {
-            firstByteMs = Date.now() - t0
-            log('info', stage, `first-byte ${firstByteMs}ms`)
-          }
-          const s = c.toString()
-          buf += s
-          if (stream && onChunk) {
-            // Parse SSE frames
-            const lines = buf.split('\n')
-            buf = lines.pop() || ''
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue
-              const payload = line.slice(6).trim()
-              if (payload === '[DONE]') continue
-              try {
-                const j = JSON.parse(payload)
-                const delta = j.choices?.[0]?.delta?.content
-                if (delta) { chunkCount++; charCount += delta.length; onChunk(delta) }
-              } catch { /* partial frame */ }
-            }
-          }
-        })
-        res.on('end', () => {
-          const ms = Date.now() - t0
-          if (stream) {
-            log('info', stage, `done ${ms}ms chunks=${chunkCount} chars=${charCount}`)
-            // If no chunks received, try to parse buf as JSON (non-SSE response)
-            if (chunkCount === 0 && buf.trim() && onChunk) {
-              try {
-                const j = JSON.parse(buf)
-                const text = j.choices?.[0]?.message?.content || j.error?.message || ''
-                if (text) {
-                  log('warn', stage, `non-SSE fallback: ${text.length} chars`)
-                  onChunk(text)
-                } else {
-                  log('error', stage, `empty response: ${buf.slice(0, 300)}`)
-                }
-              } catch {
-                log('error', stage, `bad buf (${buf.length}B): ${buf.slice(0, 300)}`)
-              }
-            }
-            return resolve({ ok: true })
-          }
-          try {
-            const j = JSON.parse(buf)
-            if (j.error) {
-              log('error', stage, `api-error: ${j.error.message || JSON.stringify(j.error)}`)
-              return reject(new Error(j.error.message || JSON.stringify(j.error)))
-            }
-            const msg = j.choices?.[0]?.message || {}
-            // GLM-5 is a reasoning model — content may be empty, fall back to reasoning_content
-            let text = msg.content || ''
-            if (!text && msg.reasoning_content) {
-              text = msg.reasoning_content
-              log('info', stage, `using reasoning_content (${text.length} chars)`)
-            }
-            const usage = j.usage || {}
-            log('info', stage, `done ${ms}ms chars=${text.length} in=${usage.prompt_tokens ?? '?'}tok out=${usage.completion_tokens ?? '?'}tok`)
-            resolve({ text })
-          } catch (e) { reject(new Error('Bad JSON from HF: ' + buf.slice(0, 200))) }
-        })
-      },
-    )
-    req.on('error', (e) => { log('error', stage, `network: ${e.message}`); reject(e) })
-    req.write(body)
-    req.end()
+  
+  const body = JSON.stringify({
+    model,
+    messages,
+    stream: false,
+    max_tokens: 4096,
   })
+  
+  const t0 = Date.now()
+  log('info', stage, `OpenRouter model=${model}`)
+  
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+      'HTTP-Referer': 'https://cortex.dev',
+      'X-Title': 'CORTEX',
+    },
+    body,
+  })
+  
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`OpenRouter HTTP ${response.status}: ${err.slice(0, 100)}`)
+  }
+  
+  const data = await response.json()
+  const text = data.choices?.[0]?.message?.content || ''
+  log('info', stage, `done ${Date.now() - t0}ms chars=${text.length}`)
+  return { text }
 }
 
 ipcMain.handle('agi:fastAsk', async (_evt, { prompt, context }) => {
   log('info', 'fast.ask', `prompt="${prompt.slice(0, 60)}"${context ? ' +screen-ctx' : ''}`)
-  const sys =
-    'You are CORTEX, a concise, helpful AGI assistant running on the user\'s Mac. ' +
-    'Be direct, practical, and brief. ' +
-    (context ? `Current screen: ${context}` : '')
+  const sys = 'You are CORTEX, a concise, helpful AI assistant. Be direct and brief.'
   const messages = [
     { role: 'system', content: sys },
-    { role: 'user', content: prompt },
+    { role: 'user', content: context ? `${context}\n\n${prompt}` : prompt },
   ]
 
-  // PRIMARY: HuggingFace (non-streaming since router's SSE is broken).
-  // FALLBACK: Local Ollama only when HF is unreachable (offline mode).
   try {
-    const res = await hfChat({ messages, stream: false, stage: 'fast.ask' })
+    const res = await openrouterChat({ messages, stage: 'fast.ask' })
     if (res.text && win && !win.isDestroyed()) {
       win.webContents.send('agi:chunk', res.text)
       return { text: '__streamed__' }
     }
-    throw new Error('HF empty response')
-  } catch (hfErr) {
-    log('warn', 'fast.ask', `HF failed: ${hfErr.message} — falling back to Ollama`)
-    const ollamaUrl = process.env.OLLAMA_HOST || 'http://localhost:11434'
-    const ollamaModel = process.env.CORTEX_FAST_MODEL || 'llama3.2:3b'
-    const t0 = Date.now()
-    try {
-      log('info', 'fast.ask', `POST ${ollamaUrl}/api/chat model=${ollamaModel} (offline fallback)`)
-      const res = await fetch(`${ollamaUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: ollamaModel, messages, stream: true }),
-      })
-      if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`)
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buf = ''
-      let chunks = 0, chars = 0
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buf += decoder.decode(value, { stream: true })
-        const lines = buf.split('\n')
-        buf = lines.pop() || ''
-        for (const line of lines) {
-          if (!line.trim()) continue
-          try {
-            const j = JSON.parse(line)
-            const delta = j.message?.content || ''
-            if (delta) {
-              chunks++; chars += delta.length
-              if (win && !win.isDestroyed()) win.webContents.send('agi:chunk', delta)
-            }
-          } catch { /* skip */ }
-        }
-      }
-      log('info', 'fast.ask', `done ${Date.now() - t0}ms chunks=${chunks} chars=${chars} (offline)`)
-      return { text: '__streamed__' }
-    } catch (e) {
-      log('error', 'fast.ask', `both HF+Ollama failed: ${e.message}`)
-      return { error: `Both HF and Ollama unreachable: ${e.message}` }
-    }
+    throw new Error('empty response')
+  } catch (e) {
+    log('error', 'fast.ask', `OpenRouter failed: ${e.message}`)
+    return { error: e.message }
   }
 })
 
@@ -359,37 +238,60 @@ ipcMain.handle('screen:snap', async () => {
 
 ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
   try {
-    // Use local Ollama with vision model (llava, moondream, etc)
-    const model = process.env.CORTEX_VISION_MODEL || 'moondream'
-    const ollamaUrl = process.env.OLLAMA_HOST || 'http://localhost:11434'
     const t0 = Date.now()
     // Extract base64 (strip "data:image/...;base64," prefix)
     const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
-    log('info', 'screen.vision', `POST ${ollamaUrl}/api/generate model=${model} body=${base64.length}B`)
-    const response = await fetch(`${ollamaUrl}/api/generate`, {
+    
+    // Use OpenRouter free vision model (default: gemma-4-26b-a4b-it:free)
+    const openrouterKey = process.env.OPENROUTER_API_KEY
+    if (!openrouterKey) {
+      return { error: 'OPENROUTER_API_KEY not set in .env' }
+    }
+    
+    const visionModel = process.env.CORTEX_VISION_MODEL || 'google/gemma-4-26b-a4b-it:free'
+    
+    log('info', 'screen.vision', `OpenRouter vision model=${visionModel}`)
+    
+    // Build multimodal message for vision model
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openrouterKey}`,
+        'HTTP-Referer': 'https://cortex.dev',
+        'X-Title': 'CORTEX',
+      },
       body: JSON.stringify({
-        model,
-        prompt: 'Describe what is on this screen in 2-3 short sentences. Focus on: the active app, what the user is doing, any visible errors. Be concrete (app names, file names, error text).',
-        images: [base64],
-        stream: false,
+        model: visionModel,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } },
+              { type: 'text', text: 'Describe what is on this screen in 2-3 short sentences. Focus on: the active app, what the user is doing, any visible errors. Be concrete (app names, file names, error text).' }
+            ]
+          }
+        ],
+        max_tokens: 512,
       }),
     })
+    
     const firstByte = Date.now() - t0
     log('info', 'screen.vision', `first-byte ${firstByte}ms`)
+    
     if (!response.ok) {
       const err = await response.text().catch(() => '')
       log('error', 'screen.vision', `HTTP ${response.status} ${err.slice(0, 200)}`)
-      return { error: `Ollama HTTP ${response.status} — is ollama running? (brew services start ollama)` }
+      return { error: `OpenRouter HTTP ${response.status}: ${err.slice(0, 100)}` }
     }
+    
     const data = await response.json()
-    const text = (data.response || '').trim()
+    const text = data.choices?.[0]?.message?.content || ''
     log('info', 'screen.vision', `done ${Date.now() - t0}ms chars=${text.length}`)
     return { text }
   } catch (e) {
     log('error', 'screen.vision', String(e.message || e))
-    return { error: `Ollama not reachable — run: ollama serve` }
+    return { error: `Vision failed: ${e.message}` }
   }
 })
 
@@ -417,9 +319,8 @@ function stripAnsi(s) {
 
 app.whenReady().then(() => {
   createWindow()
-  createPuterBridge()
   log('info', 'app.ready', `electron=${process.versions.electron} node=${process.versions.node} repo=${REPO_ROOT}`)
-  log('info', 'app.env', `HF_TOKEN=${process.env.HF_TOKEN ? 'set' : 'MISSING'} model=${process.env.HF_MODEL_ID || 'zai-org/GLM-5:together'}`)
+  log('info', 'app.env', `OPENROUTER_API_KEY=${process.env.OPENROUTER_API_KEY ? 'set' : 'MISSING'}`)
 
   // Global hotkey: Cmd+Shift+A to toggle window from anywhere
   globalShortcut.register('CommandOrControl+Shift+A', () => {
@@ -427,7 +328,7 @@ app.whenReady().then(() => {
     if (win.isVisible()) win.hide(); else win.show()
   })
 
-  // Global hotkey: Cmd+E to show/focus the window (same as Cmd+Shift+A but easier)
+  // Global hotkey: Cmd+E to show/focus the window
   globalShortcut.register('CommandOrControl+E', () => {
     if (!win) return createWindow()
     if (!win.isVisible()) win.show()
@@ -450,94 +351,4 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
-  if (puterServer) puterServer.close()
-  if (puterWin && !puterWin.isDestroyed()) puterWin.close()
 })
-
-// ─── Puter.js Bridge (hidden window + local HTTP server) ───────
-// Creates a hidden Electron window that loads Puter.js, then exposes
-// it via a local HTTP server that Cortex CLI can call.
-function createPuterBridge() {
-  const PORT = 3847
-
-  // Create hidden window for Puter.js browser context
-  puterWin = new BrowserWindow({
-    show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  })
-  puterWin.loadFile(path.join(__dirname, 'puter-bridge.html'))
-
-  // Wait for Puter to be ready
-  ipcMain.once('puter-ready', () => {
-    log('info', 'puter.bridge', 'Puter.js loaded in hidden window')
-
-    // Start local HTTP server
-    puterServer = http.createServer((req, res) => {
-      if (req.method !== 'POST') {
-        res.writeHead(405)
-        res.end('Method Not Allowed')
-        return
-      }
-
-      let body = ''
-      req.on('data', (chunk) => body += chunk)
-      req.on('end', () => {
-        try {
-          const { prompt, model, stream = false } = JSON.parse(body)
-          log('info', 'puter.request', `prompt="${prompt.slice(0, 60)}" model=${model || 'claude-sonnet-4-6'}`)
-
-          if (stream) {
-            // Streaming response
-            res.writeHead(200, { 'Content-Type': 'text/plain' })
-            let fullText = ''
-            ipcMain.once('puter-response', (e, data) => {
-              fullText += data.text || ''
-            })
-            ipcMain.on('puter-chunk', (e, data) => {
-              res.write(data.text || '')
-            })
-            ipcMain.once('puter-error', (e, data) => {
-              res.writeHead(500)
-              res.end(JSON.stringify({ error: data.error }))
-            })
-            puterWin.webContents.send('puter-request', { prompt, model, stream: true })
-          } else {
-            // Non-streaming response
-            ipcMain.once('puter-response', (e, data) => {
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify(data))
-            })
-            ipcMain.once('puter-error', (e, data) => {
-              res.writeHead(500)
-              res.end(JSON.stringify({ error: data.error }))
-            })
-            puterWin.webContents.send('puter-request', { prompt, model, stream: false })
-          }
-        } catch (err) {
-          log('error', 'puter.server', `JSON parse error: ${err.message}`)
-          res.writeHead(400)
-          res.end(JSON.stringify({ error: 'Invalid JSON' }))
-        }
-      })
-    })
-
-    puterServer.listen(PORT, () => {
-      log('info', 'puter.server', `listening on http://localhost:${PORT}`)
-    })
-
-    puterServer.on('error', (err) => {
-      log('error', 'puter.server', `error: ${err.message}`)
-    })
-  })
-
-  puterWin.on('closed', () => {
-    log('warn', 'puter.bridge', 'window closed')
-    if (puterServer) {
-      puterServer.close()
-      puterServer = null
-    }
-  })
-}

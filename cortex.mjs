@@ -159,6 +159,18 @@ const openInBrowser = (url) => {
   }
 };
 
+// Check if web UI is running
+const isWebUIRunning = (port) => {
+  return new Promise((resolve) => {
+    const req = http.get(`http://localhost:${port}`, (res) => {
+      res.resume();
+      resolve(true);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(2000, () => { req.destroy(); resolve(false); });
+  });
+};
+
 if (!QUIET && process.env.CORTEX_NO_PREFLIGHT !== '1') {
   const venvActive = existsSync(__venvPython);
   const octogentDist = resolve(__dirname, 'apps/octogent/dist/api/cli.js');

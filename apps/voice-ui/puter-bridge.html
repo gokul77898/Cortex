@@ -2,38 +2,92 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Puter Bridge</title>
+  <title>Puter Bridge - Authenticate</title>
   <script src="https://js.puter.com/v2/"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+    h1 { color: #4ade80; }
+    .status { margin: 20px 0; padding: 15px; background: #16213e; border-radius: 8px; }
+    .status.ready { border-left: 4px solid #4ade80; }
+    .status.error { border-left: 4px solid #f87171; }
+    button {
+      padding: 12px 24px;
+      background: #4ade80;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover { background: #22c55e; }
+    #test-output {
+      margin-top: 20px;
+      padding: 15px;
+      background: #0f172a;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      min-height: 100px;
+    }
+  </style>
 </head>
 <body>
+  <h1>🤖 Puter.js Bridge</h1>
+  <div id="status" class="status">Loading Puter.js...</div>
+  <button onclick="testPuter()">Test Puter (triggers auth)</button>
+  <button onclick="window.location.href='https://puter.com'">Open Puter.com to Login</button>
+  <div id="test-output"></div>
+
   <script>
     const { ipcRenderer } = require('electron')
+
+    function updateStatus(msg, type = 'ready') {
+      document.getElementById('status').textContent = msg
+      document.getElementById('status').className = `status ${type}`
+    }
+
+    async function testPuter() {
+      try {
+        updateStatus('Testing Puter connection...')
+        const response = await puter.ai.chat('Say hello', { model: 'claude-sonnet-4-6' })
+        const text = response.message?.content?.[0]?.text || response.message?.content || ''
+        document.getElementById('test-output').textContent = `Response: ${text}`
+        updateStatus('✓ Puter working! Authenticated successfully.', 'ready')
+        ipcRenderer.send('puter-ready')
+      } catch (error) {
+        document.getElementById('test-output').textContent = `Error: ${error.message || error}`
+        updateStatus('❌ Authentication required. Click "Open Puter.com" to login.', 'error')
+      }
+    }
 
     // Listen for Puter requests from main process
     ipcRenderer.on('puter-request', async (event, { prompt, model, stream = false }) => {
       try {
+        // Handle prompt as string or messages array
+        const promptText = typeof prompt === 'string' ? prompt : JSON.stringify(prompt)
+        console.log('Puter request:', promptText, model)
         const opts = { model: model || 'claude-sonnet-4-6' }
-        if (stream) {
-          opts.stream = true
-          const response = await puter.ai.chat(prompt, opts)
-          const chunks = []
-          for await (const part of response) {
-            chunks.push(part?.text || '')
-            ipcRenderer.send('puter-chunk', { text: part?.text || '' })
-          }
-          ipcRenderer.send('puter-response', { text: chunks.join(''), done: true })
-        } else {
-          const response = await puter.ai.chat(prompt, opts)
-          const text = response.message?.content?.[0]?.text || ''
-          ipcRenderer.send('puter-response', { text, done: true })
-        }
+        const response = await puter.ai.chat(promptText, opts)
+        console.log('Puter response:', response)
+        const text = response.message?.content?.[0]?.text || response.message?.content || ''
+        ipcRenderer.send('puter-response', { text, done: true })
       } catch (error) {
+        console.error('Puter error:', error)
         ipcRenderer.send('puter-error', { error: String(error.message || error) })
       }
     })
 
-    // Signal ready
-    ipcRenderer.send('puter-ready')
+    // Auto-test on load
+    window.onload = () => {
+      updateStatus('Puter.js loaded. Click "Test Puter" to authenticate.')
+      // Optionally auto-test
+      // setTimeout(testPuter, 1000)
+    }
   </script>
 </body>
 </html>

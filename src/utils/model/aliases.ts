@@ -1,4 +1,11 @@
 export const MODEL_ALIASES = [
+  'minimax',
+  'openrouter',
+  'hy3',
+  'deepseek-r1',
+  'qwen3',
+  'llama',
+  'gemini',
   'sonnet',
   'opus',
   'haiku',
