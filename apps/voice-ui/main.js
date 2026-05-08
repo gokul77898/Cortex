@@ -139,9 +139,9 @@ async function openrouterChat(opts) {
   
   // Vision models for screen seeing
   if (hasImage || lastMsg.toLowerCase().includes('screen') || lastMsg.toLowerCase().includes('screenshot')) {
-    // Use Gemma for vision - it's faster and more reliable
-    model = 'google/gemma-4-26b-a4b-it:free'
-    log('info', stage, 'Auto-selected vision model (Gemma)')
+    // Use NVIDIA vision model - more reliable than Gemma
+    model = 'nvidia/nemotron-nano-12b-v2-vl:free'
+    log('info', stage, 'Auto-selected vision model (NVIDIA Nemotron)')
   }
   
   const body = JSON.stringify({
