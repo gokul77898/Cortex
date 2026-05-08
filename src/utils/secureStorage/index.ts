@@ -19,10 +19,26 @@ export interface SecureStorageData {
       discoveryState?: {
         authorizationServerUrl: string
         resourceMetadataUrl?: string
+        resourceMetadata?: any
+        authorizationServerMetadata?: any
       }
       stepUpScope?: string
     }
   >
+  cortexAiOauth?: {
+    accessToken: string
+    refreshToken?: string
+    expiresAt: number
+    scopes: string[]
+    subscriptionType: any
+    rateLimitTier: any
+    profile?: any
+    tokenAccount?: {
+      uuid: string
+      emailAddress: string
+      organizationUuid?: string
+    }
+  }
   mcpOAuthClientConfig?: Record<string, { clientSecret: string }>
   trustedDeviceToken?: string
   pluginSecrets?: Record<string, Record<string, string>>
