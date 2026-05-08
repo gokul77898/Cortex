@@ -13,12 +13,15 @@ import { clearFastModeCooldown, isFastModeAvailable, isFastModeEnabled, isFastMo
 import { MODEL_ALIASES } from '../../utils/model/aliases.js';
 import { checkOpus1mAccess, checkSonnet1mAccess } from '../../utils/model/check1mAccess.js';
 import type { ModelOption } from '../../utils/model/modelOptions.js';
+import { getOpenRouterFreeModels } from '../../utils/model/modelOptions.js';
 import { discoverOpenAICompatibleModelOptions } from '../../utils/model/openaiModelDiscovery.js';
 import { getAPIProvider } from '../../utils/model/providers.js';
 import { getActiveOpenAIModelOptionsCache, setActiveOpenAIModelOptionsCache } from '../../utils/providerProfiles.js';
 import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
+import { Select } from '../../components/CustomSelect/index.js';
+import { Box, Text } from '../../ink.js';
 function ModelPickerWrapper(t0) {
   const $ = _c(17);
   const {
@@ -299,8 +302,38 @@ async function refreshOpenAIModelOptionsCache(): Promise<void> {
     // Keep /model usable even if endpoint discovery fails.
   }
 }
+function OpenRouterPicker({ onDone }: { onDone: (result?: string, options?: { display?: CommandResultDisplay }) => void }) {
+  const options = getOpenRouterFreeModels()
+  const selectOptions = options.map(o => ({ value: o.value, label: `${o.label} - ${o.description}` }))
+  const initialValue = selectOptions[0]?.value || ''
+  
+  const handleSelect = (value: string) => {
+    onDone(`Set model to ${chalk.bold(value)}`, { display: 'system' })
+  }
+  
+  return (
+    <Box flexDirection="column">
+      <Text bold>OpenRouter Free Models</Text>
+      <Text dimColor>Select a free model</Text>
+      <Select
+        defaultValue={initialValue}
+        options={selectOptions}
+        onChange={handleSelect}
+        onCancel={() => onDone('Cancelled', { display: 'system' })}
+      />
+    </Box>
+  )
+}
+
 export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   args = args?.trim() || '';
+  
+  // Handle /model openrouter - show OpenRouter free models
+  if (args === 'openrouter') {
+    logEvent('tengu_model_command_openrouter', {})
+    return <OpenRouterPicker onDone={onDone} />
+  }
+  
   if (COMMON_INFO_ARGS.includes(args)) {
     logEvent('tengu_model_command_inline_help', {
       args: args as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS

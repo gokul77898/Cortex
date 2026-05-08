@@ -16,16 +16,18 @@ const YELLOW = '\x1b[33m'
 const MAGENTA = '\x1b[35m'
 const RESET = '\x1b[0m'
 
-type Args = { stop: boolean; port?: number; tunnel: boolean }
+type Args = { stop: boolean; port?: number; tunnel: boolean; runPending: boolean }
 
 const parseArgs = (args: string): Args => {
   const tokens = args.trim().split(/\s+/).filter(Boolean)
   let stop = false
   let tunnel = false
+  let runPending = false
   let port: number | undefined
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i]
     if (t === 'stop' || t === '--stop' || t === 'off') stop = true
+    else if (t === 'run' || t === '--run' || t === 'send') runPending = true
     else if (t === '--tunnel' || t === '--global' || t === '--public') tunnel = true
     else if (t === '--port' && tokens[i + 1]) {
       const n = Number(tokens[i + 1])
@@ -36,7 +38,7 @@ const parseArgs = (args: string): Args => {
       if (Number.isFinite(n) && n > 0 && n < 65536) port = n
     }
   }
-  return { stop, port, tunnel }
+  return { stop, port, tunnel, runPending }
 }
 
 const renderQR = async (url: string): Promise<string> => {
@@ -83,6 +85,17 @@ const buildBanner = async (
   return lines.filter(Boolean).join('\n')
 }
 
+// Store pending joiner messages that need to go to AI
+let pendingAIMessages: { id: string; user: string; text: string }[] = []
+
+export function getPendingAIMessages(): { id: string; user: string; text: string }[] {
+  return pendingAIMessages
+}
+
+export function clearAIMessage(id: string): void {
+  pendingAIMessages = pendingAIMessages.filter(m => m.id !== id)
+}
+
 const attachDriverRelay = (handle: ShareServerHandle): void => {
   let participants: any[] = []
   let queue: any[] = []
@@ -110,6 +123,20 @@ const attachDriverRelay = (handle: ShareServerHandle): void => {
       })
     }
   }
+
+  // Poll for pending AI messages every 2 seconds
+  setInterval(() => {
+    const pending = handle.getPendingUserMessages()
+    if (pending.length > 0) {
+      for (const msg of pending) {
+        if (!pendingAIMessages.find(m => m.id === msg.id)) {
+          pendingAIMessages.push(msg)
+          process.stderr.write(`\n${CYAN}📩${RESET} ${BOLD}${msg.user}${RESET} wants to ask AI: ${msg.text.slice(0, 60)}...\n`)
+          process.stderr.write(`${DIM}   Run /run to send pending messages to AI${RESET}\n`)
+        }
+      }
+    }
+  }, 2000)
 
   handle.onMessage((m: ShareMessage) => {
     if (m.kind === 'participant_join' && m.data) {
@@ -165,7 +192,22 @@ export function getActiveShareServer(): ShareServerHandle | null {
 }
 
 export const call: LocalCommandCall = async args => {
-  const { stop, port, tunnel } = parseArgs(args)
+  const { stop, port, tunnel, runPending } = parseArgs(args)
+
+  if (runPending) {
+    const pending = getPendingAIMessages()
+    if (pending.length === 0) {
+      return { type: 'text', value: `${YELLOW}No pending messages from joiners.${RESET}` }
+    }
+    // Combine all pending messages into one prompt
+    const combined = pending.map(p => `[${p.user}]: ${p.text}`).join('\n')
+    // Clear all pending since we're now sending them
+    pending.forEach(p => clearAIMessage(p.id))
+    return { 
+      type: 'text', 
+      value: `${GREEN}Sending ${pending.length} message(s) to AI...${RESET}\n\n${combined}\n\n${DIM}(This will be prepended to your next prompt)${RESET}` 
+    }
+  }
 
   if (stop) {
     if (!active) return { type: 'text', value: 'No shared session is running.' }

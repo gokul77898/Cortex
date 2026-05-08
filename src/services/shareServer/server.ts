@@ -35,6 +35,12 @@ export type ShareServerHandle = {
   broadcast: (msg: ShareMessage) => void
   getTranscript: () => ShareMessage[]
   onMessage: (cb: (msg: ShareMessage) => void) => () => void
+  /** Get pending user messages (from joiners) that need to be sent to AI */
+  getPendingUserMessages: () => { id: string; user: string; text: string; kind: string }[]
+  /** Mark a message as processed (AI has responded) */
+  markMessageProcessed: (id: string) => void
+  /** Set callback for when AI responds to a joiner message */
+  onAIResponse: (cb: (id: string, response: string) => void) => () => void
   /** Kicks off tunnel startup (tries cloudflared → localhost.run → serveo). Resolves with URL or null. */
   startTunnel: () => Promise<string | null>
 }
@@ -1580,6 +1586,10 @@ export async function startShareServer(opts: {
   const participantOrder: string[] = [] // names in join order
   const messageQueue: QueuedMessage[] = []
   let activeMessage: ShareMessage | null = null
+  // Messages from joiners waiting to be sent to AI
+  const pendingUserMessages: { id: string; user: string; text: string; kind: string; processed: boolean }[] = []
+  // Callback for when AI responds to a joiner message
+  const aiResponseCallbacks = new Set<(id: string, response: string) => void>()
   let publicUrl: string | null = null
   let tunnelProvider: TunnelProvider = 'none'
   let tunnelProc: ChildProcess | null = null
@@ -1870,9 +1880,11 @@ export async function startShareServer(opts: {
             broadcast({ id: randomUUID(), user, text, ts: Date.now(), kind })
             completeActiveMessage()
           } else {
-            // Queue the message
+            // Queue the message for display
             const queued: QueuedMessage = { id: randomUUID(), user, text, kind, queuedAt: Date.now() }
             messageQueue.push(queued)
+            // Also add to pending user messages for AI processing
+            pendingUserMessages.push({ id: queued.id, user, text, kind, processed: false })
             broadcast({ id: randomUUID(), user: 'system', kind: 'queue_update', text: '', ts: Date.now(), data: { queue: messageQueue, active: activeMessage } })
             processQueue()
           }
@@ -2002,6 +2014,15 @@ export async function startShareServer(opts: {
     broadcast,
     getTranscript: () => [...transcript],
     onMessage: (cb: (m: ShareMessage) => void) => { listeners.add(cb); return () => listeners.delete(cb) },
+    getPendingUserMessages: () => pendingUserMessages.filter(m => !m.processed),
+    markMessageProcessed: (id: string) => {
+      const msg = pendingUserMessages.find(m => m.id === id)
+      if (msg) msg.processed = true
+    },
+    onAIResponse: (cb: (id: string, response: string) => void) => {
+      aiResponseCallbacks.add(cb)
+      return () => aiResponseCallbacks.delete(cb)
+    },
     startTunnel,
     get publicUrl(): string | null { return publicUrl },
     get tunnelProvider(): TunnelProvider { return tunnelProvider },

@@ -1060,9 +1060,13 @@ class OpenAIShimMessages {
 
     // ── OpenRouter (free models!) ─────────────────────────────────────────────
     // Any model with :free suffix or openrouter reference
-    const isOpenRouterModel = String(body.model).includes(':free') || 
-      String(body.model).includes('openrouter') ||
-      String(body.model) === 'openrouter'
+    const incomingModel = String(body.model)
+    const isOpenRouterModel = incomingModel.includes(':free') || 
+      incomingModel.includes('openrouter') ||
+      incomingModel === 'openrouter'
+    
+    // DEBUG: log the model being used
+    process.stderr.write(`[DEBUG] incoming model: "${incomingModel}"\n`)
     
     if (process.env.OPENROUTER_API_KEY && isOpenRouterModel) {
       const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
@@ -1173,15 +1177,16 @@ class OpenAIShimMessages {
       // Honor the user's selected model if it's already set (e.g. via /model)
       // Only fall back to NVIDIA_MODEL_ID / NVIDIA_CODE_MODEL_ID if using generic defaults
       const isKnownNvidiaModel = originalModel.includes('/')
+      const isOpenRouterModel = originalModel.includes(':free') || originalModel.includes('openrouter')
       let nvidiaModel = originalModel
       
-      if (!isKnownNvidiaModel) {
+      // Don't override - user selected an OpenRouter model, let it pass through
+      if (!isOpenRouterModel && !isKnownNvidiaModel) {
         nvidiaModel = isExecutor
           ? (process.env.NVIDIA_CODE_MODEL_ID || process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
           : (process.env.NVIDIA_MODEL_ID || 'deepseek-ai/deepseek-v4-pro')
+        body.model = nvidiaModel
       }
-
-      body.model = nvidiaModel
       const nvInit = {
         ...fetchInit,
         headers: { ...fetchInit.headers, Authorization: `Bearer ${nvidiaKey}` },

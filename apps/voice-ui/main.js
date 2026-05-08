@@ -128,7 +128,7 @@ ipcMain.handle('agi:ask', async (_evt, prompt) => {
 
 // ─── IPC: Fast chat with OpenRouter free models ──────────────────────
 async function openrouterChat(opts) {
-  const { messages, onChunk, stage = 'or.chat' } = opts
+  const { messages, onChunk, stage = 'or.chat', overrideModel } = opts
   const key = process.env.OPENROUTER_API_KEY
   if (!key) throw new Error('OPENROUTER_API_KEY not set')
   
@@ -136,12 +136,13 @@ async function openrouterChat(opts) {
   const lastMsg = messages[messages.length - 1]?.content || ''
   const hasImage = typeof lastMsg === 'string' && lastMsg.includes('data:image')
   
-  // Use MiniMax - more stable than OpenRouter free
-  let model = 'minimax/minimax-m2.5:free'
+  // Use override if provided, otherwise auto-select
+  let model = overrideModel || 'nvidia/nemotron-nano-12b-v2-vl:free'
   
-  // For screen seeing, just describe what app without vision (free models unstable)
-  if (lastMsg.toLowerCase().includes('screen') || lastMsg.toLowerCase().includes('what app') || lastMsg.toLowerCase().includes('what am i')) {
-    log('info', stage, 'Screen question - using text model (vision models rate-limited)')
+  // For screen questions - use NVIDIA vision
+  if (!overrideModel && (lastMsg.toLowerCase().includes('screen') || lastMsg.toLowerCase().includes('what app') || lastMsg.toLowerCase().includes('what am i'))) {
+    model = 'nvidia/nemotron-nano-12b-v2-vl:free'
+    log('info', stage, 'Screen question - using NVIDIA vision')
   }
   
   const body = JSON.stringify({
@@ -184,6 +185,7 @@ ipcMain.handle('agi:fastAsk', async (_evt, { prompt, context }) => {
     { role: 'user', content: context ? `${context}\n\n${prompt}` : prompt },
   ]
 
+  // Try NVIDIA first, fallback to MiniMax
   try {
     const res = await openrouterChat({ messages, stage: 'fast.ask' })
     if (res.text && win && !win.isDestroyed()) {
@@ -192,6 +194,22 @@ ipcMain.handle('agi:fastAsk', async (_evt, { prompt, context }) => {
     }
     throw new Error('empty response')
   } catch (e) {
+    // If rate-limited, try MiniMax
+    if (e.message.includes('429') || e.message.includes('rate-limited')) {
+      log('warn', 'fast.ask', 'NVIDIA rate-limited, trying MiniMax...')
+      try {
+        // Override model to MiniMax
+        messages.push({ role: 'system', content: 'Use MiniMax model.' })
+        const res2 = await openrouterChat({ messages, stage: 'fast.ask', overrideModel: 'minimax/minimax-m2.5:free' })
+        if (res2.text && win && !win.isDestroyed()) {
+          win.webContents.send('agi:chunk', res2.text)
+          return { text: '__streamed__' }
+        }
+      } catch (e2) {
+        log('error', 'fast.ask', `MiniMax also failed: ${e2.message}`)
+        return { error: e2.message }
+      }
+    }
     log('error', 'fast.ask', `OpenRouter failed: ${e.message}`)
     return { error: e.message }
   }
