@@ -135,13 +135,13 @@ async function openrouterChat(opts) {
   // Auto-select model based on prompt
   const lastMsg = messages[messages.length - 1]?.content || ''
   const hasImage = typeof lastMsg === 'string' && lastMsg.includes('data:image')
+  
+  // Use MiniMax - more stable than OpenRouter free
   let model = 'minimax/minimax-m2.5:free'
   
-  // Vision models for screen seeing
-  if (hasImage || lastMsg.toLowerCase().includes('screen') || lastMsg.toLowerCase().includes('screenshot')) {
-    // Use NVIDIA vision model - more reliable than Gemma
-    model = 'nvidia/nemotron-nano-12b-v2-vl:free'
-    log('info', stage, 'Auto-selected vision model (NVIDIA Nemotron)')
+  // For screen seeing, just describe what app without vision (free models unstable)
+  if (lastMsg.toLowerCase().includes('screen') || lastMsg.toLowerCase().includes('what app') || lastMsg.toLowerCase().includes('what am i')) {
+    log('info', stage, 'Screen question - using text model (vision models rate-limited)')
   }
   
   const body = JSON.stringify({
