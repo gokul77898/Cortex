@@ -248,7 +248,7 @@ ipcMain.handle('screen:describe', async (_evt, { dataUrl }) => {
       return { error: 'OPENROUTER_API_KEY not set in .env' }
     }
     
-    const visionModel = process.env.CORTEX_VISION_MODEL || 'google/gemma-4-26b-a4b-it:free'
+    const visionModel = process.env.CORTEX_VISION_MODEL || 'nvidia/nemotron-nano-12b-v2-vl:free'
     
     log('info', 'screen.vision', `OpenRouter vision model=${visionModel}`)
     
