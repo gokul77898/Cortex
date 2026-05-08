@@ -182,6 +182,26 @@
     "semantic-scholar": {
       "command": "uvx",
       "args": ["semantic-scholar-mcp"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
+    },
+    "obsidian": {
+      "command": "npx",
+      "args": ["-y", "@smithery/obsidian-mcp", "--vault", "/Users/gokul/Documents/Obsidian"]
+    },
+    "ffmpeg": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-ffmpeg"]
+    },
+    "jupyter": {
+      "command": "uvx",
+      "args": ["mcp-server-jupyter"]
+    },
+    "system-info": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-system-info"]
     }
   }
 }
