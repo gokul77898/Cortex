@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Puter Bridge</title>
+  <script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+  <script>
+    const { ipcRenderer } = require('electron')
+
+    // Listen for Puter requests from main process
+    ipcRenderer.on('puter-request', async (event, { prompt, model, stream = false }) => {
+      try {
+        const opts = { model: model || 'claude-sonnet-4-6' }
+        if (stream) {
+          opts.stream = true
+          const response = await puter.ai.chat(prompt, opts)
+          const chunks = []
+          for await (const part of response) {
+            chunks.push(part?.text || '')
+            ipcRenderer.send('puter-chunk', { text: part?.text || '' })
+          }
+          ipcRenderer.send('puter-response', { text: chunks.join(''), done: true })
+        } else {
+          const response = await puter.ai.chat(prompt, opts)
+          const text = response.message?.content?.[0]?.text || ''
+          ipcRenderer.send('puter-response', { text, done: true })
+        }
+      } catch (error) {
+        ipcRenderer.send('puter-error', { error: String(error.message || error) })
+      }
+    })
+
+    // Signal ready
+    ipcRenderer.send('puter-ready')
+  </script>
+</body>
+</html>

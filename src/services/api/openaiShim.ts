@@ -1058,6 +1058,48 @@ class OpenAIShimMessages {
       signal: options?.signal,
     }
 
+    // ── Puter.js Bridge (free Claude API via Electron) ─────────────────────
+    // Puter.js runs in a hidden Electron window with browser context.
+    // Cortex calls localhost:3847 which bridges to Puter.js.
+    // Fallback: if Puter fails, fall through to NVIDIA.
+    if (process.env.CORTEX_PUTER_ENABLED === '1') {
+      const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
+      const puterUrl = 'http://localhost:3847'
+      const originalModel = String(body.model)
+      const messages = (body.messages || []) as Array<{ role: string; content: string }>
+
+      try {
+        const puterInit = {
+          ...fetchInit,
+          headers: { ...fetchInit.headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: messages[messages.length - 1]?.content || '',
+            model: originalModel,
+            stream: false,
+          }),
+        }
+        process.stderr.write(`${YELLOW}↻ Puter bridge${RESET} ${DIM}│${RESET} ${originalModel}\n`)
+        const resp = await fetch(puterUrl, puterInit)
+        if (resp.ok) {
+          const data = await resp.json()
+          process.stderr.write(`${GREEN}${BOLD}✓ using Puter (free Claude)${RESET} ${DIM}│${RESET} ${originalModel}\n`)
+          // Return OpenAI-compatible response
+          return new Response(JSON.stringify({
+            choices: [{ message: { content: data.text, role: 'assistant' } }],
+            model: originalModel,
+          }), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        const errText = await resp.text().catch(() => 'unknown')
+        process.stderr.write(`${RED}${BOLD}✗ Puter failed${RESET} ${DIM}│${RESET} ${errText.slice(0, 100)}${RESET}\n`)
+        // Fall through to NVIDIA
+      } catch (err) {
+        process.stderr.write(`${RED}${BOLD}✗ Puter unreachable${RESET} ${DIM}│${RESET} ${String(err).slice(0, 100)}${RESET}\n`)
+        // Fall through to NVIDIA
+      }
+    }
+
     // ── NVIDIA-ONLY short-circuit ────────────────────────────────────────────
     // When CORTEX_NVIDIA_ONLY=1 and NVIDIA_API_KEY is configured, route every
     // request directly to NVIDIA and disable all other providers/fallbacks.

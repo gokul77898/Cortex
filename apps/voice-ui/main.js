@@ -8,6 +8,7 @@ const { spawn } = require('node:child_process')
 const path = require('node:path')
 const fs = require('node:fs')
 const https = require('node:https')
+const http = require('node:http')
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
 const AGI_BIN = path.join(REPO_ROOT, 'cortex.mjs')
@@ -24,6 +25,8 @@ function loadDotenv() {
 loadDotenv()
 
 let win = null
+let puterWin = null
+let puterServer = null
 
 // ─── Structured logger (streamed to renderer + stderr) ──────────
 // Each call becomes a bubble in the UI log panel AND a line in the
@@ -414,6 +417,7 @@ function stripAnsi(s) {
 
 app.whenReady().then(() => {
   createWindow()
+  createPuterBridge()
   log('info', 'app.ready', `electron=${process.versions.electron} node=${process.versions.node} repo=${REPO_ROOT}`)
   log('info', 'app.env', `HF_TOKEN=${process.env.HF_TOKEN ? 'set' : 'MISSING'} model=${process.env.HF_MODEL_ID || 'zai-org/GLM-5:together'}`)
 
@@ -444,4 +448,96 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('will-quit', () => globalShortcut.unregisterAll())
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
+  if (puterServer) puterServer.close()
+  if (puterWin && !puterWin.isDestroyed()) puterWin.close()
+})
+
+// ─── Puter.js Bridge (hidden window + local HTTP server) ───────
+// Creates a hidden Electron window that loads Puter.js, then exposes
+// it via a local HTTP server that Cortex CLI can call.
+function createPuterBridge() {
+  const PORT = 3847
+
+  // Create hidden window for Puter.js browser context
+  puterWin = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  })
+  puterWin.loadFile(path.join(__dirname, 'puter-bridge.html'))
+
+  // Wait for Puter to be ready
+  ipcMain.once('puter-ready', () => {
+    log('info', 'puter.bridge', 'Puter.js loaded in hidden window')
+
+    // Start local HTTP server
+    puterServer = http.createServer((req, res) => {
+      if (req.method !== 'POST') {
+        res.writeHead(405)
+        res.end('Method Not Allowed')
+        return
+      }
+
+      let body = ''
+      req.on('data', (chunk) => body += chunk)
+      req.on('end', () => {
+        try {
+          const { prompt, model, stream = false } = JSON.parse(body)
+          log('info', 'puter.request', `prompt="${prompt.slice(0, 60)}" model=${model || 'claude-sonnet-4-6'}`)
+
+          if (stream) {
+            // Streaming response
+            res.writeHead(200, { 'Content-Type': 'text/plain' })
+            let fullText = ''
+            ipcMain.once('puter-response', (e, data) => {
+              fullText += data.text || ''
+            })
+            ipcMain.on('puter-chunk', (e, data) => {
+              res.write(data.text || '')
+            })
+            ipcMain.once('puter-error', (e, data) => {
+              res.writeHead(500)
+              res.end(JSON.stringify({ error: data.error }))
+            })
+            puterWin.webContents.send('puter-request', { prompt, model, stream: true })
+          } else {
+            // Non-streaming response
+            ipcMain.once('puter-response', (e, data) => {
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify(data))
+            })
+            ipcMain.once('puter-error', (e, data) => {
+              res.writeHead(500)
+              res.end(JSON.stringify({ error: data.error }))
+            })
+            puterWin.webContents.send('puter-request', { prompt, model, stream: false })
+          }
+        } catch (err) {
+          log('error', 'puter.server', `JSON parse error: ${err.message}`)
+          res.writeHead(400)
+          res.end(JSON.stringify({ error: 'Invalid JSON' }))
+        }
+      })
+    })
+
+    puterServer.listen(PORT, () => {
+      log('info', 'puter.server', `listening on http://localhost:${PORT}`)
+    })
+
+    puterServer.on('error', (err) => {
+      log('error', 'puter.server', `error: ${err.message}`)
+    })
+  })
+
+  puterWin.on('closed', () => {
+    log('warn', 'puter.bridge', 'window closed')
+    if (puterServer) {
+      puterServer.close()
+      puterServer = null
+    }
+  })
+}
