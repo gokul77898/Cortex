@@ -1,5 +1,5 @@
 /**
- * CORTEX JARVIS — Simplified persistent session
+ * CORTEX JARVIS — Fixed persistent session
  */
 const { app, BrowserWindow, ipcMain, screen, Menu } = require('electron')
 const { spawn } = require('child_process')
@@ -43,48 +43,33 @@ function createWindow() {
   Menu.setApplicationMenu(menu)
 
   win.on('closed', () => { win = null })
-  console.log('JARVIS window created')
   return win
 }
 
 function isTerminalNoise(line) {
-  const patterns = [
-    '┌─', '│', '└─', '║', '╚', '╔', '═', '▀', '▄', '█',
-    'CORTEX preflight', 'shared session', 'Session ID:', 'Share this:',
-    'Local:', 'LAN:', 'QR:', 'scope:', 'rotates every', 'session ready',
-    '/share stop', '/share to re-show', 'cwd:', 'API provider:',
-    'OpenAI base URL:', 'Model:', 'Version:', 'Session name:',
-    'venv:', 'octogent:', 'logs:', 'http://127.0.0.1', 'http://10.146',
-    'lhr.life', 'Octogent is running', 'Project:', 'Name:', 'API:', 'UI:',
-    'preflight', 'Ready - FULL SWARM', '● shared session', '🌐',
-    '✦ Mission', 'Running first-time', 'Welcome to CORTEX'
-  ]
-  return patterns.some(p => line.includes(p)) || /^[▀▄▀█▄▀║╚╗╔═■◆●]/.test(line)
+  const noise = ['CORTEX preflight', 'shared session', 'Session ID', 'Share this', 
+    'Local:', 'LAN:', 'QR:', 'cwd:', 'API provider', 'OpenAI base URL', 'Model:',
+    'Version:', 'Session name:', 'venv:', 'octogent:', 'http://127.0.0.1', 'http://10.146',
+    'Octogent is running', 'preflight', 'Ready - FULL', '🌐', '✦', '┌─', '│', '└─']
+  return noise.some(n => line.includes(n)) || /^[▀▄▀█▄▀║]/.test(line)
 }
 
-function extractAIResponse(fullOutput) {
-  const lines = fullOutput.split('\n')
-  const clean = []
-  let started = false
-  for (const line of lines) {
-    if (isTerminalNoise(line)) continue
-    if (!started && !line.trim()) continue
-    if (line.startsWith('❯') || line.startsWith('> ')) continue
-    started = true
-    if (line.trim()) clean.push(line)
-  }
-  return clean.join('\n').trim() || 'Done.'
+function extractAIResponse(output) {
+  const lines = output.split('\n').filter(l => !isTerminalNoise(l) && l.trim() && !l.startsWith('❯'))
+  return lines.join('\n').trim() || 'Done.'
 }
 
 function startCortex() {
   if (cortexProcess) {
-    try { cortexProcess.kill() } catch {}
+    try { cortexProcess.kill() } catch(e) {}
   }
   
-  if (win) win.webContents.send('activity', '\n🚀 Starting CORTEX...\n')
-  
-  // Use shell: true to keep process alive
-  cortexProcess = spawn('bash', ['-c', 'cd ' + REPO_ROOT + ' && bun run cortex.mjs'], {
+  // Launch with expect-style keepalive wrapper
+  cortexProcess = spawn('expect', ['-c', `
+    spawn cd ${REPO_ROOT} && bun run cortex.mjs
+    set timeout -1
+    expect EOF
+  `], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: { 
       ...process.env, 
@@ -92,8 +77,12 @@ function startCortex() {
       CORTEX_SIMPLE: '1',
       CORTEX_NO_OPEN: '1',
       OCTOGENT_NO_OPEN: '1'
-    }
+    },
+    detached: false,
+    shell: false
   })
+
+  if (win) win.webContents.send('activity', '\n🚀 Starting CORTEX...\n')
 
   cortexProcess.stdout.on('data', (data) => {
     if (win) win.webContents.send('activity', data.toString())
@@ -104,11 +93,7 @@ function startCortex() {
   })
 
   cortexProcess.on('close', (code) => {
-    if (win) win.webContents.send('activity', `\nCORTEX exited (${code})\n`)
-  })
-
-  cortexProcess.on('error', (err) => {
-    if (win) win.webContents.send('activity', `\nError: ${err.message}\n`)
+    if (win) win.webContents.send('activity', `\n⚠️ CORTEX exited (${code}). Use menu to restart.\n`)
   })
 }
 
@@ -120,23 +105,23 @@ ipcMain.handle('run-command', async (event, cmd) => {
 
   let output = ''
   
-  const onData = (data) => {
+  const handler = (data) => {
     const text = data.toString()
     output += text
     if (win) win.webContents.send('activity', text)
   }
   
-  cortexProcess.stdout.on('data', onData)
-  cortexProcess.stderr.on('data', onData)
+  cortexProcess.stdout.on('data', handler)
+  cortexProcess.stderr.on('data', handler)
 
   cortexProcess.stdin.write(cmd + '\n')
 
   setTimeout(() => {
-    cortexProcess.stdout.removeListener('data', onData)
-    cortexProcess.stderr.removeListener('data', onData)
+    cortexProcess.stdout.removeListener('data', handler)
+    cortexProcess.stderr.removeListener('data', handler)
     const response = extractAIResponse(output)
     if (win) win.webContents.send('assistant_message', response)
-  }, 4000)
+  }, 5000)
 })
 
 ipcMain.handle('restart-cortex', () => {
@@ -148,7 +133,6 @@ app.whenReady().then(() => {
   createWindow()
   startCortex()
   
-  // Pre-launch Octogent
   const fs = require('fs')
   const op = path.join(REPO_ROOT, 'bin', 'cortex-octogent')
   const od = path.join(REPO_ROOT, 'apps', 'octogent', 'dist', 'api', 'cli.js')
@@ -157,9 +141,8 @@ app.whenReady().then(() => {
       cwd: REPO_ROOT,
       detached: true,
       stdio: 'ignore',
-      env: { ...process.env, CORTEX_ALLOW_OPEN: '1', OCTOGENT_NO_OPEN: '1' }
+      env: { ...process.env, OCTOGENT_NO_OPEN: '1' }
     }).unref()
-    if (win) win.webContents.send('activity', '🚀 Octogent ready\n')
   }
   
   app.on('activate', () => {
@@ -171,5 +154,3 @@ app.on('window-all-closed', () => {
   if (cortexProcess) cortexProcess.kill()
   if (process.platform !== 'darwin') app.quit()
 })
-
-console.log('CORTEX JARVIS ready')
