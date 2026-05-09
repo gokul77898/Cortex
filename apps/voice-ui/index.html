@@ -192,6 +192,10 @@
         chat.innerHTML = '<div class="msg"><div class="msg-content">👋 Hello! Type a message or command below.</div></div>'
         term.innerHTML = ''
       })
+      
+      window.jarvis.onClearActivity(() => {
+        term.innerHTML = ''
+      })
     }
 
     input.addEventListener('keydown', e => { if (e.key === 'Enter') run() })

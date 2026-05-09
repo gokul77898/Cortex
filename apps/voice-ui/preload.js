@@ -22,5 +22,10 @@ contextBridge.exposeInMainWorld('jarvis', {
     const h = () => cb()
     ipcRenderer.on('clear', h)
     return () => ipcRenderer.removeListener('clear', h)
+  },
+  onClearActivity: (cb) => {
+    const h = () => cb()
+    ipcRenderer.on('clear-activity', h)
+    return () => ipcRenderer.removeListener('clear-activity', h)
   }
 })
