@@ -1,23 +1,25 @@
+/**
+ * CORTEX JARVIS — Preload
+ */
 const { contextBridge, ipcRenderer } = require('electron')
 
-contextBridge.exposeInMainWorld('cortex', {
-  ask: (prompt) => ipcRenderer.invoke('agi:ask', prompt),
-  fastAsk: (payload) => ipcRenderer.invoke('agi:fastAsk', payload),
-  screenSnapshot: () => ipcRenderer.invoke('screen:snapshot'),
-  screenDescribe: (payload) => ipcRenderer.invoke('screen:describe', payload),
-  onChunk: (cb) => {
-    const listener = (_e, chunk) => cb(chunk)
-    ipcRenderer.on('agi:chunk', listener)
-    return () => ipcRenderer.removeListener('agi:chunk', listener)
+contextBridge.exposeInMainWorld('jarvis', {
+  runCommand: (cmd) => ipcRenderer.invoke('run-command', cmd),
+  // activity = ALL CLI logs → terminal/activity panel
+  onActivity: (cb) => {
+    const h = (e, d) => cb(d)
+    ipcRenderer.on('activity', h)
+    return () => ipcRenderer.removeListener('activity', h)
   },
-  onLog: (cb) => {
-    const listener = (_e, evt) => cb(evt)
-    ipcRenderer.on('log:event', listener)
-    return () => ipcRenderer.removeListener('log:event', listener)
+  // response = ONLY clean AI response → chat
+  onResponse: (cb) => {
+    const h = (e, d) => cb(d)
+    ipcRenderer.on('response', h)
+    return () => ipcRenderer.removeListener('response', h)
   },
-  windowClose: () => ipcRenderer.invoke('window:close'),
-  windowMinimize: () => ipcRenderer.invoke('window:minimize'),
-  windowPin: (p) => ipcRenderer.invoke('window:pin', p),
-  windowMaximize: () => ipcRenderer.invoke('window:maximize'),
-  windowFullscreen: () => ipcRenderer.invoke('window:fullscreen'),
+  onClear: (cb) => {
+    const h = () => cb()
+    ipcRenderer.on('clear', h)
+    return () => ipcRenderer.removeListener('clear', h)
+  }
 })

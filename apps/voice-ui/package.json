@@ -1,10 +1,19 @@
 {
-  "name": "cortex-voice-ui",
+  "name": "cortex-jarvis",
   "version": "1.0.0",
-  "description": "CORTEX floating voice UI — always-on-top Electron app with zero-lag Web Speech API",
+  "description": "CORTEX JARVIS — AI Desktop Assistant with embedded terminal",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "electron-builder --dir",
+    "pack": "electron-builder --dir --platform=all",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
   },
   "devDependencies": {
     "electron": "^33.0.0"

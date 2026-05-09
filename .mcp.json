@@ -190,6 +190,10 @@
     "jupyter": {
       "command": "uvx",
       "args": ["mcp-server-jupyter"]
+    },
+    "obsidian": {
+      "command": "npx",
+      "args": ["-y", "obsidian-mcp-server", "--vault", "/Users/gokul/Documents/Obsidian"]
     }
   }
 }
