@@ -1,239 +1,588 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>CORTEX JARVIS</title>
+  <meta charset="UTF-8" />
+  <title>CORTEX Voice</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0d0d12;
-      color: #e4e4e7;
-      height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      grid-template-rows: 50px 1fr 60px;
+    :root {
+      --bg: rgba(15, 15, 22, 0.85);
+      --fg: #e8e8f0;
+      --muted: #8a8ab0;
+      --accent: #7dd3fc;
+      --accent-2: #f472b6;
+      --danger: #ef4444;
+      --ok: #22c55e;
     }
-    .header {
-      grid-column: 1/-1;
-      background: #18181f;
-      border-bottom: 1px solid #27272a;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif;
+      color: var(--fg);
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+    }
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    /* Title bar */
+    .titlebar {
+      -webkit-app-region: drag;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 10px;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    .logo { font-size: 16px; font-weight: 600; background: linear-gradient(90deg, #00f0ff, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .status { font-size: 12px; color: #71717a; }
-    .status.ready { color: #22c55e; }
-    .status.running { color: #f97316; }
-    .chat {
-      grid-column: 1;
-      grid-row: 2;
-      padding: 16px;
-      overflow-y: auto;
-      border-right: 1px solid #27272a;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .msg { max-width: 85%; }
-    .msg.user { align-self: flex-end; }
-    .msg.ai { align-self: flex-start; }
-    .msg-content {
-      background: #1f1f2e;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-    }
-    .msg.user .msg-content {
-      background: #1a1a28;
-      border: 1px solid #00f0ff;
-    }
-    .msg.ai .msg-content {
-      background: #1f1f2e;
-      border: 1px solid #27272a;
-    }
-    .activity {
-      grid-column: 2;
-      grid-row: 2/4;
-      background: #0a0a0f;
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid #27272a;
-    }
-    .activity-header {
-      padding: 10px 12px;
+    .title {
       font-size: 11px;
-      color: #71717a;
-      border-bottom: 1px solid #27272a;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background: #18181f;
     }
-    .activity-content {
-      flex: 1;
-      padding: 8px;
-      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-      font-size: 10px;
-      overflow-y: auto;
-      color: #a1a1aa;
+    .title .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
     }
-    .log-line { margin: 2px 0; white-space: pre-wrap; word-break: break-all; }
-    .log-terminal { color: #22c55e; }      /* Terminal output */
-    .log-system { color: #f97316; }       /* System events */
-    .log-trace { color: #6366f1; }       /* Debug/trace */
-    .input {
-      grid-column: 1;
-      grid-row: 3;
+    @keyframes pulse { 50% { opacity: 0.3; } }
+    .controls {
+      -webkit-app-region: no-drag;
       display: flex;
-      gap: 8px;
-      padding: 10px 16px;
-      background: #18181f;
-      border-top: 1px solid #27272a;
+      gap: 6px;
     }
-    #input {
-      flex: 1;
-      background: #12121a;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #e4e4e7;
-      font-size: 14px;
-      outline: none;
-    }
-    #input:focus { border-color: #00f0ff; box-shadow: 0 0 0 2px rgba(0,240,255,0.1); }
-    .btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
+    .ctrl {
+      width: 14px; height: 14px;
+      border-radius: 50%;
       border: none;
       cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .ctrl:hover { opacity: 1; }
+    .ctrl.pin { background: #fbbf24; }
+    .ctrl.pin.off { background: #555; }
+    .ctrl.min { background: #84cc16; }
+    .ctrl.close { background: var(--danger); }
+
+    /* Conversation pane */
+    .pane {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      user-select: text;
+    }
+    .pane::-webkit-scrollbar { width: 6px; }
+    .pane::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .msg {
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      max-width: 90%;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #0a0a14;
+      font-weight: 500;
+    }
+    .msg.agi {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--fg);
+      white-space: pre-wrap;
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    /* Input bar (text + mic) */
+    .inputbar {
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    textarea#textInput {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: var(--fg);
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: none;
+      max-height: 120px;
+      min-height: 40px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      user-select: text;
+    }
+    textarea#textInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.15);
+    }
+    textarea#textInput::placeholder { color: var(--muted); }
+
+    .iconbtn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+      transition: all 0.15s;
       font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .iconbtn:hover { transform: scale(1.06); }
+    .iconbtn:active { transform: scale(0.94); }
+    .iconbtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .iconbtn.send {
+      background: rgba(125, 211, 252, 0.15);
+      color: var(--accent);
+    }
+    .iconbtn.send:hover { background: rgba(125, 211, 252, 0.25); }
+    .iconbtn.mic {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #0a0a14;
+      box-shadow: 0 3px 10px rgba(125, 211, 252, 0.3);
+    }
+    .iconbtn.mic.recording {
+      background: var(--danger);
+      color: white;
+      animation: rec 1s infinite;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+    }
+    @keyframes rec {
+      0%, 100% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5); }
+      50% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.8); }
+    }
+    .statusbar {
+      padding: 6px 14px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,0,0,0.2);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      min-height: 26px;
+    }
+    .hint {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+    .transcript {
+      flex: 1;
+      font-size: 11px;
+      color: var(--accent);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-style: italic;
+    }
+    .waves {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+    }
+    .wave {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      opacity: 0.3;
+    }
+    .recording .wave { animation: wave 1s infinite ease-in-out; opacity: 1; }
+    .wave:nth-child(1) { height: 40%; animation-delay: 0s; }
+    .wave:nth-child(2) { height: 70%; animation-delay: 0.1s; }
+    .wave:nth-child(3) { height: 100%; animation-delay: 0.2s; }
+    .wave:nth-child(4) { height: 60%; animation-delay: 0.3s; }
+    .wave:nth-child(5) { height: 80%; animation-delay: 0.4s; }
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.5); }
+      50%      { transform: scaleY(1.2); }
+    }
+
+    .toggles {
+      display: flex;
+      gap: 8px;
+      padding: 0 14px 10px;
+      font-size: 11px;
+    }
+    .toggle {
+      -webkit-app-region: no-drag;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
       transition: all 0.2s;
     }
-    .send { background: linear-gradient(135deg, #00f0ff, #00c0cc); color: #000; }
-    .send:hover { box-shadow: 0 0 15px rgba(0,240,255,0.4); }
+    .toggle.on { color: var(--accent); border-color: var(--accent); }
+    .toggle:hover { background: rgba(255,255,255,0.1); }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="logo">🤖 CORTEX JARVIS</div>
-    <div class="status ready" id="status">Ready</div>
-  </header>
-
-  <div class="chat" id="chat">
-    <div class="msg ai">
-      <div class="msg-content">👋 Hello! I'm your AI assistant. Type a message below - responses appear here, all logs in Activity panel.</div>
+<div id="app">
+  <div class="titlebar">
+    <div class="title"><span class="dot"></span>CORTEX AGI</div>
+    <div class="controls">
+      <button class="ctrl pin" id="pinBtn" title="Always on top"></button>
+      <button class="ctrl min" id="minBtn" title="Minimize"></button>
+      <button class="ctrl close" id="closeBtn" title="Close"></button>
     </div>
   </div>
 
-  <div class="activity">
-    <div class="activity-header">⚡ Activity</div>
-    <div class="activity-content" id="activity"></div>
+  <div class="pane" id="pane">
+    <div class="msg system">⚡ <b>Fast</b>: instant chat · 🧠 <b>AGI</b>: full CLI (tools, MCP) · 👁 <b>Watch</b>: I see your screen · 🎤 <b>Space</b>: talk · <b>⌘⇧A</b>: toggle window</div>
   </div>
 
-  <div class="input">
-    <input type="text" id="input" placeholder="Ask me anything..." autofocus>
-    <button class="btn send" id="send">➤</button>
+  <div class="toggles">
+    <button class="toggle on" id="fastToggle">⚡ Fast</button>
+    <button class="toggle" id="watchToggle">👁 Watch Screen</button>
+    <button class="toggle on" id="ttsToggle">🔊 TTS</button>
+    <button class="toggle" id="continuousToggle">♾ Continuous</button>
+    <button class="toggle" id="clearBtn">🗑 Clear</button>
   </div>
 
-  <script>
-    const input = document.getElementById('input')
-    const sendBtn = document.getElementById('send')
-    const chat = document.getElementById('chat')
-    const activity = document.getElementById('activity')
-    const status = document.getElementById('status')
+  <div class="inputbar">
+    <textarea
+      id="textInput"
+      placeholder="Type a message, or press Space / click 🎤 to speak…"
+      rows="1"
+    ></textarea>
+    <button class="iconbtn send" id="sendBtn" title="Send (Enter)">➤</button>
+    <button class="iconbtn mic" id="micBtn" title="Hold to speak (Space)">🎤</button>
+  </div>
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // ACTIVITY PANEL - Shows ALL terminal logs, system events (NOT chat)
-    // ═══════════════════════════════════════════════════════════════════════════════
-    function logActivity(type, content) {
-      const lines = content.split('\n')
-      for (const line of lines) {
-        if (!line.trim()) continue
-        const div = document.createElement('div')
-        div.className = 'log-line'
-        
-        // Color by type
-        if (type === 'system_event') {
-          div.className += ' log-system'
-        } else if (type === 'terminal_log') {
-          div.className += ' log-terminal'
-        } else {
-          div.className += ' log-trace'
-        }
-        
-        div.textContent = line.slice(0, 300)
-        activity.appendChild(div)
+  <div class="statusbar">
+    <div class="hint" id="hint">Type or speak — both use the same AGI brain</div>
+    <div class="transcript" id="transcript"></div>
+    <div class="waves" id="waves">
+      <div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const pane = document.getElementById('pane')
+  const micBtn = document.getElementById('micBtn')
+  const sendBtn = document.getElementById('sendBtn')
+  const textInput = document.getElementById('textInput')
+  const waves = document.getElementById('waves')
+  const hint = document.getElementById('hint')
+  const transcriptEl = document.getElementById('transcript')
+  const pinBtn = document.getElementById('pinBtn')
+  const minBtn = document.getElementById('minBtn')
+  const closeBtn = document.getElementById('closeBtn')
+  const ttsToggle = document.getElementById('ttsToggle')
+  const continuousToggle = document.getElementById('continuousToggle')
+  const clearBtn = document.getElementById('clearBtn')
+  const fastToggle = document.getElementById('fastToggle')
+  const watchToggle = document.getElementById('watchToggle')
+
+  let ttsOn = true
+  let continuous = false
+  let pinned = true
+  let fastMode = true         // ⚡ default: direct HF, <2s
+  let watching = false        // 👁 screen monitor on/off
+  let screenContext = ''      // latest screen description
+  let watchTimer = null
+  let recognition = null
+  let recording = false
+  let finalTranscript = ''
+  let currentAgiMsg = null
+
+  // ─── Window controls ─────────────────────────────────────────
+  closeBtn.onclick = () => window.cortex.windowClose()
+  minBtn.onclick = () => window.cortex.windowMinimize()
+  pinBtn.onclick = async () => {
+    pinned = !pinned
+    await window.cortex.windowPin(pinned)
+    pinBtn.classList.toggle('off', !pinned)
+  }
+
+  ttsToggle.onclick = () => {
+    ttsOn = !ttsOn
+    ttsToggle.classList.toggle('on', ttsOn)
+    ttsToggle.textContent = ttsOn ? '🔊 TTS' : '🔇 TTS'
+    if (!ttsOn) window.speechSynthesis.cancel()
+  }
+  continuousToggle.onclick = () => {
+    continuous = !continuous
+    continuousToggle.classList.toggle('on', continuous)
+  }
+  clearBtn.onclick = () => {
+    pane.innerHTML = ''
+    addMsg('system', 'Conversation cleared. Type or speak to start.')
+  }
+  fastToggle.onclick = () => {
+    fastMode = !fastMode
+    fastToggle.classList.toggle('on', fastMode)
+    fastToggle.textContent = fastMode ? '⚡ Fast' : '🧠 Full AGI'
+    setHint(fastMode ? 'Fast chat — <2s responses' : 'Full AGI — tools + MCP (slower)')
+  }
+  watchToggle.onclick = () => {
+    watching = !watching
+    watchToggle.classList.toggle('on', watching)
+    watchToggle.textContent = watching ? '👁 Watching…' : '👁 Watch Screen'
+    if (watching) startWatching(); else stopWatching()
+  }
+
+  // ─── Screen watcher (Tier A) ──────────────────────────
+  async function tickWatch() {
+    if (!watching) return
+    try {
+      const snap = await window.cortex.screenSnapshot()
+      if (snap.error) { setHint('👁 ' + snap.error); return }
+      const d = await window.cortex.screenDescribe({ dataUrl: snap.dataUrl })
+      if (d.text) {
+        screenContext = d.text
+        setHint('👁 ' + d.text.slice(0, 90))
+      } else if (d.error) {
+        setHint('👁 vision error (set CORTEX_VISION_MODEL)')
       }
-      activity.scrollTop = activity.scrollHeight
+    } catch (e) { setHint('👁 ' + e.message) }
+  }
+  function startWatching() {
+    tickWatch()
+    watchTimer = setInterval(tickWatch, 10_000)
+    addMsg('system', '👁 Watching your screen — I\'ll see what you\'re doing every 10s.')
+  }
+  function stopWatching() {
+    if (watchTimer) clearInterval(watchTimer)
+    watchTimer = null
+    screenContext = ''
+    addMsg('system', '👁 Stopped watching.')
+  }
+
+  // ─── Text input ──────────────────────────────────────────────
+  function autosize() {
+    textInput.style.height = 'auto'
+    textInput.style.height = Math.min(textInput.scrollHeight, 120) + 'px'
+  }
+  textInput.addEventListener('input', autosize)
+
+  async function submitText() {
+    const text = textInput.value.trim()
+    if (!text) return
+    textInput.value = ''
+    autosize()
+    sendBtn.disabled = true
+    addMsg('user', text)
+    await askAGI(text)
+    sendBtn.disabled = false
+    textInput.focus()
+  }
+  sendBtn.addEventListener('click', submitText)
+  textInput.addEventListener('keydown', (e) => {
+    // Enter = submit, Shift+Enter = newline
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      submitText()
     }
+  })
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // CHAT PANEL - Shows ONLY user messages and clean AI responses
-    // ═══════════════════════════════════════════════════════════════════════════════
-    function addChatMessage(text, isUser = false) {
-      const div = document.createElement('div')
-      div.className = `msg ${isUser ? 'user' : 'ai'}`
-      div.innerHTML = `<div class="msg-content">${text.replace(/</g, '&lt;')}</div>`
-      chat.appendChild(div)
-      chat.scrollTop = chat.scrollHeight
+  // ─── UI helpers ──────────────────────────────────────────────
+  function addMsg(role, text = '') {
+    const el = document.createElement('div')
+    el.className = `msg ${role}`
+    el.textContent = text
+    pane.appendChild(el)
+    pane.scrollTop = pane.scrollHeight
+    return el
+  }
+  function setHint(t) { hint.textContent = t }
+  function setRecording(on) {
+    recording = on
+    micBtn.classList.toggle('recording', on)
+    waves.classList.toggle('recording', on)
+  }
+
+  // ─── Speech recognition (local, zero-lag) ────────────────────
+  function initRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      setHint('❌ SpeechRecognition not supported in this Electron build')
+      return null
     }
+    const r = new SR()
+    r.continuous = false
+    r.interimResults = true
+    r.lang = 'en-US'
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // SEND COMMAND
-    // ═══════════════════════════════════════════════════════════════════════════════
-    async function run() {
-      const cmd = input.value.trim()
-      if (!cmd) return
-      
-      input.value = ''
-      addChatMessage(cmd, true)  // User message → chat
-      status.textContent = 'Running...'
-      status.className = 'status running'
-
-      try {
-        await window.jarvis.runCommand(cmd)
-        status.textContent = 'Ready'
-        status.className = 'status ready'
-      } catch (e) {
-        logActivity('system_event', 'Error: ' + e.message)
-        status.textContent = 'Error'
+    r.onstart = () => {
+      finalTranscript = ''
+      transcriptEl.textContent = ''
+      setRecording(true)
+      setHint('Listening…')
+    }
+    r.onresult = (e) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript
+        if (e.results[i].isFinal) finalTranscript += t
+        else interim += t
       }
+      transcriptEl.textContent = (finalTranscript + interim).trim()
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // EVENT HANDLERS - Separate channels
-    // ═══════════════════════════════════════════════════════════════════════════════
-    if (window.jarvis) {
-      // Activity panel - receives ALL terminal logs and system events
-      window.jarvis.onActivity((type, content) => {
-        logActivity(type, content.slice(0, 500))
-      })
-      
-      // Chat panel - receives ONLY clean assistant messages
-      window.jarvis.onAssistantMessage((content) => {
-        addChatMessage(content.slice(0, 2000) || 'Command completed.')
-      })
-      
-      // Clear chat
-      window.jarvis.onClear(() => {
-        chat.innerHTML = '<div class="msg ai"><div class="msg-content">👋 Hello! Type a message below - responses appear here, all logs in Activity panel.</div></div>'
-      })
-      
-      // Clear activity
-      window.jarvis.onClearActivity(() => {
-        activity.innerHTML = ''
-      })
+    r.onerror = (e) => {
+      setHint(`⚠️ ${e.error}`)
+      setRecording(false)
     }
+    r.onend = async () => {
+      setRecording(false)
+      transcriptEl.textContent = ''
+      const text = finalTranscript.trim()
+      if (!text) {
+        setHint('(nothing heard — try again)')
+        return
+      }
+      addMsg('user', text)
+      await askAGI(text)
+      if (continuous) startRecording()
+    }
+    return r
+  }
 
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') run() })
-    sendBtn.addEventListener('click', run)
+  function startRecording() {
+    if (!recognition) recognition = initRecognition()
+    if (!recognition || recording) return
+    try { recognition.start() } catch (e) { /* already running */ }
+  }
+  function stopRecording() {
+    if (recognition && recording) recognition.stop()
+  }
 
-    logActivity('system_event', 'JARVIS ready\n')
-  </script>
+  // ─── Ask AGI ───────────────────────────────────────
+  async function askAGI(prompt) {
+    setHint(fastMode ? '⚡ Fast thinking…' : '🧠 Full AGI thinking (can take 1-5 min)…')
+    currentAgiMsg = addMsg('agi', '')
+    currentAgiMsg.textContent = 'Thinking…'
+
+    try {
+      const res = fastMode
+        ? await window.cortex.fastAsk({ prompt, context: screenContext })
+        : await window.cortex.ask(prompt)
+      if (res.error && !res.text) {
+        currentAgiMsg.textContent = `⚠️ ${res.error}`
+        currentAgiMsg.style.color = 'var(--danger)'
+        setHint('Error')
+        return
+      }
+      // Fast mode streams via onChunk; final text is already in the DOM.
+      const text = (res.text === '__streamed__' ? currentAgiMsg.textContent : (res.text || res.partial || ''))
+      if (res.text !== '__streamed__') currentAgiMsg.textContent = text
+      pane.scrollTop = pane.scrollHeight
+      setHint('Ready')
+      if (ttsOn && text && text !== 'Thinking…') speakText(text)
+    } catch (err) {
+      currentAgiMsg.textContent = `⚠️ ${err.message}`
+      setHint('Error')
+    }
+  }
+
+  // ─── TTS (local, zero-lag) ───────────────────────────────────
+  function speakText(text) {
+    // Strip code blocks and markdown bullets — TTS reading code is useless
+    const clean = text
+      .replace(/```[\s\S]*?```/g, ' (code block omitted) ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/[*_#>]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 1200)
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(clean)
+    u.rate = 1.05
+    u.pitch = 1.0
+    const voices = window.speechSynthesis.getVoices()
+    const preferred = voices.find(v => /samantha|karen|siri|kate/i.test(v.name))
+    if (preferred) u.voice = preferred
+    window.speechSynthesis.speak(u)
+  }
+
+  // ─── Streaming chunks from main ──────────────────────────────
+  window.cortex.onChunk((chunk) => {
+    if (!currentAgiMsg) return
+    const current = currentAgiMsg.textContent === 'Thinking…' ? '' : currentAgiMsg.textContent
+    currentAgiMsg.textContent = current + chunk.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '')
+    pane.scrollTop = pane.scrollHeight
+  })
+
+  // ─── Mic button + Space hotkey ───────────────────────────────
+  let spaceDown = false
+  micBtn.addEventListener('mousedown', startRecording)
+  micBtn.addEventListener('mouseup', stopRecording)
+  micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording() })
+  micBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording() })
+
+  document.addEventListener('keydown', (e) => {
+    // Don't hijack Space while the user is typing in the textarea
+    const typing = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'
+    if (e.code === 'Space' && !spaceDown && !typing) {
+      e.preventDefault()
+      spaceDown = true
+      startRecording()
+    }
+    if (e.code === 'Escape') {
+      stopRecording()
+      window.speechSynthesis.cancel()
+      textInput.blur()
+    }
+    // Cmd+K or Cmd+L focuses text input
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'l')) {
+      e.preventDefault()
+      textInput.focus()
+    }
+  })
+  document.addEventListener('keyup', (e) => {
+    const typing = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'
+    if (e.code === 'Space' && !typing) {
+      spaceDown = false
+      stopRecording()
+    }
+  })
+
+  // Prime the voice list (Chrome loads them async)
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices()
+  window.speechSynthesis.getVoices()
+
+  // Auto-focus the text box so you can just start typing
+  window.addEventListener('load', () => textInput.focus())
+</script>
 </body>
 </html>
