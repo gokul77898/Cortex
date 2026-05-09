@@ -109,7 +109,13 @@ ipcMain.handle('run-command', (event, cmd) => {
     
     const cortex = spawn('bun', ['run', 'cortex.mjs', '--', cmd], {
       cwd: REPO_ROOT,
-      env: { ...process.env, FORCE_COLOR: 'true', CORTEX_SIMPLE: '1' }
+      env: { 
+        ...process.env, 
+        FORCE_COLOR: 'true', 
+        CORTEX_SIMPLE: '1',
+        CORTEX_NO_OPEN: '1',   // Prevent browser opens
+        OCTOGENT_NO_OPEN: '1'  // Prevent Octogent browser open
+      }
     })
 
     // Send ALL raw CLI output to activity/terminal (NOT to chat)
@@ -136,6 +142,30 @@ ipcMain.handle('run-command', (event, cmd) => {
 
 app.whenReady().then(() => {
   createWindow()
+  
+  // Pre-launch Octogent silently (no browser open)
+  const octoPath = path.join(REPO_ROOT, 'bin', 'cortex-octogent')
+  const octoDist = path.join(REPO_ROOT, 'apps', 'octogent', 'dist', 'api', 'cli.js')
+  if (require('fs').existsSync(octoPath) && require('fs').existsSync(octoDist)) {
+    spawn('node', [octoPath], {
+      cwd: REPO_ROOT,
+      detached: true,
+      stdio: 'ignore',
+      env: { 
+        ...process.env, 
+        CORTEX_ALLOW_OPEN: '1',
+        OCTOGENT_NO_OPEN: '1'  // Prevent browser opens
+      }
+    }).unref()
+    if (win) win.webContents.send('activity', '🚀 Octogent starting in background...\n')
+  }
+  
+  // Show access info in activity
+  if (win) {
+    win.webContents.send('activity', '📍 Access URLs:\n')
+    win.webContents.send('activity', '   Octogent: http://127.0.0.1:8787\n')
+  }
+  
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
