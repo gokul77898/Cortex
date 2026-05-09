@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('jarvis', {
   runCommand: (cmd) => ipcRenderer.invoke('run-command', cmd),
+  restartCortex: () => ipcRenderer.invoke('restart-cortex'),
   // activity = ALL CLI logs → terminal/activity panel
   onActivity: (cb) => {
     const h = (e, d) => cb(d)
