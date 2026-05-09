@@ -11,7 +11,7 @@
       color: #e4e4e7;
       height: 100vh;
       display: grid;
-      grid-template-columns: 1fr 280px;
+      grid-template-columns: 1fr 300px;
       grid-template-rows: 50px 1fr 60px;
     }
     .header {
@@ -33,12 +33,13 @@
       padding: 16px;
       overflow-y: auto;
       border-right: 1px solid #27272a;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .msg {
-      margin-bottom: 12px;
-      max-width: 85%;
-    }
-    .msg.user { margin-left: auto; }
+    .msg { max-width: 85%; }
+    .msg.user { align-self: flex-end; }
+    .msg.ai { align-self: flex-start; }
     .msg-content {
       background: #1f1f2e;
       padding: 12px 16px;
@@ -51,29 +52,39 @@
       background: #1a1a28;
       border: 1px solid #00f0ff;
     }
-    .term {
+    .msg.ai .msg-content {
+      background: #1f1f2e;
+      border: 1px solid #27272a;
+    }
+    .activity {
       grid-column: 2;
       grid-row: 2/4;
       background: #0a0a0f;
       display: flex;
       flex-direction: column;
+      border-left: 1px solid #27272a;
     }
-    .term-header {
+    .activity-header {
       padding: 10px 12px;
       font-size: 11px;
       color: #71717a;
       border-bottom: 1px solid #27272a;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      background: #18181f;
     }
-    .term-content {
+    .activity-content {
       flex: 1;
       padding: 8px;
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 10px;
       overflow-y: auto;
       color: #a1a1aa;
     }
+    .log-line { margin: 2px 0; white-space: pre-wrap; word-break: break-all; }
+    .log-terminal { color: #22c55e; }      /* Terminal output */
+    .log-system { color: #f97316; }       /* System events */
+    .log-trace { color: #6366f1; }       /* Debug/trace */
     .input {
       grid-column: 1;
       grid-row: 3;
@@ -114,14 +125,14 @@
   </header>
 
   <div class="chat" id="chat">
-    <div class="msg">
-      <div class="msg-content">👋 Hello! I'm your AI assistant. Type a message or command below.</div>
+    <div class="msg ai">
+      <div class="msg-content">👋 Hello! I'm your AI assistant. Type a message below - responses appear here, all logs in Activity panel.</div>
     </div>
   </div>
 
-  <div class="term">
-    <div class="term-header">⚡ Activity</div>
-    <div class="term-content" id="term"></div>
+  <div class="activity">
+    <div class="activity-header">⚡ Activity</div>
+    <div class="activity-content" id="activity"></div>
   </div>
 
   <div class="input">
@@ -133,75 +144,96 @@
     const input = document.getElementById('input')
     const sendBtn = document.getElementById('send')
     const chat = document.getElementById('chat')
-    const term = document.getElementById('term')
+    const activity = document.getElementById('activity')
     const status = document.getElementById('status')
 
-    // Activity = ALL CLI logs (preflight, QR, session, debug)
-    function logActivity(text, color) {
-      const div = document.createElement('div')
-      div.style.color = color || '#a1a1aa'
-      div.textContent = text.slice(0, 500)
-      term.appendChild(div)
-      term.scrollTop = term.scrollHeight
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // ACTIVITY PANEL - Shows ALL terminal logs, system events (NOT chat)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function logActivity(type, content) {
+      const lines = content.split('\n')
+      for (const line of lines) {
+        if (!line.trim()) continue
+        const div = document.createElement('div')
+        div.className = 'log-line'
+        
+        // Color by type
+        if (type === 'system_event') {
+          div.className += ' log-system'
+        } else if (type === 'terminal_log') {
+          div.className += ' log-terminal'
+        } else {
+          div.className += ' log-trace'
+        }
+        
+        div.textContent = line.slice(0, 300)
+        activity.appendChild(div)
+      }
+      activity.scrollTop = activity.scrollHeight
     }
 
-    // Chat = ONLY clean AI response
-    function addMsg(text, isUser = false) {
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // CHAT PANEL - Shows ONLY user messages and clean AI responses
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function addChatMessage(text, isUser = false) {
       const div = document.createElement('div')
-      div.className = 'msg ' + (isUser ? 'user' : 'ai')
+      div.className = `msg ${isUser ? 'user' : 'ai'}`
       div.innerHTML = `<div class="msg-content">${text.replace(/</g, '&lt;')}</div>`
       chat.appendChild(div)
       chat.scrollTop = chat.scrollHeight
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // SEND COMMAND
+    // ═══════════════════════════════════════════════════════════════════════════════
     async function run() {
       const cmd = input.value.trim()
       if (!cmd) return
       
       input.value = ''
-      addMsg(cmd, true)
-      logActivity('❯ ' + cmd, '#00f0ff')
+      addChatMessage(cmd, true)  // User message → chat
       status.textContent = 'Running...'
       status.className = 'status running'
 
       try {
-        // Just trigger - response comes via 'response' event
         await window.jarvis.runCommand(cmd)
-        // Don't add output here - wait for 'response' event
         status.textContent = 'Ready'
         status.className = 'status ready'
       } catch (e) {
-        logActivity('Error: ' + e.message, '#ef4444')
+        logActivity('system_event', 'Error: ' + e.message)
         status.textContent = 'Error'
       }
     }
 
-    // Handle separate channels
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // EVENT HANDLERS - Separate channels
+    // ═══════════════════════════════════════════════════════════════════════════════
     if (window.jarvis) {
-      // activity = ALL CLI logs → goes to terminal/activity panel
-      window.jarvis.onActivity(data => {
-        logActivity(data.slice(0, 500), '#22c55e')
+      // Activity panel - receives ALL terminal logs and system events
+      window.jarvis.onActivity((type, content) => {
+        logActivity(type, content.slice(0, 500))
       })
       
-      // response = ONLY clean AI response → goes to chat
-      window.jarvis.onResponse(data => {
-        addMsg(data.slice(0, 2000) || 'Command completed.')
+      // Chat panel - receives ONLY clean assistant messages
+      window.jarvis.onAssistantMessage((content) => {
+        addChatMessage(content.slice(0, 2000) || 'Command completed.')
       })
       
+      // Clear chat
       window.jarvis.onClear(() => {
-        chat.innerHTML = '<div class="msg"><div class="msg-content">👋 Hello! Type a message or command below.</div></div>'
-        term.innerHTML = ''
+        chat.innerHTML = '<div class="msg ai"><div class="msg-content">👋 Hello! Type a message below - responses appear here, all logs in Activity panel.</div></div>'
       })
       
+      // Clear activity
       window.jarvis.onClearActivity(() => {
-        term.innerHTML = ''
+        activity.innerHTML = ''
       })
     }
 
     input.addEventListener('keydown', e => { if (e.key === 'Enter') run() })
     sendBtn.addEventListener('click', run)
 
-    logActivity('JARVIS ready')
+    logActivity('system_event', 'JARVIS ready\n')
   </script>
 </body>
 </html>

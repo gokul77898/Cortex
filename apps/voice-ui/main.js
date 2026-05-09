@@ -1,13 +1,114 @@
 /**
- * CORTEX JARVIS — Proper separation: Terminal → Activity, AI Response → Chat
+ * CORTEX JARVIS — Professional Architecture
+ * 
+ * Event Types:
+ * - terminal_log: All terminal output → Activity panel
+ * - assistant_message: Clean AI response → Chat panel
+ * - user_message: User input → Chat panel
+ * - system_event: Startup/shutdown events → Activity panel
  */
 const { app, BrowserWindow, ipcMain, screen, Menu } = require('electron')
-const { spawn, spawn: spawnNonDetached } = require('child_process')
+const { spawn } = require('child_process')
 const path = require('path')
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
 let win = null
 let cortexProcess = null
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FILTER DEFINITIONS - Terminal noise that should NEVER go to chat
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TERMINAL_NOISE_PATTERNS = [
+  // Box drawing / ASCII art
+  '┌─', '│', '└─', '║', '╚', '╔', '═', '▀', '▄', '█',
+  // CORTEX startup
+  'CORTEX preflight', 'shared session', 'Session ID:', 'Share this:',
+  'Local:', 'LAN:', 'QR:', 'scope:', 'rotates every', 'session ready',
+  '/share stop', '/share to re-show',
+  // Runtime info
+  'cwd:', 'API provider:', 'OpenAI base URL:', 'Model:',
+  'Version:', 'Session name:', 'venv:', 'octogent:', 'logs:',
+  // URLs
+  'http://127.0.0.1', 'http://10.146', 'lhr.life',
+  // Octogent
+  'Octogent is running', 'Project:', 'Name:', 'API:', 'UI:', 'Setup:',
+  // Preflight/Menu
+  'preflight', 'octogent: ✓', 'Ready - FULL SWARM', '● shared session',
+  '🌐 Opening', '🌐 Opened', '✦ Mission', 'DECOUPLED ASSET',
+  // CLI noise
+  'Running first-time', 'Welcome to CORTEX', 'Running: bun run cortex.mjs',
+  // MCP/Tools
+  'MCP', 'mcp-', 'DEBUG', 'TRACE', 'localhost', '127.0.0.1',
+  // npm/yarn output
+  'npm WARN', 'yarn install', 'yarn.lock', 'package.json',
+  // Python/venv
+  'Python', 'venv', '__pycache__', 'pip install',
+  // Error traces
+  'Error:', 'Exception:', 'Traceback', 'at module',
+  // Session
+  'Share this:', 'Local:', 'QR:'
+]
+
+const IS_TERMINAL_NOISE = (line) => {
+  const trimmed = line.trim()
+  if (!trimmed) return false
+  // Check against patterns
+  for (const pattern of TERMINAL_NOISE_PATTERNS) {
+    if (trimmed.includes(pattern)) return true
+  }
+  // Check for box drawing characters
+  if (/^[▀▄▀█▄▀║╚╗╔═■◆●○▲▼◀▶▷◁]/.test(trimmed)) return true
+  // Check for URLs
+  if (/^https?:\/\//.test(trimmed)) return true
+  return false
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESPONSE EXTRACTION - Extract ONLY clean AI response
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function extractAssistantResponse(fullOutput) {
+  const lines = fullOutput.split('\n')
+  const responseLines = []
+  let started = false
+  let inCommand = false
+  
+  for (const line of lines) {
+    // Skip terminal noise
+    if (IS_TERMINAL_NOISE(line)) {
+      inCommand = false
+      continue
+    }
+    
+    // Skip empty start
+    if (!started && !line.trim()) continue
+    
+    // Skip command echo
+    if (line.startsWith('❯') || line.startsWith('> ')) {
+      inCommand = true
+      continue
+    }
+    
+    // Skip blank lines in command area
+    if (inCommand && !line.trim()) continue
+    
+    // Start collecting response
+    if (!started) started = true
+    inCommand = false
+    
+    if (line.trim()) {
+      responseLines.push(line)
+    }
+  }
+  
+  const response = responseLines.join('\n').trim()
+  return response.length > 0 ? response : 'Command completed.'
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WINDOW CREATION
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function createWindow() {
   const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize
@@ -36,7 +137,7 @@ function createWindow() {
     { label: 'Clear Chat', click: () => win.webContents.send('clear') },
     { label: 'Clear Activity', click: () => win.webContents.send('clear-activity') },
     { type: 'separator' },
-    { label: 'Restart CORTEX', click: () => startCortex() },
+    { label: 'Restart CORTEX', click: () => restartCortex() },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() }
   ])
@@ -47,67 +148,30 @@ function createWindow() {
   return win
 }
 
-// Check if line is terminal noise (should go to activity, NOT chat)
-function isTerminalNoise(line) {
-  const patterns = [
-    '┌─', '│', '└─', '║', '╚', '╔', '═',
-    'CORTEX preflight', 'shared session', 'Session ID:', 'Share this:',
-    'Local:', 'LAN:', 'QR:', 'Opening host', 'Opened Cortex',
-    'venv:', 'octogent:', 'logs:', 'scope:', 'rotates every',
-    'session ready', '/share stop', '/share to re-show',
-    'cwd:', 'API provider:', 'OpenAI base URL:', 'Model:',
-    'Version:', 'Session name:', 'http://127.0.0.1', 'http://10.146',
-    'lhr.life', 'Running first-time', 'Welcome to CORTEX',
-    'Octogent is running', 'Project:', 'Name:', 'API:', 'UI:',
-    'preflight', 'octogent: ✓', 'Ready - FULL SWARM',
-    '● shared session', '🌐 Opening', '🌐 Opened',
-    '✦ Mission', 'DECOUPLED ASSET'
-  ]
-  return patterns.some(p => line.includes(p)) || /^\s*[▀▄▀█▄▀║╚╗╔█]/.test(line)
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+// CORTEX PROCESS MANAGEMENT - Persistent, no restart loops
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Extract ONLY the final AI response - strip all terminal noise
-function extractAIResponse(fullOutput) {
-  const lines = fullOutput.split('\n')
-  const responseLines = []
-  let foundContent = false
-  
-  for (const line of lines) {
-    // Skip ALL terminal noise - goes to activity only
-    if (isTerminalNoise(line)) continue
-    
-    // Skip command echo
-    if (line.startsWith('❯')) continue
-    
-    // Skip empty lines at start
-    if (!foundContent && !line.trim()) continue
-    
-    // Start capturing after noise ends
-    if (!foundContent && line.trim()) {
-      foundContent = true
-    }
-    
-    if (foundContent && line.trim()) {
-      responseLines.push(line)
-    }
-  }
-  
-  const result = responseLines.join('\n').trim()
-  return result.length > 0 ? result : 'Command completed.'
-}
-
-// Start CORTEX once and keep running persistently
-function startCortex() {
-  // Kill existing if any
+function restartCortex() {
   if (cortexProcess) {
     cortexProcess.kill()
     cortexProcess = null
   }
+  startCortex()
+}
+
+function startCortex() {
+  // Kill existing
+  if (cortexProcess) {
+    try { cortexProcess.kill() } catch {}
+    cortexProcess = null
+  }
   
-  if (win) win.webContents.send('activity', '\n🚀 Starting CORTEX session...\n')
+  // Send system event to activity
+  sendToActivity('system_event', '\n🚀 Starting CORTEX session...\n')
   
-  // Run CORTEX WITHOUT -- flag - interactive REPL mode
-  cortexProcess = spawnNonDetached('bun', ['run', 'cortex.mjs'], {
+  // Start CORTEX - interactive mode (no -- flag)
+  cortexProcess = spawn('bun', ['run', 'cortex.mjs'], {
     cwd: REPO_ROOT,
     stdio: ['pipe', 'pipe', 'pipe'],
     env: { 
@@ -120,31 +184,44 @@ function startCortex() {
     }
   })
 
-  // Route: stdout/stderr → Activity panel ONLY (NOT to chat)
+  // Route ALL stdout/stderr → Activity panel ONLY
   cortexProcess.stdout.on('data', (data) => {
     const text = data.toString()
-    if (win) win.webContents.send('activity', text)
+    sendToActivity('terminal_log', text)
   })
 
   cortexProcess.stderr.on('data', (data) => {
     const text = data.toString()
-    if (win) win.webContents.send('activity', text)
+    sendToActivity('terminal_log', text)
   })
 
-  // Don't auto-restart - let user decide via menu
+  // Handle close - NO auto restart
   cortexProcess.on('close', (code) => {
-    if (win) win.webContents.send('activity', `\n⚠️ CORTEX session ended (code ${code}). Use menu to restart.\n`)
+    sendToActivity('system_event', `\n⚠️ CORTEX session ended (code ${code}). Use menu to restart.\n`)
   })
 
   cortexProcess.on('error', (err) => {
-    if (win) win.webContents.send('activity', `\n❌ CORTEX error: ${err.message}\n`)
+    sendToActivity('system_event', `\n❌ CORTEX error: ${err.message}\n`)
   })
-
-  return cortexProcess
 }
 
-// Send command to running CORTEX and get AI response
-function sendCommandToCortex(cmd) {
+// ═══════════════════════════════════════════════════════════════════════════════
+// EVENT ROUTING - Proper separation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function sendToActivity(type, text) {
+  if (win) win.webContents.send('activity', JSON.stringify({ type, content: text }))
+}
+
+function sendToChat(type, content) {
+  if (win) win.webContents.send(type, content)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMMAND EXECUTION - Internal terminal, clean response to chat
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function executeCommand(cmd) {
   return new Promise((resolve, reject) => {
     if (!cortexProcess || !cortexProcess.stdin) {
       reject(new Error('CORTEX not running. Use menu to restart.'))
@@ -152,70 +229,71 @@ function sendCommandToCortex(cmd) {
     }
 
     let outputBuffer = ''
-    let responseDelivered = false
 
-    // Handler for collecting output
-    const handleData = (data) => {
+    // Collect all terminal output (goes to activity only)
+    const collectOutput = (data) => {
       const text = data.toString()
       outputBuffer += text
-      // Continue showing in activity
-      if (win) win.webContents.send('activity', text)
+      sendToActivity('terminal_log', text)
     }
 
-    cortexProcess.stdout.on('data', handleData)
-    cortexProcess.stderr.on('data', handleData)
+    cortexProcess.stdout.on('data', collectOutput)
+    cortexProcess.stderr.on('data', collectOutput)
 
     // Send command
     cortexProcess.stdin.write(cmd + '\n')
 
-    // Wait for response (5 seconds for AI to respond)
+    // Wait for AI response (5 seconds)
     setTimeout(() => {
-      // Remove listeners
-      cortexProcess.stdout.removeListener('data', handleData)
-      cortexProcess.stderr.removeListener('data', handleData)
+      cortexProcess.stdout.removeListener('data', collectOutput)
+      cortexProcess.stderr.removeListener('data', collectOutput)
       
-      // Extract ONLY AI response - filter out all terminal noise
-      const aiResponse = extractAIResponse(outputBuffer)
+      // Extract ONLY clean assistant response for chat
+      const assistantResponse = extractAssistantResponse(outputBuffer)
       
-      // Send clean response to CHAT (not activity)
-      if (win && !responseDelivered) {
-        responseDelivered = true
-        win.webContents.send('response', aiResponse)
-      }
+      // Send clean response to CHAT only
+      sendToChat('assistant_message', assistantResponse)
       
       resolve(outputBuffer)
     }, 5000)
   })
 }
 
-// IPC: Execute command
+// ═══════════════════════════════════════════════════════════════════════════════
+// IPC HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 ipcMain.handle('run-command', async (event, cmd) => {
   try {
-    await sendCommandToCortex(cmd)
+    await executeCommand(cmd)
     return 'ok'
   } catch (err) {
-    if (win) win.webContents.send('response', `Error: ${err.message}`)
+    sendToChat('assistant_message', `Error: ${err.message}`)
     return 'error'
   }
 })
 
-// IPC: Restart CORTEX
 ipcMain.handle('restart-cortex', () => {
-  startCortex()
-  return 'CORTEX restarting...'
+  restartCortex()
+  sendToActivity('system_event', 'CORTEX restarting...\n')
+  return 'restarting'
 })
 
-// Start app
+// ═══════════════════════════════════════════════════════════════════════════════
+// APP LIFECYCLE
+// ═══════════════════════════════════════════════════════════════════════════════
+
 app.whenReady().then(() => {
   createWindow()
   
-  // Start CORTEX once at launch (not per message)
+  // Start CORTEX once - persistent
   startCortex()
   
-  // Pre-launch Octogent silently (no browser opens)
+  // Pre-launch Octogent silently
+  const fs = require('fs')
   const octoPath = path.join(REPO_ROOT, 'bin', 'cortex-octogent')
   const octoDist = path.join(REPO_ROOT, 'apps', 'octogent', 'dist', 'api', 'cli.js')
-  if (require('fs').existsSync(octoPath) && require('fs').existsSync(octoDist)) {
+  if (fs.existsSync(octoPath) && fs.existsSync(octoDist)) {
     spawn('node', [octoPath], {
       cwd: REPO_ROOT,
       detached: true,
@@ -226,13 +304,11 @@ app.whenReady().then(() => {
         OCTOGENT_NO_OPEN: '1'
       }
     }).unref()
-    if (win) win.webContents.send('activity', '🚀 Octogent ready at http://127.0.0.1:8787\n')
+    sendToActivity('system_event', '🚀 Octogent ready at http://127.0.0.1:8787\n')
   }
 
-  if (win) {
-    win.webContents.send('activity', '\n📍 Access: http://127.0.0.1:8787\n')
-    win.webContents.send('activity', '💬 Send messages - CORTEX responds in chat!\n')
-  }
+  sendToActivity('system_event', '\n📍 Access: http://127.0.0.1:8787\n')
+  sendToActivity('system_event', '💬 Send messages - CORTEX responds in chat!\n')
   
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -242,6 +318,10 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (cortexProcess) cortexProcess.kill()
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  if (cortexProcess) cortexProcess.kill()
 })
 
 console.log('CORTEX JARVIS ready')
