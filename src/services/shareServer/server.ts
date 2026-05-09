@@ -1492,7 +1492,13 @@ const renderUI = (sessionId: string, token: string, createdAt: number, userName:
       headers:{'content-type':'application/json'},
       body: JSON.stringify({ user: USER_NAME, text, kind })
     });
-    if (!r.ok) render({ user:'system', kind:'system', text:'send failed — session may have ended', ts:Date.now() });
+    if (!r.ok) {
+      render({ user:'system', kind:'system', text:'send failed — session may have ended', ts:Date.now() });
+      return;
+    }
+    if (kind === 'task') {
+      render({ user:'system', kind:'system', text:'[task] sent to queue — waiting for host to run /run', ts:Date.now() });
+    }
   };
 
   const exit = async () => {

@@ -131,8 +131,9 @@ const attachDriverRelay = (handle: ShareServerHandle): void => {
       for (const msg of pending) {
         if (!pendingAIMessages.find(m => m.id === msg.id)) {
           pendingAIMessages.push(msg)
-          process.stderr.write(`\n${CYAN}📩${RESET} ${BOLD}${msg.user}${RESET} wants to ask AI: ${msg.text.slice(0, 60)}...\n`)
-          process.stderr.write(`${DIM}   Run /run to send pending messages to AI${RESET}\n`)
+          const tag = msg.kind === 'task' ? `${YELLOW}[task]${RESET}` : `${CYAN}[msg]${RESET}`
+          process.stderr.write(`\n${CYAN}📩${RESET} ${tag} ${BOLD}${msg.user}${RESET}: ${msg.text.slice(0, 50)}${msg.text.length > 50 ? '...' : ''}\n`)
+          process.stderr.write(`${DIM}   Queue: ${pending.length} pending · Run ${GREEN}/share run${DIM} to send to AI${RESET}\n`)
         }
       }
     }
