@@ -1,55 +1,35 @@
 /**
  * CORTEX JARVIS — Preload
- * 
- * Event Types:
- * - terminal_log: Terminal output → Activity panel
- * - system_event: System events → Activity panel
- * - assistant_message: Clean AI response → Chat panel
- * - user_message: User input → Chat panel
  */
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('jarvis', {
-  // Execute command - returns clean response to chat, logs to activity
   runCommand: (cmd) => ipcRenderer.invoke('run-command', cmd),
-  
-  // Restart CORTEX session
   restartCortex: () => ipcRenderer.invoke('restart-cortex'),
   
-  // Activity panel events - terminal logs, system events
+  // Activity - all terminal output
   onActivity: (cb) => {
-    const handler = (event, data) => {
-      try {
-        // Parse JSON structured event
-        const parsed = JSON.parse(data)
-        cb(parsed.type, parsed.content)
-      } catch {
-        // Fallback for plain text
-        cb('terminal_log', data)
-      }
-    }
-    ipcRenderer.on('activity', handler)
-    return () => ipcRenderer.removeListener('activity', handler)
+    const h = (e, d) => cb(d)
+    ipcRenderer.on('activity', h)
+    return () => ipcRenderer.removeListener('activity', h)
   },
   
-  // Chat panel - ONLY clean assistant messages
+  // Chat - clean AI response only
   onAssistantMessage: (cb) => {
-    const handler = (event, data) => cb(data)
-    ipcRenderer.on('assistant_message', handler)
-    return () => ipcRenderer.removeListener('assistant_message', handler)
+    const h = (e, d) => cb(d)
+    ipcRenderer.on('assistant_message', h)
+    return () => ipcRenderer.removeListener('assistant_message', h)
   },
   
-  // Clear chat
   onClear: (cb) => {
-    const handler = () => cb()
-    ipcRenderer.on('clear', handler)
-    return () => ipcRenderer.removeListener('clear', handler)
+    const h = () => cb()
+    ipcRenderer.on('clear', h)
+    return () => ipcRenderer.removeListener('clear', h)
   },
   
-  // Clear activity
   onClearActivity: (cb) => {
-    const handler = () => cb()
-    ipcRenderer.on('clear-activity', handler)
-    return () => ipcRenderer.removeListener('clear-activity', handler)
+    const h = () => cb()
+    ipcRenderer.on('clear-activity', h)
+    return () => ipcRenderer.removeListener('clear-activity', h)
   }
 })
