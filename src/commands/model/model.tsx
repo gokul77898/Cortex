@@ -303,12 +303,18 @@ async function refreshOpenAIModelOptionsCache(): Promise<void> {
   }
 }
 function OpenRouterPicker({ onDone }: { onDone: (result?: string, options?: { display?: CommandResultDisplay }) => void }) {
+  const setAppState = useSetAppState()
   const options = getOpenRouterFreeModels()
   const selectOptions = options.map(o => ({ value: o.value, label: `${o.label} - ${o.description}` }))
-  const initialValue = selectOptions[0]?.value || ''
+  const initialValue = 'minimax/minimax-m2.5:free'
   
   const handleSelect = (value: string) => {
-    onDone(`Set model to ${chalk.bold(value)}`, { display: 'system' })
+    setAppState(prev => ({
+      ...prev,
+      mainLoopModel: value,
+      mainLoopModelForSession: null
+    }))
+    onDone(`Set model to ${chalk.bold(value)} via OpenRouter`, { display: 'system' })
   }
   
   return (

@@ -229,8 +229,8 @@ export function buildHuggingFaceProfileEnv(options: {
 }): ProfileEnv {
   const processEnv = options.processEnv ?? process.env
   return {
-    OPENAI_BASE_URL: options.baseUrl || processEnv.HF_BASE_URL || 'https://api-inference.huggingface.co/v1',
-    OPENAI_MODEL: options.model || processEnv.HF_MODEL_ID || 'zai-org/GLM-5',
+    OPENAI_BASE_URL: options.baseUrl || processEnv.HF_BASE_URL || 'https://openrouter.ai/v1',
+    OPENAI_MODEL: options.model || processEnv.HF_MODEL_ID || 'minimax/minimax-m2.5:free',
     OPENAI_API_KEY: options.token || processEnv.HF_TOKEN,
   }
 }
@@ -680,9 +680,9 @@ export async function buildLaunchEnv(options: {
     env.OPENAI_BASE_URL =
       persistedEnv.OPENAI_BASE_URL ||
       processEnv.HF_BASE_URL ||
-      'https://router.huggingface.co/v1'
+      'https://openrouter.ai/v1'
     env.OPENAI_MODEL =
-      persistedEnv.OPENAI_MODEL || processEnv.HF_MODEL_ID || 'zai-org/GLM-5:together'
+      persistedEnv.OPENAI_MODEL || processEnv.HF_MODEL_ID || 'minimax/minimax-m2.5:free'
     env.OPENAI_API_KEY =
       persistedEnv.OPENAI_API_KEY || processEnv.HF_TOKEN
     
@@ -693,14 +693,17 @@ export async function buildLaunchEnv(options: {
     (!persistedOpenAIModel && !persistedOpenAIBaseUrl) ||
     persistedOpenAIRequest.transport === 'chat_completions'
 
+  // For 'openai' profile, default to OpenRouter instead of HF
+  const isOpenAIProfile = options.profile === 'openai'
+  
   env.OPENAI_BASE_URL =
     (useShellOpenAIConfig ? shellOpenAIBaseUrl : undefined) ||
     (usePersistedOpenAIConfig ? persistedOpenAIBaseUrl : undefined) ||
-    DEFAULT_OPENAI_BASE_URL
+    (isOpenAIProfile ? 'https://openrouter.ai/v1' : DEFAULT_OPENAI_BASE_URL)
   env.OPENAI_MODEL =
     (useShellOpenAIConfig ? shellOpenAIModel : undefined) ||
     (usePersistedOpenAIConfig ? persistedOpenAIModel : undefined) ||
-    defaultOpenAIModel
+    (isOpenAIProfile ? 'minimax/minimax-m2.5:free' : defaultOpenAIModel)
   env.OPENAI_API_KEY = processEnv.OPENAI_API_KEY || persistedEnv.OPENAI_API_KEY
   delete env.CODEX_API_KEY
   delete env.CHATGPT_ACCOUNT_ID

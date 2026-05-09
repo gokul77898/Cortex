@@ -1524,7 +1524,7 @@ export function createOpenAIShimClient(options: {
     process.env.OPENAI_API_KEY ??=
       process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? ''
   } else if (!!process.env.HF_TOKEN) {
-    process.env.OPENAI_BASE_URL ??= process.env.HF_BASE_URL ?? `https://api-inference.huggingface.co/models/${process.env.HF_MODEL_ID ?? 'zai-org/GLM-5:together'}/v1`
+    process.env.OPENAI_BASE_URL ??= process.env.HF_BASE_URL ?? `https://api-inference.huggingface.co/models/${process.env.HF_MODEL_ID ?? 'minimax/minimax-m2.5:free'}/v1`
     process.env.OPENAI_API_KEY ??= process.env.HF_TOKEN
     if (process.env.HF_MODEL_ID && !process.env.OPENAI_MODEL) {
       process.env.OPENAI_MODEL = process.env.HF_MODEL_ID

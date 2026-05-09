@@ -1368,8 +1368,8 @@ export function ProviderWizard({
             const env = buildOpenAIProfileEnv({
               goal: normalizeRecommendationGoal(null),
               apiKey: value.trim(),
-              baseUrl: 'https://router.huggingface.co/v1',
-              model: 'zai-org/GLM-5:together',
+              baseUrl: 'https://openrouter.ai/v1',
+              model: 'minimax/minimax-m2.5:free',
               processEnv: {},
             })
             if (env) {

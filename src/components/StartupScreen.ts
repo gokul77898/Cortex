@@ -166,9 +166,9 @@ function getMissionsFromEnv(): MissionConfig[] {
   const hfModel = process.env.HF_MODEL_ID || content.match(/^\s*HF_MODEL_ID=([^\s#]+)/m)?.[1]
   const hfBase = process.env.HF_BASE_URL || content.match(/^\s*HF_BASE_URL=([^\s#]+)/m)?.[1]
   missions.push({
-    name: `✦ Mission 09: Brain-Swarm (${hfModel?.split('/').pop() || 'GLM-5'})`,
-    model: hfModel || 'zai-org/GLM-5:together',
-    baseUrl: hfBase || 'https://router.huggingface.co/v1',
+    name: `✦ Mission 09: Brain-Swarm (${hfModel?.split('/').pop() || 'MiniMax M2.5'})`,
+    model: hfModel || 'minimax/minimax-m2.5:free',
+    baseUrl: hfBase || 'https://openrouter.ai/v1',
     apiKey: hfToken || '',
     provider: 'huggingface'
   })
