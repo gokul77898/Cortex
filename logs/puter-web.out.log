@@ -1,0 +1,108 @@
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+[Puter] 2 socket(s) connected, sending request...
+[Puter] Broadcasting request: 1778244817762
+[Puter] Received response: puter-response 1778244817762
+[Puter] Success, text length: 0
+[Puter] Received response: puter-response 1778244817762
+[Puter] Success, text length: 0
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+[Puter] 1 socket(s) connected, sending request...
+[Puter] Broadcasting request: 1778244916069
+[Broadcast] sending to 1 sockets: puter-request 1778244916069
+[Broadcast] sent to one socket
+[Puter] Received response: puter-response 1778244916069
+[Puter] Success, text length: 0
+[Puter] 1 socket(s) connected, sending request...
+[Puter] Broadcasting request: 1778244931676
+[Broadcast] sending to 1 sockets: puter-request 1778244931676
+[Broadcast] sent to one socket
+[Puter] Received response: puter-response 1778244931676
+[Puter] Received response: puter-response 1778244931676
+[Puter] Success, text length: 0
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+[Broadcast] sending to 0 sockets: puter-request 1778244982922
+[Puter] Error: Puter request timeout
+[Puter] 2 socket(s) connected, sending request...
+[Puter] Broadcasting request: 1778245027187
+[Broadcast] sending to 2 sockets: puter-request 1778245027187
+[Broadcast] sent to one socket
+[Broadcast] sent to one socket
+[Puter] Received response: puter-response 1778245027187
+[Puter] Success, text length: 0
+[Puter] Received response: puter-response 1778245027187
+[Puter] Success, text length: 0
+[Puter] 2 socket(s) connected, sending request...
+[Puter] Broadcasting request: 1778245050397
+[Broadcast] sending to 2 sockets: puter-request 1778245050397
+[Broadcast] sent to one socket
+[Broadcast] sent to one socket
+[Puter] Received response: puter-response 1778245050397
+[Puter] Received response: puter-response 1778245050397
+[Puter] Success, text length: 0
+[Puter] Received response: puter-response 1778245050397
+[Puter] Received response: puter-response 1778245050397
+[Puter] Success, text length: 0
+[Broadcast] sending to 2 sockets: done undefined
+[Broadcast] sent to one socket
+[Broadcast] sent to one socket
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+[Puter] Got request, sockets: 0
+[Broadcast] sending to 0 sockets: puter-request 1778245110240
+[Puter] Got request, sockets: 1
+[Broadcast] sending to 1 sockets: puter-request 1778245155067
+[Broadcast] sent to one socket
+[Puter] Received response from browser: puter-response 1778245155067 
+[Puter] Error: Puter request timeout (45s)
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+[Puter] Got request, prompt: hello sockets: 0
+[Broadcast] sending to 0 sockets: puter-request 1778245180483
+[Puter] Waiting for response, requestId: 1778245180483
+[Puter] Error: Puter request timeout (45s)
+[Puter] Got request, prompt: hello sockets: 2
+[Broadcast] sending to 2 sockets: puter-request 1778245253643
+[Broadcast] sent to one socket
+[Broadcast] sent to one socket
+[Puter] Waiting for response, requestId: 1778245253643
+[Puter] Received response from browser: puter-response 1778245253643 text length: 0
+[Puter] Resolving promise for: 1778245253643
+[Puter] Got response, text: 
+[Puter] Received response from browser: puter-response 1778245253643 text length: 0
+[Puter] Warning: no pending request for id: 1778245253643 pending keys: []
+
+🧠  CORTEX Dashboard  →  http://localhost:3738
+
+[Puter] Got request, prompt: hello sockets: 0
+[Broadcast] sending to 0 sockets: puter-request 1778245281202
+[Puter] Waiting for response, requestId: 1778245281202
+[Puter] Error: Puter request timeout (45s)
+[Puter] Got request, prompt: hello sockets: 1
+[Broadcast] sending to 1 sockets: puter-request 1778245341642
+[Broadcast] sent to one socket
+[Puter] Waiting for response, requestId: 1778245341642
+[Puter] Received response from browser: puter-response 1778245341642 text length: 0
+[Puter] Resolving promise for: 1778245341642
+[Puter] Got response, text: 
+[Puter] Got request, prompt: hello sockets: 1
+[Broadcast] sending to 1 sockets: puter-request 1778245381126
+[Broadcast] sent to one socket
+[Puter] Waiting for response, requestId: 1778245381126
+[Puter] Received response from browser: puter-response 1778245381126 text length: 0
+[Puter] Resolving promise for: 1778245381126
+[Puter] Got response, text: 
+[Broadcast] sending to 0 sockets: done undefined
+[Broadcast] sending to 0 sockets: done undefined
+[Broadcast] sending to 0 sockets: done undefined
+[Broadcast] sending to 0 sockets: done undefined

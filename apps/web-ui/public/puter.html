@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Puter.js Authentication - CORTEX</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+    h1 { color: #4ade80; }
+    .status { margin: 20px 0; padding: 15px; background: #16213e; border-radius: 8px; }
+    .status.ready { border-left: 4px solid #4ade80; }
+    .status.error { border-left: 4px solid #f87171; }
+    button {
+      padding: 12px 24px;
+      background: #4ade80;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      margin-right: 10px;
+    }
+    button:hover { background: #22c55e; }
+    #test-output {
+      margin-top: 20px;
+      padding: 15px;
+      background: #0f172a;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      min-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🤖 Puter.js Authentication</h1>
+  <div id="status" class="status">Loading Puter.js...</div>
+  <button onclick="testPuter()">Test Puter (triggers auth)</button>
+  <button onclick="window.location.href='https://puter.com'">Open Puter.com to Login</button>
+  <button onclick="enableBridge()">Enable Puter Bridge</button>
+  <div id="test-output"></div>
+
+  <script>
+    let bridgeEnabled = false
+    let ws = null
+
+    function updateStatus(msg, type = 'ready') {
+      document.getElementById('status').textContent = msg
+      document.getElementById('status').className = `status ${type}`
+    }
+
+    async function testPuter() {
+      try {
+        updateStatus('Testing Puter connection...')
+        const response = await puter.ai.chat('Say hello', { model: 'claude-sonnet-4-6' })
+        const text = response.message?.content?.[0]?.text || response.message?.content || ''
+        document.getElementById('test-output').textContent = `Response: ${text}`
+        updateStatus('✓ Puter working! Authenticated successfully.', 'ready')
+      } catch (error) {
+        document.getElementById('test-output').textContent = `Error: ${error.message || error}`
+        updateStatus('❌ Authentication required. Click "Open Puter.com" to login.', 'error')
+      }
+    }
+
+    function enableBridge() {
+      bridgeEnabled = true
+      updateStatus('✓ Puter bridge enabled. CORTEX can now use Puter.', 'ready')
+      
+      // Connect to WebSocket for server requests
+      ws = new WebSocket(`ws://localhost:3738/ws`)
+      ws.onopen = () => {
+        console.log('WebSocket connected')
+        updateStatus('✓ WebSocket connected. Ready for requests.', 'ready')
+      }
+      ws.onmessage = async (event) => {
+        if (!bridgeEnabled) return
+        const msg = JSON.parse(event.data)
+        console.log('Received message:', msg)
+        if (msg.type === 'puter-request') {
+          try {
+            console.log('Calling Puter with:', msg.prompt, 'model:', msg.model)
+            const response = await puter.ai.chat(msg.prompt, { model: msg.model || 'claude-sonnet-4-6' })
+            console.log('Puter response full:', JSON.stringify(response))
+            
+            // Extract text - handle different response formats
+            let text = ''
+            if (response.message?.content) {
+              if (Array.isArray(response.message.content)) {
+                text = response.message.content.map(c => c.text || c).join('')
+              } else {
+                text = response.message.content
+              }
+            } else if (response.text) {
+              text = response.text
+            } else if (typeof response === 'string') {
+              text = response
+            }
+            
+            console.log('Extracted text:', text)
+            console.log('Sending response, length:', text.length)
+            
+            // Use HTTP endpoint to send response
+            await fetch('http://localhost:3738/api/puter-response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'puter-response', text, id: msg.id })
+            })
+          } catch (error) {
+            console.error('Puter error:', error)
+            await fetch('http://localhost:3738/api/puter-response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'puter-error', error: String(error.message || error), id: msg.id })
+            })
+          }
+        }
+      }
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+        updateStatus('❌ WebSocket error. Check console.', 'error')
+      }
+    }
+
+    window.onload = () => {
+      updateStatus('Puter.js loaded. Click "Test Puter" to authenticate, then "Enable Puter Bridge".')
+    }
+  </script>
+</body>
+</html>

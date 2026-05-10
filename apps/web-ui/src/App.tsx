@@ -86,10 +86,28 @@ function App() {
 
   const formatContent = (text: string) => {
     text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-    text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+    
+    // Handle code blocks with language and copy button
+    text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+      const language = lang || 'code';
+      return `<div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">${language}</span>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').textContent)">Copy</button>
+        </div>
+        <pre><code>${code.trim()}</code></pre>
+      </div>`;
+    });
+    
+    // Inline code
+    text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+    
+    // Bold
     text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    
+    // Line breaks
     text = text.replace(/\n/g, "<br>");
+    
     return text;
   };
 
