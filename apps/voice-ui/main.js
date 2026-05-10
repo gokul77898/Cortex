@@ -248,21 +248,29 @@ app.whenReady().then(() => {
     if (win.isVisible()) win.hide(); else win.show()
   })
 
-  // Double-click dock icon to show window
+  // Single click on dock icon shows window (macOS)
   app.on('activate', (e, hasVisibleWindows) => {
     if (!hasVisibleWindows) createWindow()
+    else if (win && !win.isVisible()) win.show()
   })
   
-  // Double-click on dock icon (macOS)
-  if (process.platform === 'darwin') {
-    app.on('before-quit', () => {
-      // Keep running in background
-    })
-  }
+  // Double-tap with Accessibility - check for rapid dock clicks
+  let lastClickTime = 0
+  app.on('activate', () => {
+    const now = Date.now()
+    if (now - lastClickTime < 400) {
+      // Double tap detected - show window
+      if (!win) createWindow()
+      win.show()
+      win.focus()
+    }
+    lastClickTime = now
+  })
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // On macOS, keep app running in dock even when all windows closed
+  // Click dock icon to reopen
 })
 
 app.on('will-quit', () => globalShortcut.unregisterAll())
