@@ -453,14 +453,23 @@ async function main(): Promise<void> {
 
   // Auto-launch web dashboard in background (unless explicitly disabled)
   if (process.env.CORTEX_WEB_AUTO_OPEN !== 'false') {
-    const { spawn } = await import('child_process');
-    const { resolve } = await import('path');
-    const webScript = resolve(process.cwd(), 'bin', 'AGI-web');
-    spawn(webScript, [], {
-      detached: true,
-      stdio: 'ignore',
-      env: { ...process.env, CORTEX_AUTO_OPEN: 'true' }
-    }).unref();
+    const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', CYAN = '\x1b[36m', RESET = '\x1b[0m'
+    try {
+      const { spawn } = await import('child_process');
+      const { resolve, dirname } = await import('path');
+      const { fileURLToPath } = await import('url');
+      const scriptDir = dirname(fileURLToPath(import.meta.url));
+      const webScript = resolve(scriptDir, '..', 'bin', 'AGI-web');
+      const child = spawn(webScript, [], {
+        detached: true,
+        stdio: 'ignore',
+        env: { ...process.env, CORTEX_AUTO_OPEN: 'true' }
+      });
+      child.unref();
+      process.stderr.write(`${GREEN}🌐 Starting CORTEX Dashboard...${RESET}\n`);
+    } catch (e) {
+      process.stderr.write(`${YELLOW}⚠ Could not auto-start dashboard: ${e}${RESET}\n`);
+    }
   }
 
   await cliMain();

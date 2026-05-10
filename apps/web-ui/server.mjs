@@ -201,41 +201,93 @@ app.post('/api/puter-response', (req, res) => {
   res.json({ ok: true })
 })
 
-// SSE stream for /api/ask (works without websocket)
-app.post('/api/ask', (req, res) => {
+// Direct OpenRouter API call for chat
+app.post('/api/ask', async (req, res) => {
   const prompt = String(req.body?.prompt || '').slice(0, 4000)
   if (!prompt) return res.status(400).json({ error: 'prompt required' })
+  
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
   res.flushHeaders?.()
-
+  
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
   const start = Date.now()
+  
   send('start', { prompt, ts: start })
-
-  const child = spawn(
-    AGI_BIN,
-    ['-p', '--dangerously-skip-permissions', '--permission-mode', 'bypassPermissions', prompt],
-    { cwd: REPO_ROOT, env: { ...process.env, CORTEX_NONINTERACTIVE: '1' } },
-  )
-  let buf = ''
-  child.stdout.on('data', (c) => {
-    const s = c.toString()
-    buf += s
-    send('chunk', { text: s })
-    broadcast({ type: 'chunk', text: s })
-  })
-  child.stderr.on('data', (c) => send('stderr', { text: c.toString() }))
-  child.on('close', (code) => {
-    const ms = Date.now() - start
-    send('done', { code, ms, chars: buf.length })
-    broadcast({ type: 'done', code, ms })
-    // Persist
-    fs.appendFileSync(HISTORY_FILE, JSON.stringify({ ts: start, prompt, code, ms, preview: buf.slice(0, 500) }) + '\n')
+  
+  const apiKey = process.env.GROQ_API_KEY || ''
+  const baseUrl = process.env.CORTEX_GROQ_FALLBACK_URL || 'https://api.groq.com/openai/v1'
+  const model = process.env.CORTEX_GROQ_FALLBACK_MODEL || 'openai/gpt-oss-120b'
+  
+  if (!apiKey) {
+    send('error', { text: 'OPENAI_API_KEY not configured' })
     res.end()
-  })
-  req.on('close', () => { try { child.kill('SIGTERM') } catch {} })
+    return
+  }
+  
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/gokulvenkatareddy/cortex',
+        'X-Title': 'GOKUL-CORTEX'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: 'You are GOKUL-CORTEX, an autonomous AI assistant. Respond concisely and helpfully.' },
+          { role: 'user', content: prompt }
+        ],
+        stream: true,
+        max_tokens: 4096
+      })
+    })
+    
+    if (!response.ok) {
+      const errText = await response.text()
+      send('error', { text: `API Error: ${response.status} - ${errText}` })
+      res.end()
+      return
+    }
+    
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let fullResponse = ''
+    
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      
+      const chunk = decoder.decode(value, { stream: true })
+      fullResponse += chunk
+      
+      const lines = chunk.split('\n')
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6)
+          if (data === '[DONE]') continue
+          try {
+            const json = JSON.parse(data)
+            const content = json.choices?.[0]?.delta?.content
+            if (content) {
+              send('chunk', { text: content })
+            }
+          } catch {}
+        }
+      }
+    }
+    
+    const ms = Date.now() - start
+    send('done', { code: 0, ms, chars: fullResponse.length })
+    
+  } catch (err) {
+    send('error', { text: `Error: ${err.message}` })
+  }
+  
+  res.end()
 })
 
 // ─── WebSocket broadcast ───────────────────────────────────

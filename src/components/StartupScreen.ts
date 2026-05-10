@@ -43,36 +43,73 @@ function paintLine(text: string, stops: RGB[], lineT: number): string {
   return out + RESET
 }
 
+const NEON_CYAN: RGB = [0, 255, 255]
+const NEON_MAGENTA: RGB = [255, 0, 255]
+const NEON_YELLOW: RGB = [255, 255, 0]
+const NEON_GREEN: RGB = [50, 255, 50]
+const NEON_PINK: RGB = [255, 20, 147]
+const NEON_BLUE: RGB = [0, 191, 255]
+
 const SUNSET_GRAD: RGB[] = [[120, 150, 255], [180, 100, 255], [255, 80, 150]]
 const CORTEX_GRAD: RGB[] = [[255, 180, 100], [240, 140, 80], [217, 119, 87]]
+const RAINBOW_GRAD: RGB[] = [[255, 0, 0], [255, 127, 0], [255, 255, 0], [0, 255, 0], [0, 0, 255], [148, 0, 211]]
 const ACCENT: RGB = [255, 120, 255]
 const CREAM: RGB = [200, 220, 255]
 const BORDER: RGB = [80, 90, 120]
 
-const LOGO_CORTEX = [
-  `   ██████╗ ██████╗ ██████╗ ████████╗███████╗██╗  ██╗`,
-  `  ██╔════╝██╔══██║██╔══██║╚══██╔══╝██╔═════╝╚██╗██╔╝`,
-  `  ██║     ██║   ██║██████╔╝   ██║   █████╗   ╚███╔╝ `,
-  `  ██║     ██║   ██║██╔══██║   ██║   ██╔══╝   ██╔██╗ `,
-  `  ╚██████╗╚██████╔╝██║  ██║   ██║   ███████╗██╔╝ ██╗`,
-  `   ╚═════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═══════╝╚═╝  ╚═╝`,
+const LOGO_GOKUL = [
+  `  █████████╗███████╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗     `,
+  `  ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║     `,
+  `     ██║   █████╗  ██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║     `,
+  `     ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║     `,
+  `     ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗`,
+  `     ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝`,
+  `  ╔═══════════════════════════════════════════════════════════════╗`,
+  `  ║   ██████╗ ███████╗███████╗████████╗███████╗███╗   ███╗███████╗  ║`,
+  `  ║  ██╔════╝ ██╔════╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║██╔════╝  ║`,
+  `  ║  ██║  ███╗█████╗  ███████╗   ██║   █████╗  ██╔████╔██║█████╗    ║`,
+  `  ║  ██║   ██║██╔══╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║██╔══╝    ║`,
+  `  ║  ╚██████╔╝███████╗███████║   ██║   ███████╗██║ ╚═╝ ██║███████╗  ║`,
+  `  ║   ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝╚══════╝  ║`,
+  `  ╚═══════════════════════════════════════════════════════════════╝`,
 ]
 
-const LOGO_AGENCY = [
-  `     *                                       █████▓▓░        `,
-  `                                 *         ███▓░     ░░      `,
-  `            ░░░░░░                        ███▓░              `,
-  `    ░░░   ░░░░░░░░░░                      ███▓░              `,
-  `   ░░░░░░░░░░░░░░░░░░░    *                ██▓░░      ▓      `,
-  `                                             ░▓▓███▓▓░       `,
-  ` *                                 ░░░░                      `,
-  `                                 ░░░░░░░░                    `,
-  `                               ░░░░░░░░░░░░░░░░              `,
-  `       █████████   █████████   █████████   █████████         `,
-  `       ███   ███   ███         ███   ███   ███   ███         `,
-  `       ███   ███   █████████   █████████   ███   ███         `,
-  `       █████████   ███         ███   ███   █████████         `,
-  `       ███   ███   █████████   ███   ███   ███   ███         `,
+const BOOT_SEQUENCE = [
+  '╔════════════════════════════════════════════════════════════╗',
+  '║  ◉ BOOT SEQUENCE INITIATED...                                ║',
+  '╠════════════════════════════════════════════════════════════╣',
+  '║  [██░░░░░░░░░░░░░░░░] Loading Neural Core...                ║',
+  '║  [████░░░░░░░░░░░░░░] Calibrating Swarm Protocols...         ║',
+  '║  [██████░░░░░░░░░░░░] Bridging API Endpoints...              ║',
+  '║  [████████░░░░░░░░░░] Initializing Quantum Link...          ║',
+  '║  [████████████░░░░░░░] Syncing Neural Matrix...              ║',
+  '║  [████████████████░░░░] All Systems Operational ✓            ║',
+  '╚════════════════════════════════════════════════════════════╝',
+]
+
+const GLITCH_CHARS = ['▓', '▒', '░', '█', '▀', '▄', '▌', '▐', '■', '□']
+
+const LOGO_CORTEX = [
+  `  ╔══════════════════════════════════════════════════════════════╗`,
+  `  ║  █████╗  ██████╗ ██████╗ ██╗███████╗ ██████╗ ███╗   ██╗       ║`,
+  `  ║ ██╔══██╗██╔════╝██╔══██╗██║██╔════╝██╔════╝ ████╗  ██║       ║`,
+  `  ║ ███████║██║     ██████╔╝██║█████╗  ██║     ██╔██╗ ██║       ║`,
+  `  ║ ██╔══██║██║     ██╔══██╗██║██╔══╝  ██║     ██╔╝ ██╗       ║`,
+  `  ║ ██║  ██║╚██████╗██║  ██║██║██║     ╚██████╗██╔╝  ██╗       ║`,
+  `  ║ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝╚═╝   ╚═╝       ║`,
+  `  ║        ███╗    ██╗ █████╗ ██╗  ██╗████████╗               ║`,
+  `  ║        ████╗   ██║██╔══██╗██║  ██║╚══██╔══╝               ║`,
+  `  ║        ██╔██╗  ██║███████║███████║   ██║                  ║`,
+  `  ║        ██╔╝ ██╗ ██║██╔══██║██╔══██║   ██║                  ║`,
+  `  ║        ██║  ╚██╗██║██║  ██║██║  ██║   ██║                  ║`,
+  `  ║        ╚═╝   ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝                  ║`,
+  `  ║                    ██████╗ ██╗     ███████╗               ║`,
+  `  ║                   ██╔════╝ ██╗     ██╔════╝               ║`,
+  `  ║                   ██║  ███╗██╗     █████╗                 ║`,
+  `  ║                   ██║   ██║██║     ██╔══╝                 ║`,
+  `  ║                   ╚██████╔╝███████╗███████╗                 ║`,
+  `  ║                    ╚═════╝ ╚══════╝╚══════╝                 ║`,
+  `  ╚══════════════════════════════════════════════════════════════╝`,
 ]
 
 interface MissionConfig {
@@ -177,7 +214,8 @@ function getMissionsFromEnv(): MissionConfig[] {
 }
 
 export async function printStartupScreen(): Promise<void> {
-  if (process.env.CI || !process.stdout.isTTY) return
+  // Skip only in CI mode (allow for testing with TTY force)
+  if (process.env.CI) return
 
   // Preserve original key for MCP/Subprocesses
   const originalAntKey = process.env.ANTHROPIC_API_KEY
@@ -189,10 +227,44 @@ export async function printStartupScreen(): Promise<void> {
   const VERSION = (typeof MACRO !== 'undefined' ? MACRO.VERSION : '99.0.0')
 
   process.stdout.write('\x1Bc')
-  LOGO_CORTEX.forEach((line, i) => out.push(paintLine(line, CORTEX_GRAD, i / LOGO_CORTEX.length)))
-  out.push(`  ${rgb(...CREAM)}DECOUPLED ASSET v${VERSION}...${RESET}\n`)
-  LOGO_AGENCY.forEach((line, i) => out.push(paintLine(line, SUNSET_GRAD, i / LOGO_AGENCY.length)))
-  out.push(`\n  ${rgb(...ACCENT)}✦${RESET} ${rgb(...CREAM)}STATUS: ${RESET}${rgb(100, 255, 100)}READY - FULL SWARM UNLOCKED${RESET} ${rgb(...ACCENT)}✦${RESET}\n`)
+  
+  // ═══════════════════════════════════════════════════════════
+  // CRAZY GOKUL STARTUP ANIMATION
+  // ═══════════════════════════════════════════════════════════
+  
+  out.push('\n')
+  
+  // Rainbow banner
+  out.push(`${rgb(255, 0, 0)}╔${rgb(255, 127, 0)}════════════════════════════════════${rgb(255, 255, 0)}════════${rgb(0, 255, 0)}═════════════════════${rgb(0, 0, 255)}════${rgb(148, 0, 211)}═══════════════╗${RESET}`)
+  out.push(`${rgb(255, 0, 0)}║${rgb(255, 127, 0)}  ${rgb(255, 255, 0)}★${rgb(0, 255, 0)} ${rgb(0, 191, 255)}G O K U L${rgb(148, 0, 211)} ${rgb(255, 0, 255)}C O R T E X${rgb(255, 0, 0)} ${rgb(255, 127, 0)}★${rgb(255, 255, 0)}  ${rgb(0, 255, 0)}SWARM TERMINAL${rgb(0, 0, 255)} ${rgb(148, 0, 211)}v${VERSION}${rgb(255, 0, 0)}        ║${RESET}`)
+  out.push(`${rgb(255, 0, 0)}╚${rgb(255, 127, 0)}════════════════════════════════════${rgb(255, 255, 0)}════════${rgb(0, 255, 0)}═════════════════════${rgb(0, 0, 255)}════${rgb(148, 0, 211)}═══════════════╝${RESET}\n`)
+  
+  // GOKUL logo with rainbow gradient
+  LOGO_GOKUL.forEach((line, i) => {
+    const t = i / LOGO_GOKUL.length
+    out.push(paintLine(line, RAINBOW_GRAD, t))
+  })
+  
+  out.push(`\n${rgb(...NEON_CYAN)}  ════════════════════════════════════════════════════════════════════════${RESET}`)
+  out.push(`${rgb(...NEON_MAGENTA)}  ◈ ${rgb(...NEON_GREEN)}GOKUL-CORTEX ${rgb(...NEON_YELLOW)}// ${rgb(...NEON_PINK)}AUTONOMOUS SWARM ${rgb(...NEON_CYAN)}// ${rgb(...NEON_BLUE)}v${VERSION} ${rgb(...NEON_MAGENTA)}◈${RESET}`)
+  out.push(`${rgb(...NEON_CYAN)}  ════════════════════════════════════════════════════════════════════════${RESET}\n`)
+  
+  // System status box
+  out.push(`${rgb(...NEON_CYAN)}┌${'─'.repeat(62)}${rgb(...NEON_CYAN)}┐${RESET}`)
+  out.push(`${rgb(...NEON_CYAN)}│${RESET}  ${rgb(...NEON_GREEN)}◉ SYSTEM:${RESET} ONLINE        ${rgb(...NEON_YELLOW)}◈ NEURAL:${RESET} CONNECTED    ${rgb(...NEON_CYAN)}│${RESET}`)
+  out.push(`${rgb(...NEON_CYAN)}│${RESET}  ${rgb(...NEON_PINK)}◉ SWARM:${RESET} READY         ${rgb(...NEON_BLUE)}◈ MATRIX:${RESET} ACTIVE       ${rgb(...NEON_CYAN)}│${RESET}`)
+  out.push(`${rgb(...NEON_CYAN)}│${RESET}  ${rgb(...NEON_MAGENTA)}◉ CORE:${RESET} OPERATIONAL    ${rgb(...NEON_CYAN)}◈ QUANTUM:${RESET} LINKED        ${rgb(...NEON_CYAN)}│${RESET}`)
+  out.push(`${rgb(...NEON_CYAN)}└${'─'.repeat(62)}${rgb(...NEON_CYAN)}┘${RESET}\n`)
+  
+  // Boot sequence
+  BOOT_SEQUENCE.forEach((line, i) => {
+    const colors = [NEON_CYAN, NEON_YELLOW, NEON_GREEN, NEON_MAGENTA, NEON_PINK, NEON_BLUE]
+    out.push(`${rgb(...colors[i % colors.length])}${line}${RESET}`)
+  })
+  
+  out.push(`\n  ${rgb(...NEON_MAGENTA)}◈${RESET} ${rgb(...CREAM)}STATUS: ${rgb(100, 255, 100)}★ GOKUL SWARM UNLOCKED ★${RESET} ${rgb(...NEON_MAGENTA)}◈${RESET}\n`)
+  
+  // Info box
   out.push(`${rgb(...BORDER)}\u2554${'\u2550'.repeat(W - 2)}\u2557${RESET}`)
   const row = (k: string, v: string) => {
     const pad = W - 4 - (k || '').length - (v || '').length
