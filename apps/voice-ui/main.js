@@ -242,15 +242,23 @@ function stripAnsi(s) {
 app.whenReady().then(() => {
   createWindow()
 
-  // Global hotkey: Cmd+Shift+A to toggle window
-  globalShortcut.register('CommandOrControl+Shift+A', () => {
+  // Global hotkey: Cmd+E to toggle window
+  globalShortcut.register('CommandOrControl+E', () => {
     if (!win) return createWindow()
     if (win.isVisible()) win.hide(); else win.show()
   })
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  // Double-click dock icon to show window
+  app.on('activate', (e, hasVisibleWindows) => {
+    if (!hasVisibleWindows) createWindow()
   })
+  
+  // Double-click on dock icon (macOS)
+  if (process.platform === 'darwin') {
+    app.on('before-quit', () => {
+      // Keep running in background
+    })
+  }
 })
 
 app.on('window-all-closed', () => {
