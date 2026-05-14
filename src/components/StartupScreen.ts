@@ -1,4 +1,4 @@
-import { select } from '@inquirer/prompts'
+import { password, select } from '@inquirer/prompts'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -300,180 +300,196 @@ export async function printStartupScreen(): Promise<void> {
   const isNvidiaOnly = process.env.CORTEX_NVIDIA_ONLY === '1'
   const nvMission = missions.find(m => m.provider === 'nvidia')
   const hfMission = missions.find(m => m.provider === 'huggingface')
-  const choice = isNvidiaOnly && nvMission?.apiKey
+  let choice: MissionConfig | undefined = isNvidiaOnly && nvMission?.apiKey
     ? nvMission
     : hfMission ?? missions[missions.length - 1]
 
   if (!choice || !choice.apiKey) {
     process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}⚠ No API provider configured.${RESET}\n`)
-    process.stdout.write(`  ${rgb(...NEON_CYAN)}Run /connect to pick from 45+ providers${RESET}\n`)
-    process.stdout.write(`  ${DIM}  (Free: OpenRouter, Groq, HuggingFace, NVIDIA, Cerebras...)${RESET}\n\n`)
+    process.stdout.write(`  ${rgb(...NEON_CYAN)}Pick a provider to get started:${RESET}\n`)
+    process.stdout.write(`  ${DIM}  (Free options: OpenRouter, Groq, HuggingFace, NVIDIA, Cerebras)${RESET}\n\n`)
 
     const providerChoices = [
-      { name: 'OpenRouter (free)', value: 'openrouter', description: 'Free MiniMax M2.5 + many free models' },
-      { name: 'Groq (free)', value: 'groq', description: 'Ultra-fast free inference' },
-      { name: 'NVIDIA NIM (free)', value: 'nvidia', description: 'Free NVIDIA NIM API on build.nvidia.com' },
-      { name: 'HuggingFace (free)', value: 'huggingface', description: 'Free inference for 100k+ models' },
-      { name: 'Cerebras (free)', value: 'cerebras', description: 'Fast free inference' },
-      { name: 'OpenAI', value: 'openai', description: 'GPT models' },
-      { name: 'Anthropic Claude', value: 'anthropic', description: 'Claude Opus/Sonnet/Haiku' },
-      { name: 'Google Gemini', value: 'gemini', description: 'Gemini 2.5 Pro, Gemini 3 Flash' },
-      { name: 'DeepSeek', value: 'deepseek', description: 'DeepSeek V4, R1' },
-      { name: 'Ollama (local)', value: 'ollama', description: 'Run local LLMs' },
-      { name: 'Skip for now', value: 'skip', description: 'Configure later with /connect' },
+      { name: 'OpenRouter (free)', value: 'openrouter', desc: 'Free MiniMax M2.5 + many free models' },
+      { name: 'Groq (free)', value: 'groq', desc: 'Ultra-fast free inference' },
+      { name: 'NVIDIA NIM (free)', value: 'nvidia', desc: 'Free NVIDIA NIM API on build.nvidia.com' },
+      { name: 'HuggingFace (free)', value: 'huggingface', desc: 'Free inference for 100k+ models' },
+      { name: 'Cerebras (free)', value: 'cerebras', desc: 'Fast free inference' },
+      { name: 'OpenAI', value: 'openai', desc: 'GPT models' },
+      { name: 'Anthropic Claude', value: 'anthropic', desc: 'Claude Opus/Sonnet/Haiku' },
+      { name: 'Google Gemini', value: 'gemini', desc: 'Gemini 2.5 Pro, Gemini 3 Flash' },
+      { name: 'DeepSeek', value: 'deepseek', desc: 'DeepSeek V4, R1' },
+      { name: 'Ollama (local)', value: 'ollama', desc: 'Run local LLMs, no API key needed' },
+      { name: 'Skip for now', value: 'skip', desc: 'Configure later with /connect' },
     ]
 
     const answer: string = await select({
-      message: 'Choose a provider to get started:',
+      message: 'Choose a provider:',
       choices: providerChoices.map(c => ({
-        name: `${c.name} — ${c.description}`,
+        name: `${c.name} — ${c.desc}`,
         value: c.value,
       })),
       pageSize: 11,
     })
 
-    if (answer !== 'skip') {
-      if (answer === 'openrouter' || answer === 'groq' || answer === 'cerebras') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your API key from the provider's website,${RESET}\n`)
-        process.stdout.write(`  ${DIM}  then run: /connect ${answer}${RESET}\n\n`)
-        process.stdout.write(`  ${rgb(...NEON_CYAN)}Or paste your API key now:${RESET} `)
+    let userApiKey = ''
+    const providerNeedsKey = answer !== 'skip' && answer !== 'ollama'
 
-        const apiKey = await new Promise<string>(resolve => {
-          const stdin = process.stdin
-          const originalRaw = stdin.isRaw
-          stdin.setRawMode?.(true)
-          stdin.resume()
-
-          let key = ''
-          const onData = (data: Buffer) => {
-            const char = data.toString()
-            if (char === '\r' || char === '\n') {
-              stdin.removeListener('data', onData)
-              stdin.setRawMode?.(originalRaw)
-              stdin.pause()
-              resolve(key.trim())
-            } else if (char === '\x03') {
-              stdin.removeListener('data', onData)
-              stdin.setRawMode?.(originalRaw)
-              stdin.pause()
-              resolve('')
-            } else if (char === '\x7f') {
-              key = key.slice(0, -1)
-              process.stdout.write('\b \b')
-            } else {
-              key += char
-              process.stdout.write('*')
-            }
-          }
-          stdin.on('data', onData)
-        })
-
-        if (apiKey) {
-          const providerMap: Record<string, { baseUrl: string; model: string }> = {
-            openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'minimax/minimax-m2.5:free' },
-            groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
-            cerebras: { baseUrl: 'https://inference.cerebras.ai/v1', model: 'qwen3-coder-480b' },
-          }
-          const cfg = providerMap[answer]
-          process.env.CORTEX_USE_OPENAI = '1'
-          process.env.OPENAI_BASE_URL = cfg.baseUrl
-          process.env.OPENAI_API_KEY = apiKey
-          process.env.OPENAI_MODEL = cfg.model
-          delete process.env.ANTHROPIC_API_KEY
-          process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} ${answer} configured!\n\n`)
-        }
-      } else if (answer === 'nvidia') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your free NVIDIA API key at https://build.nvidia.com${RESET}\n\n`)
-      } else if (answer === 'huggingface') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your HF token at https://huggingface.co/settings/tokens${RESET}\n`)
-        process.stdout.write(`  ${DIM}  Then run: /connect huggingface${RESET}\n\n`)
-      } else if (answer === 'openai') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your OpenAI key at https://platform.openai.com/api-keys${RESET}\n`)
-        process.stdout.write(`  ${DIM}  Then run: /connect openai${RESET}\n\n`)
-      } else if (answer === 'anthropic') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your Anthropic key at https://console.anthropic.com/${RESET}\n`)
-        process.stdout.write(`  ${DIM}  Then run: /connect anthropic${RESET}\n\n`)
-      } else if (answer === 'gemini') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your Gemini key at https://aistudio.google.com/apikey${RESET}\n`)
-        process.stdout.write(`  ${DIM}  Then run: /connect gemini${RESET}\n\n`)
-      } else if (answer === 'deepseek') {
-        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your DeepSeek key at https://platform.deepseek.com/${RESET}\n`)
-        process.stdout.write(`  ${DIM}  Then run: /connect deepseek${RESET}\n\n`)
-      } else if (answer === 'ollama') {
-        process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} Using Ollama (local). Ensure Ollama is running on localhost:11434\n\n`)
-        process.env.CORTEX_USE_OPENAI = '1'
-        process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
-        process.env.OPENAI_MODEL = 'llama3.2:3b'
-        delete process.env.ANTHROPIC_API_KEY
+    if (providerNeedsKey) {
+      const keyHints: Record<string, string> = {
+        openrouter: 'https://openrouter.ai/settings/keys',
+        groq: 'https://console.groq.com/keys',
+        nvidia: 'https://build.nvidia.com',
+        huggingface: 'https://huggingface.co/settings/tokens',
+        cerebras: 'https://inference.cerebras.ai/',
+        openai: 'https://platform.openai.com/api-keys',
+        anthropic: 'https://console.anthropic.com/',
+        gemini: 'https://aistudio.google.com/apikey',
+        deepseek: 'https://platform.deepseek.com/',
       }
+      process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}Get your key at: ${keyHints[answer] ?? 'the provider website'}${RESET}\n\n`)
+      userApiKey = await password({ message: 'Paste your API key:', mask: true })
     }
-    process.stdout.write(`  ${DIM}Tip: Run /connect anytime to switch providers.${RESET}\n\n`)
+
+    const providerConfigs: Record<string, { baseUrl: string; model: string; env: Record<string, string> }> = {
+      openrouter: {
+        baseUrl: 'https://openrouter.ai/api/v1', model: 'minimax/minimax-m2.5:free',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://openrouter.ai/api/v1', OPENAI_MODEL: 'minimax/minimax-m2.5:free' },
+      },
+      groq: {
+        baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://api.groq.com/openai/v1', OPENAI_MODEL: 'llama-3.3-70b-versatile' },
+      },
+      nvidia: {
+        baseUrl: 'https://integrate.api.nvidia.com/v1', model: 'deepseek-ai/deepseek-v4-pro',
+        env: { CORTEX_USE_OPENAI: '1', CORTEX_NVIDIA_ONLY: '1', OPENAI_BASE_URL: 'https://integrate.api.nvidia.com/v1', OPENAI_MODEL: 'deepseek-ai/deepseek-v4-pro' },
+      },
+      huggingface: {
+        baseUrl: 'https://router.huggingface.co/v1', model: 'zai-org/GLM-5:together',
+        env: { HF_BASE_URL: 'https://router.huggingface.co/v1', HF_MODEL_ID: 'zai-org/GLM-5:together' },
+      },
+      cerebras: {
+        baseUrl: 'https://inference.cerebras.ai/v1', model: 'qwen3-coder-480b',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://inference.cerebras.ai/v1', OPENAI_MODEL: 'qwen3-coder-480b' },
+      },
+      openai: {
+        baseUrl: 'https://api.openai.com/v1', model: 'gpt-5.3-codex',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://api.openai.com/v1', OPENAI_MODEL: 'gpt-5.3-codex' },
+      },
+      anthropic: {
+        baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-6',
+        env: { ANTHROPIC_BASE_URL: 'https://api.anthropic.com', ANTHROPIC_MODEL: 'claude-sonnet-4-6' },
+      },
+      gemini: {
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-3-flash-preview',
+        env: { CORTEX_USE_GEMINI: '1', GEMINI_MODEL: 'gemini-3-flash-preview' },
+      },
+      deepseek: {
+        baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://api.deepseek.com/v1', OPENAI_MODEL: 'deepseek-chat' },
+      },
+      ollama: {
+        baseUrl: 'http://localhost:11434/v1', model: 'llama3.2:3b',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'http://localhost:11434/v1', OPENAI_MODEL: 'llama3.2:3b' },
+      },
+    }
+
+    if (answer !== 'skip' && providerConfigs[answer]) {
+      const cfg = providerConfigs[answer]
+      delete process.env.CORTEX_USE_OPENAI
+      delete process.env.CORTEX_USE_GEMINI
+      delete process.env.CORTEX_USE_GITHUB
+      delete process.env.CORTEX_USE_BEDROCK
+      delete process.env.CORTEX_USE_VERTEX
+      delete process.env.ANTHROPIC_API_KEY
+      delete process.env.HF_TOKEN
+
+      for (const [k, v] of Object.entries(cfg.env)) {
+        process.env[k] = v
+      }
+      if (providerNeedsKey && userApiKey) {
+        if (answer === 'anthropic') {
+          process.env.ANTHROPIC_API_KEY = userApiKey
+        } else if (answer === 'huggingface') {
+          process.env.HF_TOKEN = userApiKey
+          process.env.OPENAI_API_KEY = userApiKey
+        } else if (answer === 'nvidia') {
+          process.env.NVIDIA_API_KEY = userApiKey
+          process.env.OPENAI_API_KEY = userApiKey
+        } else {
+          process.env.OPENAI_API_KEY = userApiKey
+        }
+      }
+      process.env.ANTHROPIC_MODEL = cfg.model
+      process.env.MODEL_ID = cfg.model
+      process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} Configured ${answer}\n\n`)
+      choice = { name: answer, model: cfg.model, baseUrl: cfg.baseUrl, apiKey: userApiKey || 'set', provider: answer === 'anthropic' ? 'cortex' : answer === 'huggingface' ? 'huggingface' : answer === 'nvidia' ? 'nvidia' : answer === 'gemini' ? 'gemini' : 'openai' }
+    } else {
+      process.stdout.write(`\n  ${DIM}Run /connect to configure a provider later.${RESET}\n\n`)
+    }
   } else {
     process.stdout.write(`✔ Initialize Mission Engine Interface: ${choice.name}\n                                     \n`)
   }
 
 
-  // Global ENV Injection
-  delete process.env.CORTEX_USE_OPENAI
-  delete process.env.CORTEX_USE_GEMINI
-  delete process.env.CORTEX_USE_GITHUB
-  delete process.env.CORTEX_USE_BEDROCK
-  delete process.env.CORTEX_USE_VERTEX
+  if (choice) {
+    delete process.env.CORTEX_USE_OPENAI
+    delete process.env.CORTEX_USE_GEMINI
+    delete process.env.CORTEX_USE_GITHUB
+    delete process.env.CORTEX_USE_BEDROCK
+    delete process.env.CORTEX_USE_VERTEX
 
-  if (choice.provider === 'openai') {
-    process.env.CORTEX_USE_OPENAI = '1'
-    process.env.OPENAI_BASE_URL = choice.baseUrl
-    process.env.OPENAI_API_KEY = choice.apiKey
-    process.env.OPENAI_MODEL = choice.model
-    // Bridge to OpenAI callers and mission engine
-    process.env.ANTHROPIC_BASE_URL = choice.baseUrl
-    process.env.ANTHROPIC_API_KEY = choice.apiKey 
-    // If we have an original key, make it available for MCP without polluting the main one
-    if (originalAntKey && originalAntKey !== choice.apiKey) {
-      process.env.MOCK_MCP_HINT_ANT_KEY = originalAntKey;
+    if (choice.provider === 'openai') {
+      process.env.CORTEX_USE_OPENAI = '1'
+      process.env.OPENAI_BASE_URL = choice.baseUrl
+      process.env.OPENAI_API_KEY = choice.apiKey
+      process.env.OPENAI_MODEL = choice.model
+      process.env.ANTHROPIC_BASE_URL = choice.baseUrl
+      process.env.ANTHROPIC_API_KEY = choice.apiKey
+      if (originalAntKey && originalAntKey !== choice.apiKey) {
+        process.env.MOCK_MCP_HINT_ANT_KEY = originalAntKey
+      }
+    } else if (choice.provider === 'nvidia') {
+      process.env.CORTEX_USE_OPENAI = '1'
+      process.env.CORTEX_NVIDIA_ONLY = '1'
+      process.env.NVIDIA_API_KEY = choice.apiKey
+      process.env.NVIDIA_MODEL_ID = choice.model
+      process.env.NVIDIA_BASE_URL = choice.baseUrl
+      process.env.OPENAI_BASE_URL = choice.baseUrl
+      process.env.OPENAI_API_KEY = choice.apiKey
+      process.env.OPENAI_MODEL = choice.model
+      delete process.env.HF_TOKEN
+      delete process.env.HF_MODEL_ID
+      delete process.env.HF_BASE_URL
+      delete process.env.ANTHROPIC_API_KEY
+    } else if (choice.provider === 'huggingface') {
+      process.env.CORTEX_USE_OPENAI = '1'
+      process.env.HF_TOKEN = choice.apiKey
+      process.env.HF_MODEL_ID = choice.model
+      process.env.HF_BASE_URL = choice.baseUrl
+      process.env.OPENAI_BASE_URL = choice.baseUrl
+      process.env.OPENAI_API_KEY = choice.apiKey
+      process.env.OPENAI_MODEL = choice.model
+      delete process.env.ANTHROPIC_API_KEY
+    } else if (choice.provider === 'gemini') {
+      process.env.CORTEX_USE_GEMINI = '1'
+      process.env.GEMINI_API_KEY = choice.apiKey
+      process.env.GEMINI_MODEL = choice.model
+      delete process.env.ANTHROPIC_API_KEY
+    } else if (choice.provider === 'github') {
+      process.env.CORTEX_USE_GITHUB = '1'
+      process.env.OPENAI_API_KEY = choice.apiKey
+      delete process.env.ANTHROPIC_API_KEY
+    } else if (choice.provider === 'cortex') {
+      process.env.ANTHROPIC_API_KEY = choice.apiKey
+      process.env.ANTHROPIC_MODEL = choice.model
+      process.env.ANTHROPIC_BASE_URL = choice.baseUrl
     }
-  } else if (choice.provider === 'nvidia') {
-    process.env.CORTEX_USE_OPENAI = '1'
-    process.env.CORTEX_NVIDIA_ONLY = '1'
-    process.env.NVIDIA_API_KEY = choice.apiKey
-    process.env.NVIDIA_MODEL_ID = choice.model
-    process.env.NVIDIA_BASE_URL = choice.baseUrl
-    process.env.OPENAI_BASE_URL = choice.baseUrl
-    process.env.OPENAI_API_KEY = choice.apiKey
-    process.env.OPENAI_MODEL = choice.model
-    // Clear HF vars so the shim doesn't accidentally route through HF
-    delete process.env.HF_TOKEN
-    delete process.env.HF_MODEL_ID
-    delete process.env.HF_BASE_URL
-    delete process.env.ANTHROPIC_API_KEY
-  } else if (choice.provider === 'huggingface') {
-    process.env.CORTEX_USE_OPENAI = '1'
-    process.env.HF_TOKEN = choice.apiKey
-    process.env.HF_MODEL_ID = choice.model
-    process.env.HF_BASE_URL = choice.baseUrl
-    process.env.OPENAI_BASE_URL = choice.baseUrl
-    process.env.OPENAI_API_KEY = choice.apiKey
-    process.env.OPENAI_MODEL = choice.model
-    delete process.env.ANTHROPIC_API_KEY
-  } else if (choice.provider === 'gemini') {
-    process.env.CORTEX_USE_GEMINI = '1'
-    process.env.GEMINI_API_KEY = choice.apiKey
-    process.env.GEMINI_MODEL = choice.model
-    delete process.env.ANTHROPIC_API_KEY
-  } else if (choice.provider === 'github') {
-    process.env.CORTEX_USE_GITHUB = '1'
-    process.env.OPENAI_API_KEY = choice.apiKey
-    delete process.env.ANTHROPIC_API_KEY
-  } else if (choice.provider === 'cortex') {
-    process.env.ANTHROPIC_API_KEY = choice.apiKey
+
     process.env.ANTHROPIC_MODEL = choice.model
-    process.env.ANTHROPIC_BASE_URL = choice.baseUrl
+    process.env.MODEL_ID = choice.model
+
+    process.stdout.write(`\n  ${rgb(...ACCENT)}STATUS:${RESET} Asset Verified. Swarm Online @ ${rgb(...ACCENT)}${choice.model}${RESET}.\n\n`)
+    await new Promise(r => setTimeout(r, 600))
   }
-
-  // FORCE OVERRIDE for CORTEX core detection
-  process.env.ANTHROPIC_MODEL = choice.model;
-  process.env.MODEL_ID = choice.model;
-
-  process.stdout.write(`\n  ${rgb(...ACCENT)}STATUS:${RESET} Asset Verified. Swarm Online @ ${rgb(...ACCENT)}${choice.model}${RESET}.\n\n`)
-  await new Promise(r => setTimeout(r, 600))
 }
