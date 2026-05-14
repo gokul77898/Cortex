@@ -423,7 +423,7 @@ export async function printStartupScreen(): Promise<void> {
       process.env.ANTHROPIC_MODEL = cfg.model
       process.env.MODEL_ID = cfg.model
       process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} Configured ${answer}\n\n`)
-      choice = { name: answer, model: cfg.model, baseUrl: cfg.baseUrl, apiKey: userApiKey || 'set', provider: answer === 'anthropic' ? 'cortex' : answer === 'huggingface' ? 'huggingface' : answer === 'nvidia' ? 'nvidia' : answer === 'gemini' ? 'gemini' : 'openai' }
+      choice = { name: answer, model: cfg.model, baseUrl: cfg.baseUrl, apiKey: userApiKey || '', provider: answer === 'anthropic' ? 'cortex' : answer === 'huggingface' ? 'huggingface' : answer === 'nvidia' ? 'nvidia' : answer === 'gemini' ? 'gemini' : 'openai' }
     } else {
       process.stdout.write(`\n  ${DIM}Run /connect to configure a provider later.${RESET}\n\n`)
     }
@@ -444,10 +444,15 @@ export async function printStartupScreen(): Promise<void> {
       process.env.OPENAI_BASE_URL = choice.baseUrl
       process.env.OPENAI_API_KEY = choice.apiKey
       process.env.OPENAI_MODEL = choice.model
-      process.env.ANTHROPIC_BASE_URL = choice.baseUrl
-      process.env.ANTHROPIC_API_KEY = choice.apiKey
-      if (originalAntKey && originalAntKey !== choice.apiKey) {
-        process.env.MOCK_MCP_HINT_ANT_KEY = originalAntKey
+      if (choice.apiKey) {
+        process.env.ANTHROPIC_BASE_URL = choice.baseUrl
+        process.env.ANTHROPIC_API_KEY = choice.apiKey
+        if (originalAntKey && originalAntKey !== choice.apiKey) {
+          process.env.MOCK_MCP_HINT_ANT_KEY = originalAntKey
+        }
+      } else {
+        delete process.env.ANTHROPIC_API_KEY
+        delete process.env.ANTHROPIC_BASE_URL
       }
     } else if (choice.provider === 'nvidia') {
       process.env.CORTEX_USE_OPENAI = '1'
