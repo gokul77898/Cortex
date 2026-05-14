@@ -9,6 +9,7 @@ import feedback from './commands/feedback/index.js'
 import clear from './commands/clear/index.js'
 import color from './commands/color/index.js'
 import commit from './commands/commit.js'
+import connect from './commands/connect/index.js'
 import copy from './commands/copy/index.js'
 import desktop from './commands/desktop/index.js'
 import commitPushPr from './commands/commit-push-pr.js'
@@ -339,6 +340,7 @@ const COMMANDS = memoize((): Command[] => [
   color,
   compact,
   config,
+  connect,
   copy,
   desktop,
   context,

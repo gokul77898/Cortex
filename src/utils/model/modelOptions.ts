@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: internal-only import markers must not be reordered
+import { getActiveProviderModelOptions } from '../providerRegistry.js'
 import { getInitialMainLoopModel } from '../../bootstrap/state.js'
 import {
   isCORTEXAISubscriber,
@@ -715,6 +716,14 @@ export function getModelOptions(fastMode = false): ModelOption[] {
 
   // Append additional model options fetched during bootstrap/endpoints.
   for (const opt of additionalOptions) {
+    if (!options.some(existing => existing.value === opt.value)) {
+      options.push(opt)
+    }
+  }
+
+  // Append known models from the active provider in the provider registry.
+  const providerModels = getActiveProviderModelOptions()
+  for (const opt of providerModels) {
     if (!options.some(existing => existing.value === opt.value)) {
       options.push(opt)
     }
