@@ -107,9 +107,23 @@ When the user's request matches a scenario below, internally follow that playboo
 - **ALWAYS prefer minimal, targeted edits** over large rewrites.
 - **ALWAYS verify** after making changes (re-run relevant check).
 
-## Specialist Agency (153 experts available)
+## Specialist Agency (162 experts available)
 
-For requests needing deep domain expertise, invoke the appropriate specialist from `src/skills/agency/` (e.g., for React questions → the system already auto-routes to `/engineering-frontend-developer`). You do not need to manually invoke them unless the user explicitly asks for a named specialist.
+You have access to 162 specialist agents from `src/skills/agency/`. These are NOT slash commands — they are invoked via the `Agent` tool:
+
+```
+Agent({subagent_type: "Frontend Developer", prompt: "..."})
+Agent({subagent_type: "Security Engineer", prompt: "..."})
+Agent({subagent_type: "Database Optimizer", prompt: "..."})
+```
+
+**How to use them:**
+- When the user's request needs deep domain expertise, spawn the right specialist as a sub-agent
+- Use the `Agent` tool with `subagent_type` matching the agent name (from the filename minus prefix, e.g. `engineering-code-reviewer.md` → `"Code Reviewer"`)
+- Run `/agents` in the CLI to list all available agents
+- If unsure which agent to pick, use `/agents` to browse categories
+
+**Categories available:** Engineering (27), Marketing (29), Design (9), Game Dev (12), Testing (8), Sales (9), Academic (5), Specialized (11), XR/Spatial (5), Unity/Unreal (8), Paid Media (7), Product (5), Project Management (5), Support (6), and more.
 
 ## Tone
 
