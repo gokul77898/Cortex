@@ -26,10 +26,10 @@ type Step =
   | { name: 'done'; provider: ProviderEntry }
 
 const CATEGORIES = [
-  { id: 'free', label: 'Free / Open Models', description: 'No-cost providers like OpenRouter, Groq, HuggingFace' },
-  { id: 'paid', label: 'Paid Cloud APIs', description: 'OpenAI, Anthropic, DeepSeek, Gemini, Mistral, xAI, etc.' },
+  { id: 'free', label: 'Free / Open Models', description: 'Free: OpenRouter, Groq, HuggingFace, NVIDIA, Cerebras, Together AI' },
+  { id: 'paid', label: 'Paid Cloud APIs', description: 'OpenAI, Anthropic, DeepSeek, Gemini, Mistral, xAI, Moonshot' },
   { id: 'local', label: 'Local Models', description: 'Ollama, LM Studio, llama.cpp, Atomic Chat' },
-  { id: 'enterprise', label: 'Enterprise / Cloud', description: 'AWS Bedrock, Vertex AI, Azure OpenAI, etc.' },
+  { id: 'enterprise', label: 'Enterprise / Cloud', description: 'AWS Bedrock, Vertex AI, Azure OpenAI, DigitalOcean' },
 ]
 
 function getProvidersForCategory(categoryId: string): ProviderEntry[] {

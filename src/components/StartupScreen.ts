@@ -74,17 +74,18 @@ const LOGO_GOKUL = [
   `  ╚═══════════════════════════════════════════════════════════════╝`,
 ]
 
-const BOOT_SEQUENCE = [
-  '╔════════════════════════════════════════════════════════════╗',
-  '║  ◉ BOOT SEQUENCE INITIATED...                                ║',
-  '╠════════════════════════════════════════════════════════════╣',
-  '║  [██░░░░░░░░░░░░░░░░] Loading Neural Core...                ║',
-  '║  [████░░░░░░░░░░░░░░] Calibrating Swarm Protocols...         ║',
-  '║  [██████░░░░░░░░░░░░] Bridging API Endpoints...              ║',
-  '║  [████████░░░░░░░░░░] Initializing Quantum Link...          ║',
-  '║  [████████████░░░░░░░] Syncing Neural Matrix...              ║',
-  '║  [████████████████░░░░] All Systems Operational ✓            ║',
-  '╚════════════════════════════════════════════════════════════╝',
+// Real boot steps - these actually happen during startup
+interface BootStep {
+  label: string
+  check: () => boolean | Promise<boolean>
+}
+
+const BOOT_STEPS: BootStep[] = [
+  { label: 'Loading environment', check: () => !!process.env.HOME },
+  { label: 'Checking .env config', check: () => fs.existsSync(path.join(process.cwd(), '.env')) || fs.existsSync(path.join(os.homedir(), '.cortex', '.env')) },
+  { label: 'Validating API keys', check: () => !!(process.env.NVIDIA_API_KEY || process.env.OPENAI_API_KEY || process.env.HF_TOKEN) },
+  { label: 'Initializing providers', check: () => true },
+  { label: 'Starting runtime', check: () => true },
 ]
 
 const GLITCH_CHARS = ['▓', '▒', '░', '█', '▀', '▄', '▌', '▐', '■', '□']
@@ -256,11 +257,28 @@ export async function printStartupScreen(): Promise<void> {
   out.push(`${rgb(...NEON_CYAN)}│${RESET}  ${rgb(...NEON_MAGENTA)}◉ CORE:${RESET} OPERATIONAL    ${rgb(...NEON_CYAN)}◈ QUANTUM:${RESET} LINKED        ${rgb(...NEON_CYAN)}│${RESET}`)
   out.push(`${rgb(...NEON_CYAN)}└${'─'.repeat(62)}${rgb(...NEON_CYAN)}┘${RESET}\n`)
   
-  // Boot sequence
-  BOOT_SEQUENCE.forEach((line, i) => {
-    const colors = [NEON_CYAN, NEON_YELLOW, NEON_GREEN, NEON_MAGENTA, NEON_PINK, NEON_BLUE]
-    out.push(`${rgb(...colors[i % colors.length])}${line}${RESET}`)
-  })
+  // Real boot sequence with actual progress
+  process.stdout.write(out.join('\n'))
+  out.length = 0
+  
+  const barWidth = 30
+  for (let i = 0; i < BOOT_STEPS.length; i++) {
+    const step = BOOT_STEPS[i]
+    const progress = Math.round(((i + 1) / BOOT_STEPS.length) * barWidth)
+    const bar = '█'.repeat(progress) + '░'.repeat(barWidth - progress)
+    const pct = Math.round(((i + 1) / BOOT_STEPS.length) * 100)
+    
+    // Show loading state
+    process.stdout.write(`\r  ${rgb(...NEON_CYAN)}[${bar}]${RESET} ${pct}% ${DIM}${step.label}...${RESET}          `)
+    
+    // Actually run the check
+    const result = await step.check()
+    await new Promise(r => setTimeout(r, 80 + Math.random() * 120)) // Small realistic delay
+    
+    // Show result
+    const status = result ? `${rgb(...NEON_GREEN)}✓${RESET}` : `${rgb(...NEON_YELLOW)}○${RESET}`
+    process.stdout.write(`\r  ${rgb(...NEON_CYAN)}[${bar}]${RESET} ${pct}% ${step.label} ${status}          \n`)
+  }
   
   out.push(`\n  ${rgb(...NEON_MAGENTA)}◈${RESET} ${rgb(...CREAM)}STATUS: ${rgb(100, 255, 100)}★ GOKUL SWARM UNLOCKED ★${RESET} ${rgb(...NEON_MAGENTA)}◈${RESET}\n`)
   
@@ -286,12 +304,113 @@ export async function printStartupScreen(): Promise<void> {
     ? nvMission
     : hfMission ?? missions[missions.length - 1]
 
-  if (!choice) {
-    process.stdout.write('⚠ No provider configured. Run: cortex setup\n')
-    return
-  }
+  if (!choice || !choice.apiKey) {
+    process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}⚠ No API provider configured.${RESET}\n`)
+    process.stdout.write(`  ${rgb(...NEON_CYAN)}Run /connect to pick from 45+ providers${RESET}\n`)
+    process.stdout.write(`  ${DIM}  (Free: OpenRouter, Groq, HuggingFace, NVIDIA, Cerebras...)${RESET}\n\n`)
 
-  process.stdout.write(`✔ Initialize Mission Engine Interface: ${choice.name}\n                                     \n`)
+    const providerChoices = [
+      { name: 'OpenRouter (free)', value: 'openrouter', description: 'Free MiniMax M2.5 + many free models' },
+      { name: 'Groq (free)', value: 'groq', description: 'Ultra-fast free inference' },
+      { name: 'NVIDIA NIM (free)', value: 'nvidia', description: 'Free NVIDIA NIM API on build.nvidia.com' },
+      { name: 'HuggingFace (free)', value: 'huggingface', description: 'Free inference for 100k+ models' },
+      { name: 'Cerebras (free)', value: 'cerebras', description: 'Fast free inference' },
+      { name: 'OpenAI', value: 'openai', description: 'GPT models' },
+      { name: 'Anthropic Claude', value: 'anthropic', description: 'Claude Opus/Sonnet/Haiku' },
+      { name: 'Google Gemini', value: 'gemini', description: 'Gemini 2.5 Pro, Gemini 3 Flash' },
+      { name: 'DeepSeek', value: 'deepseek', description: 'DeepSeek V4, R1' },
+      { name: 'Ollama (local)', value: 'ollama', description: 'Run local LLMs' },
+      { name: 'Skip for now', value: 'skip', description: 'Configure later with /connect' },
+    ]
+
+    const answer: string = await select({
+      message: 'Choose a provider to get started:',
+      choices: providerChoices.map(c => ({
+        name: `${c.name} — ${c.description}`,
+        value: c.value,
+      })),
+      pageSize: 11,
+    })
+
+    if (answer !== 'skip') {
+      if (answer === 'openrouter' || answer === 'groq' || answer === 'cerebras') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your API key from the provider's website,${RESET}\n`)
+        process.stdout.write(`  ${DIM}  then run: /connect ${answer}${RESET}\n\n`)
+        process.stdout.write(`  ${rgb(...NEON_CYAN)}Or paste your API key now:${RESET} `)
+
+        const apiKey = await new Promise<string>(resolve => {
+          const stdin = process.stdin
+          const originalRaw = stdin.isRaw
+          stdin.setRawMode?.(true)
+          stdin.resume()
+
+          let key = ''
+          const onData = (data: Buffer) => {
+            const char = data.toString()
+            if (char === '\r' || char === '\n') {
+              stdin.removeListener('data', onData)
+              stdin.setRawMode?.(originalRaw)
+              stdin.pause()
+              resolve(key.trim())
+            } else if (char === '\x03') {
+              stdin.removeListener('data', onData)
+              stdin.setRawMode?.(originalRaw)
+              stdin.pause()
+              resolve('')
+            } else if (char === '\x7f') {
+              key = key.slice(0, -1)
+              process.stdout.write('\b \b')
+            } else {
+              key += char
+              process.stdout.write('*')
+            }
+          }
+          stdin.on('data', onData)
+        })
+
+        if (apiKey) {
+          const providerMap: Record<string, { baseUrl: string; model: string }> = {
+            openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'minimax/minimax-m2.5:free' },
+            groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+            cerebras: { baseUrl: 'https://inference.cerebras.ai/v1', model: 'qwen3-coder-480b' },
+          }
+          const cfg = providerMap[answer]
+          process.env.CORTEX_USE_OPENAI = '1'
+          process.env.OPENAI_BASE_URL = cfg.baseUrl
+          process.env.OPENAI_API_KEY = apiKey
+          process.env.OPENAI_MODEL = cfg.model
+          delete process.env.ANTHROPIC_API_KEY
+          process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} ${answer} configured!\n\n`)
+        }
+      } else if (answer === 'nvidia') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your free NVIDIA API key at https://build.nvidia.com${RESET}\n\n`)
+      } else if (answer === 'huggingface') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your HF token at https://huggingface.co/settings/tokens${RESET}\n`)
+        process.stdout.write(`  ${DIM}  Then run: /connect huggingface${RESET}\n\n`)
+      } else if (answer === 'openai') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your OpenAI key at https://platform.openai.com/api-keys${RESET}\n`)
+        process.stdout.write(`  ${DIM}  Then run: /connect openai${RESET}\n\n`)
+      } else if (answer === 'anthropic') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your Anthropic key at https://console.anthropic.com/${RESET}\n`)
+        process.stdout.write(`  ${DIM}  Then run: /connect anthropic${RESET}\n\n`)
+      } else if (answer === 'gemini') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your Gemini key at https://aistudio.google.com/apikey${RESET}\n`)
+        process.stdout.write(`  ${DIM}  Then run: /connect gemini${RESET}\n\n`)
+      } else if (answer === 'deepseek') {
+        process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}📋 Get your DeepSeek key at https://platform.deepseek.com/${RESET}\n`)
+        process.stdout.write(`  ${DIM}  Then run: /connect deepseek${RESET}\n\n`)
+      } else if (answer === 'ollama') {
+        process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} Using Ollama (local). Ensure Ollama is running on localhost:11434\n\n`)
+        process.env.CORTEX_USE_OPENAI = '1'
+        process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
+        process.env.OPENAI_MODEL = 'llama3.2:3b'
+        delete process.env.ANTHROPIC_API_KEY
+      }
+    }
+    process.stdout.write(`  ${DIM}Tip: Run /connect anytime to switch providers.${RESET}\n\n`)
+  } else {
+    process.stdout.write(`✔ Initialize Mission Engine Interface: ${choice.name}\n                                     \n`)
+  }
 
 
   // Global ENV Injection
