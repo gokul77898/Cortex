@@ -439,8 +439,9 @@ export async function printStartupScreen(): Promise<void> {
       }
       process.env.ANTHROPIC_MODEL = cfg.model
       process.env.MODEL_ID = cfg.model
+      process.env.CORTEX_SIMPLE = '1'
       // Enable lite tools for faster responses (fewer tools = lighter API calls)
-      process.env.CORTEX_LITE_TOOLS = '1'
+
       // Persist provider profile so it's remembered on next restart
       try {
         addProviderProfile({
@@ -525,7 +526,7 @@ export async function printStartupScreen(): Promise<void> {
 
     process.env.ANTHROPIC_MODEL = choice.model
     process.env.MODEL_ID = choice.model
-    process.env.CORTEX_LITE_TOOLS = '1'
+    process.env.CORTEX_SIMPLE = '1'
 
     process.stdout.write(`\n  ${rgb(...ACCENT)}STATUS:${RESET} Asset Verified. Swarm Online @ ${rgb(...ACCENT)}${choice.model}${RESET}.\n\n`)
     await new Promise(r => setTimeout(r, 600))
