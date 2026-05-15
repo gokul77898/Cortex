@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>CORTEX Voice</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/night-owl.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
     :root {
       --bg: rgba(15, 15, 22, 0.85);
@@ -112,8 +114,63 @@
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.08);
       color: var(--fg);
-      white-space: pre-wrap;
     }
+    /* Code blocks inside AGI messages */
+    .msg.agi .code-block-wrap {
+      margin: 8px 0;
+      background: #011627;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .msg.agi .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 10px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .msg.agi .code-lang {
+      font-size: 10px;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .msg.agi .copy-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5);
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .msg.agi .copy-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .msg.agi pre {
+      margin: 0;
+      padding: 12px;
+      overflow-x: auto;
+    }
+    .msg.agi pre code {
+      background: none !important;
+      padding: 0 !important;
+      font-family: 'SF Mono', 'Menlo', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .msg.agi .inline-code {
+      background: rgba(0,0,0,0.3);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Menlo', monospace;
+    }
+    .msg.agi h1, .msg.agi h2, .msg.agi h3 { margin: 12px 0 6px; font-weight: 600; }
+    .msg.agi h1 { font-size: 16px; color: #fff; }
+    .msg.agi h2 { font-size: 14px; color: rgba(255,255,255,0.9); }
+    .msg.agi h3 { font-size: 13px; color: rgba(255,255,255,0.85); }
+    .msg.agi li { padding: 1px 0; color: rgba(255,255,255,0.8); font-size: 12.5px; }
     .msg.system {
       align-self: center;
       background: transparent;
@@ -417,10 +474,41 @@
   })
 
   // ─── UI helpers ──────────────────────────────────────────────
+  function formatContent(text) {
+    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const blocks = [];
+    text = text.replace(/```(\w*)\s*\n?([\s\S]*?)```/g, (_, lang, code) => {
+      const idx = blocks.length;
+      blocks.push({ lang, code });
+      return `%%CB_${idx}%%`;
+    });
+    text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+    text = text.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    text = text.replace(/\n\n/g, '<div style="height:6px"></div>');
+    text = text.replace(/\n/g, '<br>');
+    text = text.replace(/%%CB_(\d+)%%/g, (_, idx) => {
+      const { lang, code } = blocks[parseInt(idx)];
+      const label = lang ? `<span class="code-lang">${lang}</span>` : '';
+      return `<div class="code-block-wrap"><div class="code-header">${label}<button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.textContent);this.textContent='Copied!'">Copy</button></div><pre><code class="${lang?'language-'+lang:''}">${code}</code></pre></div>`;
+    });
+    return text;
+  }
+
   function addMsg(role, text = '') {
     const el = document.createElement('div')
     el.className = `msg ${role}`
-    el.textContent = text
+    if (role === 'agi') {
+      el.innerHTML = formatContent(text) || '&nbsp;'
+      el.querySelectorAll('pre code').forEach(c => { try { hljs.highlightElement(c) } catch {} })
+    } else {
+      el.textContent = text
+    }
     pane.appendChild(el)
     pane.scrollTop = pane.scrollHeight
     return el
@@ -538,8 +626,10 @@
   // ─── Streaming chunks from main ──────────────────────────────
   window.cortex.onChunk((chunk) => {
     if (!currentAgiMsg) return
+    const clean = chunk.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '')
     const current = currentAgiMsg.textContent === 'Thinking…' ? '' : currentAgiMsg.textContent
-    currentAgiMsg.textContent = current + chunk.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '')
+    currentAgiMsg.innerHTML = formatContent(current + clean) || '&nbsp;'
+    currentAgiMsg.querySelectorAll('pre code').forEach(c => { try { hljs.highlightElement(c) } catch {} })
     pane.scrollTop = pane.scrollHeight
   })
 
