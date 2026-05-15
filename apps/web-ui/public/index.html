@@ -1169,11 +1169,11 @@ function addMessage(content, isUser) {
 
 function formatContent(text) {
   text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const codeBlocks = [];
   text = text.replace(/```(\w*)\s*\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
-    const id = 'c' + Math.random().toString(36).slice(2, 8);
-    const code2 = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-    return `<div class="code-block-wrap"><div class="code-header"><span class="code-lang">${lang || 'code'}</span><button class="copy-btn" onclick="(function(b){navigator.clipboard.writeText(b.nextElementSibling.textContent);b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',1500)})(this)">Copy</button></div><pre><code class="${lang ? 'language-'+lang : ''}">${code2}</code></pre></div>`;
+    const idx = codeBlocks.length;
+    codeBlocks.push({ lang, code });
+    return `%%CODEBLOCK_${idx}%%`;
   });
   text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
   text = text.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -1186,6 +1186,11 @@ function formatContent(text) {
   text = text.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
   text = text.replace(/\n\n/g, '<div class="spacer"></div>');
   text = text.replace(/\n/g, '<br>');
+  text = text.replace(/%%CODEBLOCK_(\d+)%%/g, (_, idx) => {
+    const { lang, code } = codeBlocks[parseInt(idx)];
+    const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
+    return `<div class="code-block-wrap"><div class="code-header">${langLabel}<button class="copy-btn" onclick="(function(b){navigator.clipboard.writeText(b.parentElement.nextElementSibling.textContent);b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',1500)})(this)">Copy</button></div><pre><code class="${lang ? 'language-'+lang : ''}">${code}</code></pre></div>`;
+  });
   return text;
 }
 
