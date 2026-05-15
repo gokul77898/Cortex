@@ -2,6 +2,7 @@ import { password, select } from '@inquirer/prompts'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { addProviderProfile } from '../utils/providerProfiles.js'
 
 /**
  * CORTEX startup screen — Comprehensive Swarm Orchestrator.
@@ -424,6 +425,18 @@ export async function printStartupScreen(): Promise<void> {
       }
       process.env.ANTHROPIC_MODEL = cfg.model
       process.env.MODEL_ID = cfg.model
+      // Persist provider profile so it's remembered on next restart
+      try {
+        addProviderProfile({
+          name: answer === 'openai' ? 'OpenAI' : answer === 'anthropic' ? 'Anthropic' : answer.charAt(0).toUpperCase() + answer.slice(1),
+          provider: answer === 'anthropic' ? 'anthropic' : 'openai',
+          baseUrl: cfg.baseUrl,
+          model: cfg.model,
+          apiKey: userApiKey || undefined,
+        })
+      } catch {
+        // Profile save is best-effort
+      }
       process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} Configured ${answer}\n\n`)
       // Skip the old env injection below — we already set everything properly
       choice = undefined
