@@ -55,12 +55,12 @@ function ToolsMenu({ onDone }: { onDone: LocalJSXCommandOnDone }): React.ReactNo
           <Text dimColor>Default tools (always on): Bash, Read, Edit, Write, Glob, Grep, WebFetch</Text>
           {current.length > 0 && <Text dimColor>Extra tools: {current.join(', ')}</Text>}
           <Select
-            options={[
-              { value: 'add', label: 'Add extra tool', description: 'Enable an optional tool' },
-              { value: 'remove', label: 'Remove extra tool', description: 'Disable an optional tool' },
-              ...(current.length > 0 ? [{ value: 'clear', label: 'Remove all extras', description: 'Reset to 7 default tools' }] : []),
-            ]}
-            onSelect={(v: string) => {
+              options={[
+                { value: 'add', label: 'Add extra tool', description: 'Enable an optional tool' },
+                { value: 'remove', label: 'Remove extra tool', description: 'Disable an optional tool' },
+                ...(current.length > 0 ? [{ value: 'clear', label: 'Remove all extras', description: 'Reset to 7 default tools' }] : []),
+              ]}
+              onChange={(v: string) => {
               if (v === 'clear') {
                 saveExtraTools([])
                 onDone('Reset to 7 default tools.', { display: 'system' })
@@ -88,7 +88,7 @@ function ToolsMenu({ onDone }: { onDone: LocalJSXCommandOnDone }): React.ReactNo
       <Dialog title="Add Extra Tool" onCancel={() => setScreen('menu')}>
         <Select
           options={available.map(t => ({ value: t.value, label: t.label, description: t.desc }))}
-          onSelect={(v: string) => {
+          onChange={(v: string) => {
             const updated = [...current, v]
             saveExtraTools(updated)
             onDone(`Added ${v}. Now active: Bash, Read, Edit, Write, Glob, Grep, WebFetch${updated.length ? ', ' + updated.join(', ') : ''}`, { display: 'system' })
@@ -110,7 +110,7 @@ function ToolsMenu({ onDone }: { onDone: LocalJSXCommandOnDone }): React.ReactNo
       <Dialog title="Remove Extra Tool" onCancel={() => setScreen('menu')}>
         <Select
           options={current.map(t => ({ value: t, label: t, description: '' }))}
-          onSelect={(v: string) => {
+          onChange={(v: string) => {
             const updated = current.filter(t => t !== v)
             saveExtraTools(updated)
             const msg = updated.length
