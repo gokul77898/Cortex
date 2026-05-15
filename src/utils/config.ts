@@ -505,6 +505,9 @@ export type GlobalConfig = {
   officialMarketplaceAutoInstallLastAttemptTime?: number // Timestamp of last attempt
   officialMarketplaceAutoInstallNextRetryTime?: number // Earliest time to retry again
 
+  // Extra tools toggled via /tools command (complements CORTEX_SIMPLE mode's 7 default tools)
+  extraTools?: string[]
+
   // CORTEX in Chrome settings
   hasCompletedCORTEXInChromeOnboarding?: boolean // Whether CORTEX in Chrome onboarding has been shown
   cortexInChromeDefaultEnabled?: boolean // Whether CORTEX in Chrome is enabled by default (undefined means platform default)

@@ -285,6 +285,20 @@ export const getTools = (permissionContext: ToolPermissionContext): Tools => {
       return filterToolsByDenyRules(replSimple, permissionContext)
     }
     const simpleTools: Tool[] = [BashTool, FileReadTool, FileEditTool, FileWriteTool, GlobTool, GrepTool, WebFetchTool]
+    // Add any extra tools from CORTEX_EXTRA_TOOLS env var (set via /tools command)
+    const extraTools = process.env.CORTEX_EXTRA_TOOLS
+    if (extraTools) {
+      const toolMap: Record<string, Tool> = {
+        Agent: AgentTool, WebSearch: WebSearchTool, NotebookEdit: NotebookEditTool,
+        TodoWrite: TodoWriteTool, TaskStop: TaskStopTool, AskUserQuestion: AskUserQuestionTool,
+        SendMessage: getSendMessageTool(), SkillTool: SkillTool as Tool, BriefTool: BriefTool as Tool,
+        EnterPlanMode: EnterPlanModeTool, TaskOutput: TaskOutputTool,
+      }
+      for (const name of extraTools.split(',')) {
+        const tool = toolMap[name.trim()]
+        if (tool && !simpleTools.includes(tool)) simpleTools.push(tool)
+      }
+    }
     // When coordinator mode is also active, include AgentTool and TaskStopTool
     // so the coordinator gets Task+TaskStop (via useMergedTools filtering) and
     // workers get Bash/Read/Edit (via filterToolsForAgent filtering).
@@ -346,16 +360,7 @@ export function assembleToolPool(
   permissionContext: ToolPermissionContext,
   mcpTools: Tools,
 ): Tools {
-  let builtInTools = getTools(permissionContext)
-
-  // CORTEX_LITE_TOOLS=1 keeps only essential tools for faster API calls
-  if (isEnvTruthy(process.env.CORTEX_LITE_TOOLS)) {
-    const essential = new Set([
-      'Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep',
-      'WebFetch', 'WebSearch', 'Agent', 'Task',
-    ])
-    builtInTools = builtInTools.filter(t => essential.has(t.name))
-  }
+  const builtInTools = getTools(permissionContext)
 
   // Filter out MCP tools that are in the deny list
   const allowedMcpTools = filterToolsByDenyRules(mcpTools, permissionContext)
