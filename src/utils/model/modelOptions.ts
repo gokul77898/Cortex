@@ -692,6 +692,27 @@ function getKnownModelOption(model: string): ModelOption | null {
 }
 
 export function getModelOptions(fastMode = false): ModelOption[] {
+  const providerModels = getActiveProviderModelOptions()
+
+  if (providerModels.length > 0) {
+    const options: ModelOption[] = [{ value: null, label: 'Default', description: '' }]
+    for (const m of providerModels) {
+      options.push(m)
+    }
+    const currentMainLoopModel = getUserSpecifiedModelSetting()
+    const initialMainLoopModel = getInitialMainLoopModel()
+    let customModel: ModelSetting = null
+    if (currentMainLoopModel !== undefined && currentMainLoopModel !== null) {
+      customModel = currentMainLoopModel
+    } else if (initialMainLoopModel !== null) {
+      customModel = initialMainLoopModel
+    }
+    if (customModel !== null && !options.some(opt => opt.value === customModel)) {
+      options.push({ value: customModel, label: customModel, description: 'Custom model' })
+    }
+    return filterModelOptionsByAllowlist(options)
+  }
+
   const options = getModelOptionsBase(fastMode)
 
   // Add the custom model from the ANTHROPIC_CUSTOM_MODEL_OPTION env var
@@ -716,14 +737,6 @@ export function getModelOptions(fastMode = false): ModelOption[] {
 
   // Append additional model options fetched during bootstrap/endpoints.
   for (const opt of additionalOptions) {
-    if (!options.some(existing => existing.value === opt.value)) {
-      options.push(opt)
-    }
-  }
-
-  // Append known models from the active provider in the provider registry.
-  const providerModels = getActiveProviderModelOptions()
-  for (const opt of providerModels) {
     if (!options.some(existing => existing.value === opt.value)) {
       options.push(opt)
     }
