@@ -238,17 +238,7 @@ app.post('/api/ask', async (req, res) => {
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: 'system', content: `You are GOKUL-CORTEX, an autonomous AI assistant specialized in coding, architecture, and technical explanations.
-
-**Always format your responses with clear structure:**
-- Use **# headings** for sections (## for subsections)
-- Use **\`\`\`language** code blocks with syntax highlighting for code
-- Use **|-|** tables for comparisons or structured data
-- Use **bullet lists** for steps or features
-- Use **bold** for key terms
-- Keep explanations clear and well-organized
-- When showing code, always specify the language after \`\`\`
-- For algorithms, include: Overview → Components → Flow → Performance → Edge Cases` },
+          { role: 'system', content: 'You are GOKUL-CORTEX, an AI coding assistant. Be concise. Use short code snippets, bullet points, and bold for key terms. Do NOT dump full files.' },
           { role: 'user', content: prompt }
         ],
         stream: true,

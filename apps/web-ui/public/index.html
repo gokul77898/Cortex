@@ -1106,9 +1106,21 @@ function addMessage(content, isUser) {
 
 function formatContent(text) {
   text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const langLabel = lang ? `<span style="font-size:11px;color:rgba(255,255,255,0.4);padding:4px 12px;display:block;border-bottom:1px solid rgba(255,255,255,0.06)">${lang}</span>` : '';
+    const id = 'code-' + Math.random().toString(36).slice(2, 8);
+    return `<div style="margin:12px 0;background:rgba(0,0,0,0.5);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);position:relative;">${langLabel}<pre style="margin:0;padding:16px;overflow-x:auto;"><code style="background:none;padding:0;font-size:13px;line-height:1.6;display:block;">${code}</code></pre><button onclick="(function(){const el=document.getElementById('${id}');navigator.clipboard.writeText(el.textContent);el.textContent='Copied!';setTimeout(()=>el.textContent='Copy',2000)})()" style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer" id="${id}">Copy</button></div>`;
+  });
+  text = text.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-size:13px;">$1</code>');
+  text = text.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  text = text.replace(/^### (.+)$/gm, '<div style="font-size:16px;font-weight:600;margin:16px 0 8px;color:rgba(255,255,255,0.9)">$1</div>');
+  text = text.replace(/^## (.+)$/gm, '<div style="font-size:18px;font-weight:700;margin:20px 0 10px;color:rgba(255,255,255,0.95)">$1</div>');
+  text = text.replace(/^# (.+)$/gm, '<div style="font-size:22px;font-weight:700;margin:24px 0 12px;color:#fff">$1</div>');
+  text = text.replace(/^- (.+)$/gm, '<div style="padding:2px 0 2px 16px;position:relative">&bull; $1</div>');
+  text = text.replace(/^\d+\. (.+)$/gm, '<div style="padding:2px 0 2px 16px;position:relative">$&</div>');
+  text = text.replace(/\n\n/g, '<div style="height:8px"></div>');
   text = text.replace(/\n/g, '<br>');
   return text;
 }
@@ -1165,37 +1177,52 @@ async function sendMessage() {
       body: JSON.stringify({ prompt }),
     });
     
-    hideTyping();
-    
     if (!response.ok) {
+      hideTyping();
       const err = await response.text();
       addError('Error: ' + err.slice(0, 200));
+      sendBtn.disabled = false;
       return;
     }
     
+    hideTyping();
+    
+    // Create streaming message container
+    if (emptyState) emptyState.remove();
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message bot';
+    msgDiv.innerHTML = '<div class="message-avatar">🧠</div><div class="message-content" id="stream-content"></div>';
+    chatContainer.appendChild(msgDiv);
+    
+    const contentDiv = document.getElementById('stream-content');
+    let fullText = '';
+    
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let fullResponse = '';
+    let buffer = '';
     
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      fullResponse += decoder.decode(value, { stream: true });
-    }
-    
-    const lines = fullResponse.split('\n\n');
-    let responseText = '';
-    for (const line of lines) {
-      const match = line.match(/data: (.+)/);
-      if (match) {
-        try {
-          const data = JSON.parse(match[1]);
-          if (data.text) responseText += data.text;
-        } catch {}
+      buffer += decoder.decode(value, { stream: true });
+      
+      const lines = buffer.split('\n\n');
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        const match = line.match(/data: (.+)/);
+        if (match) {
+          try {
+            const data = JSON.parse(match[1]);
+            if (data.text) {
+              fullText += data.text;
+              contentDiv.innerHTML = formatContent(fullText);
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+          } catch {}
+        }
       }
     }
-    
-    addMessage(responseText || 'No response', false);
     
     uploadedFiles = [];
     updateUploadedFilesDisplay();
