@@ -458,15 +458,33 @@ async function main(): Promise<void> {
       const { spawn } = await import('child_process');
       const { resolve, dirname } = await import('path');
       const { fileURLToPath } = await import('url');
+      const http = await import('http');
       const scriptDir = dirname(fileURLToPath(import.meta.url));
       const webScript = resolve(scriptDir, '..', 'bin', 'AGI-web');
-      const child = spawn(webScript, [], {
-        detached: true,
-        stdio: 'ignore',
-        env: { ...process.env, CORTEX_AUTO_OPEN: 'true' }
+      const PORT = Number(process.env.CORTEX_WEB_PORT || 3738);
+
+      // Check if dashboard is already running
+      const isRunning = await new Promise(resolve => {
+        const req = http.get(`http://localhost:${PORT}`, res => { res.resume(); resolve(true); });
+        req.on('error', () => resolve(false));
+        req.setTimeout(2000, () => { req.destroy(); resolve(false); });
       });
-      child.unref();
-      process.stderr.write(`${GREEN}🌐 Starting CORTEX Dashboard...${RESET}\n`);
+
+      if (!isRunning) {
+        spawn(webScript, [], {
+          detached: true,
+          stdio: 'ignore',
+          env: { ...process.env, CORTEX_AUTO_OPEN: 'true' }
+        }).unref();
+        // Give it a moment to start, then open browser
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      // Open browser directly from here (bypasses any .bin/open shim)
+      const opener = process.platform === 'darwin' ? '/usr/bin/open'
+        : process.platform === 'win32' ? 'start' : 'xdg-open';
+      spawn(opener, [`http://localhost:${PORT}`], { detached: true, stdio: 'ignore' }).unref();
+      process.stderr.write(`${GREEN}🌐 CORTEX Dashboard → http://localhost:${PORT}${RESET}\n`);
     } catch (e) {
       process.stderr.write(`${YELLOW}⚠ Could not auto-start dashboard: ${e}${RESET}\n`);
     }
