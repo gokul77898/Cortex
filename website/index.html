@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CORTEX — Autonomous AGI Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0a0f;
+      color: #fff;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+    canvas#bg { position: fixed; top: 0; left: 0; z-index: 0; }
+    .content { position: relative; z-index: 1; }
+
+    /* Glass morphism */
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+    }
+    .glass-strong {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 2rem;
+      animation: fadeInDown 0.8s ease;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero h1 {
+      font-size: clamp(3rem, 10vw, 8rem);
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 1s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero h1 span { background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p {
+      max-width: 600px;
+      font-size: 1.2rem;
+      line-height: 1.8;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 1s ease 0.2s both;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeInUp 1s ease 0.4s both;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      color: #fff;
+      box-shadow: 0 4px 30px rgba(96,165,250,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(96,165,250,0.5); }
+    .btn-glass {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .btn-glass:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: bounce 2s infinite;
+      opacity: 0.5;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(10px); }
+    }
+
+    /* Sections */
+    section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .section-subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+      max-width: 600px;
+      margin: 0 auto 4rem;
+      font-size: 1.1rem;
+    }
+
+    /* Feature grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .feature-card {
+      padding: 2rem;
+      transition: all 0.4s ease;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card:hover { transform: translateY(-4px); }
+    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p { color: rgba(255,255,255,0.5); font-size: 0.9rem; line-height: 1.6; }
+
+    /* Stat counter */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin: 4rem 0;
+    }
+    .stat-card {
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+    }
+    .stat-number {
+      font-size: 3.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-label {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      padding: 8rem 2rem;
+    }
+    .cta-section h2 {
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 900;
+      margin-bottom: 1.5rem;
+    }
+    .cta-section p {
+      color: rgba(255,255,255,0.5);
+      max-width: 500px;
+      margin: 0 auto 2.5rem;
+    }
+
+    /* Code block */
+    .code-block {
+      padding: 2rem;
+      margin: 2rem auto;
+      max-width: 700px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .code-block .comment { color: rgba(255,255,255,0.3); }
+    .code-block .keyword { color: #a78bfa; }
+    .code-block .string { color: #60a5fa; }
+    .code-block .function { color: #f472b6; }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+    nav.scrolled { background: rgba(10,10,15,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .nav-logo {
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      color: #fff;
+    }
+    .nav-logo span { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: #fff; }
+    .nav-links .btn { padding: 0.6rem 1.2rem; font-size: 0.85rem; }
+
+    /* Commands table */
+    .commands-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .command-item {
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .command-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: #60a5fa;
+    }
+    .command-desc {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+      text-align: right;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.85rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    @media (max-width: 768px) {
+      .nav-links a:not(.btn) { display: none; }
+      section { padding: 4rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <nav id="nav">
+    <a href="#" class="nav-logo">CORTEX<span>.</span></a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#commands">Commands</a>
+      <a href="https://github.com/gokul77898/Cortex" target="_blank">GitHub</a>
+      <a href="https://github.com/gokul77898/Cortex" class="btn btn-primary">★ Star on GitHub</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <section class="hero">
+      <div class="hero-badge glass">
+        <span>✦</span> v0.1.18 — Open Source
+      </div>
+      <h1>Code with the <span>Swarm</span></h1>
+      <p>An open-source, agentic AI coding assistant powered by 162 specialist agents, 45+ LLM providers, and a neural swarm architecture. Your terminal, amplified.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/gokul77898/Cortex" class="btn btn-primary">
+          ▸ Get Started
+        </a>
+        <a href="#features" class="btn btn-glass">
+          Explore Features
+        </a>
+      </div>
+      <div class="code-block glass">
+        <span class="comment"># One command to install</span><br>
+        curl -fsSL https://cortex.sh/install | bash<br>
+        <span class="comment"># Or via npm</span><br>
+        npm install -g @gokulvenkatareddy/cortex<br><br>
+        <span class="keyword">cortex</span> <span class="string">"refactor auth to async/await"</span>
+      </div>
+      <div class="scroll-indicator">⌄</div>
+    </section>
+
+    <section id="features">
+      <h2 class="section-title">Everything Built In</h2>
+      <p class="section-subtitle">No subscriptions. No vendor lock-in. Just you, your terminal, and 162 expert agents.</p>
+      <div class="stats">
+        <div class="stat-card glass">
+          <div class="stat-number">45+</div>
+          <div class="stat-label">LLM Providers</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-number">162</div>
+          <div class="stat-label">Specialist Agents</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-number">50+</div>
+          <div class="stat-label">Slash Commands</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-number">38</div>
+          <div class="stat-label">MCP Servers</div>
+        </div>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card glass">
+          <div class="feature-icon">🧠</div>
+          <h3>Any LLM, One Command</h3>
+          <p>OpenRouter, Groq, HuggingFace, NVIDIA, OpenAI, Anthropic, Gemini — switch with /connect.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">👥</div>
+          <h3>162 Specialist Agents</h3>
+          <p>Engineering, design, marketing, security, game dev, XR — spawn experts via the Agent tool.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">🔌</div>
+          <h3>38 MCP Servers</h3>
+          <p>GitHub, Slack, Linear, Postgres, Playwright, Docker, Kubernetes — ecosystem hooks built in.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">⚡</div>
+          <h3>7 Default Tools</h3>
+          <p>Bash, Read, Edit, Write, Glob, Grep, WebFetch — lightweight, fast. Add more via /tools.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">🎤</div>
+          <h3>Voice + Vision</h3>
+          <p>Whisper STT, Bark TTS, screen vision via desktop capture. Your AI sees what you see.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">🦙</div>
+          <h3>Offline Mode</h3>
+          <p>Ollama fallback works without internet. Full agentic coding on local models.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">🔐</div>
+          <h3>Zero Telemetry</h3>
+          <p>21 telemetry modules stubbed at build time. Your code stays your code.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">🐙</div>
+          <h3>Octogent Orchestrator</h3>
+          <p>Multi-agent swarm with tentacles, inter-agent messaging, and parent/child agent trees.</p>
+        </div>
+        <div class="feature-card glass">
+          <div class="feature-icon">🎨</div>
+          <h3>4 Interfaces</h3>
+          <p>CLI · Electron floating UI · Web dashboard · VS Code extension — same brain everywhere.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="commands">
+      <h2 class="section-title">50+ Slash Commands</h2>
+      <p class="section-subtitle">Or just type what you want — the AI auto-routes to the right tool.</p>
+      <div class="commands-grid">
+        <div class="command-item glass"><span class="command-name">/connect</span><span class="command-desc">Add any provider</span></div>
+        <div class="command-item glass"><span class="command-name">/model</span><span class="command-desc">Switch models live</span></div>
+        <div class="command-item glass"><span class="command-name">/tools</span><span class="command-desc">Toggle toolset</span></div>
+        <div class="command-item glass"><span class="command-name">/agent</span><span class="command-desc">Chat with specialists</span></div>
+        <div class="command-item glass"><span class="command-name">/sessions</span><span class="command-desc">Browse history</span></div>
+        <div class="command-item glass"><span class="command-name">/compress</span><span class="command-desc">Reduce token usage</span></div>
+        <div class="command-item glass"><span class="command-name">/smart-commit</span><span class="command-desc">AI commits</span></div>
+        <div class="command-item glass"><span class="command-name">/pr-review</span><span class="command-desc">Review PRs</span></div>
+        <div class="command-item glass"><span class="command-name">/test-gen</span><span class="command-desc">Generate tests</span></div>
+        <div class="command-item glass"><span class="command-name">/security-scan</span><span class="command-desc">Audit code</span></div>
+        <div class="command-item glass"><span class="command-name">/swarm</span><span class="command-desc">Parallel agents</span></div>
+        <div class="command-item glass"><span class="command-name">/voice</span><span class="command-desc">Voice I/O</span></div>
+      </div>
+    </section>
+
+    <section class="cta-section">
+      <div class="glass-strong" style="padding:4rem 2rem;max-width:800px;margin:0 auto;">
+        <h2>Ready to <span style="background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">amplify</span> your terminal?</h2>
+        <p>Free. Open source. Runs on any LLM. 162 agents at your command.</p>
+        <div class="hero-actions">
+          <a href="https://github.com/gokul77898/Cortex" class="btn btn-primary">★ Star on GitHub</a>
+          <a href="https://github.com/gokul77898/Cortex" class="btn btn-glass">View on GitHub →</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      CORTEX — MIT License · Built with TypeScript + Bun + Ink<br>
+      Powered by OpenRouter · Groq · HuggingFace · Together AI · NVIDIA · and more
+    </footer>
+  </div>
+
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    const canvas = document.getElementById('bg');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Particles
+    const particleCount = 3000;
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i++) {
+      positions[i*3] = (Math.random() - 0.5) * 30;
+      positions[i*3+1] = (Math.random() - 0.5) * 30;
+      positions[i*3+2] = (Math.random() - 0.5) * 30;
+      const c = new THREE.Color().setHSL(0.6 + Math.random() * 0.3, 0.8, 0.5);
+      colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+      sizes[i] = Math.random() * 3 + 0.5;
+    }
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    particleGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const particleMat = new THREE.PointsMaterial({
+      size: 0.03, vertexColors: true, transparent: true, opacity: 0.8,
+      blending: THREE.AdditiveBlending, sizeAttenuation: true
+    });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
+    // Central geometric shapes
+    const shapes = [];
+    const geometries = [
+      new THREE.IcosahedronGeometry(0.8, 0),
+      new THREE.OctahedronGeometry(0.7),
+      new THREE.TorusKnotGeometry(0.5, 0.2, 64, 8),
+      new THREE.DodecahedronGeometry(0.6),
+    ];
+    for (let i = 0; i < 5; i++) {
+      const geo = geometries[i % geometries.length];
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color().setHSL(0.6 + Math.random() * 0.3, 0.9, 0.4),
+        wireframe: true, transparent: true, opacity: 0.15 + Math.random() * 0.15,
+        metalness: 0.3, roughness: 0.4,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 6,
+        -5 + (Math.random() - 0.5) * 8
+      );
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      mesh.userData = { rotSpeed: 0.002 + Math.random() * 0.005, floatOffset: Math.random() * Math.PI * 2 };
+      scene.add(mesh);
+      shapes.push(mesh);
+    }
+
+    // Connection lines
+    const lineGeo = new THREE.BufferGeometry();
+    const linePositions = [];
+    for (let i = 0; i < 200; i++) {
+      const i1 = Math.floor(Math.random() * particleCount);
+      const i2 = Math.floor(Math.random() * particleCount);
+      linePositions.push(positions[i1*3], positions[i1*3+1], positions[i1*3+2]);
+      linePositions.push(positions[i2*3], positions[i2*3+1], positions[i2*3+2]);
+    }
+    lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.03 });
+    const lines = new THREE.LineSegments(lineGeo, lineMat);
+    scene.add(lines);
+
+    // Glow sphere
+    const glowGeo = new THREE.SphereGeometry(1.5, 32, 32);
+    const glowMat = new THREE.MeshPhysicalMaterial({
+      color: 0x60a5fa, transparent: true, opacity: 0.04,
+      emissive: 0x60a5fa, emissiveIntensity: 0.1,
+      roughness: 0.2, metalness: 0.8,
+    });
+    const glowSphere = new THREE.Mesh(glowGeo, glowMat);
+    glowSphere.position.set(0, 0, -3);
+    scene.add(glowSphere);
+
+    camera.position.z = 7;
+
+    let mouseX = 0, mouseY = 0;
+    document.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    // Nav scroll effect
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    let time = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.001;
+
+      particles.rotation.y += 0.0003;
+      particles.rotation.x = Math.sin(time * 0.1) * 0.05;
+
+      shapes.forEach((s, i) => {
+        s.rotation.x += s.userData.rotSpeed;
+        s.rotation.y += s.userData.rotSpeed * 1.5;
+        s.position.y += Math.sin(time * 2 + s.userData.floatOffset) * 0.001;
+      });
+
+      glowSphere.rotation.x += 0.001;
+      glowSphere.rotation.y += 0.002;
+
+      camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.02;
+      camera.position.y += (-mouseY * 0.3 - camera.position.y) * 0.02;
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
