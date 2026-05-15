@@ -152,7 +152,7 @@
     "ollama",
     "gemini"
   ],
-  "license": "SEE LICENSE FILE",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   }

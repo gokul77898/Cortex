@@ -1,27 +1,19 @@
 ---
-name: Feature request
-about: Suggest an improvement or new capability for OpenClaude
-title: ""
-labels: ""
-assignees: ""
+name: Feature Request
+about: Suggest an idea for CORTEX
+title: ''
+labels: enhancement
+assignees: ''
 ---
 
-## Summary
+**Is your feature request related to a problem?**
+A clear description of the problem.
 
-What would you like OpenClaude to do?
+**Describe the solution you'd like**
+What you want to happen.
 
-## Problem
+**Describe alternatives you've considered**
+Other approaches you've thought about.
 
-What problem does this solve for you?
-
-## Proposed Direction
-
-Describe the smallest useful version of the feature if possible.
-
-## Alternatives Considered
-
-What are you doing today instead?
-
-## Additional Context
-
-Examples, screenshots, related projects, or prior art.
+**Additional context**
+Examples, screenshots, references to how other tools handle this.

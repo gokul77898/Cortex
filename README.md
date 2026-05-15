@@ -12,18 +12,14 @@
 
 <p align="center">
   <strong>An open-source, agentic AI coding assistant for your terminal, desktop, and editor.</strong><br/>
-  Runs entirely on free HuggingFace models. No Anthropic / OpenAI subscription required.
+  Connect to any LLM provider — OpenRouter, Groq, HuggingFace, NVIDIA, OpenAI, Anthropic, Gemini, and more.
 </p>
 
 <p align="center">
-  <a href="#-quick-start"><img src="https://img.shields.io/badge/Quick%20Start-5%20min-brightgreen" /></a>
-  <a href="#-architecture"><img src="https://img.shields.io/badge/Architecture-Full%20Diagram-blue" /></a>
-  <a href="#-command-reference-50-total"><img src="https://img.shields.io/badge/Commands-50+-purple" /></a>
-  <a href="#-153-specialist-agents"><img src="https://img.shields.io/badge/Agents-162-orange" /></a>
-  <a href="#-mcp-servers-38-registered"><img src="https://img.shields.io/badge/MCP%20Servers-38-cyan" /></a>
-  <a href="#-quick-start"><img src="https://img.shields.io/badge/Install-1%20command-green" /></a>
-  <a href="#-docker"><img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" /></a>
-  <a href="https://www.npmjs.com/package/@gitlawb/cortex"><img src="https://img.shields.io/badge/npm-%40gitlawb%2Fcortex-red?logo=npm" /></a>
+  <a href="ARCHITECTURE.md"><img src="https://img.shields.io/badge/Architecture-View-blue" /></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/Contributing-Guide-green" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-View-purple" /></a>
+  <a href="SECURITY.md"><img src="https://img.shields.io/badge/Security-Policy-orange" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" /></a>
 </p>
 

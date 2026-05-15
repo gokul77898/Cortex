@@ -1,41 +1,28 @@
 ---
-name: Bug report
-about: Report a reproducible problem in OpenClaude
-title: ""
-labels: ""
-assignees: ""
+name: Bug Report
+about: Report a bug to help us improve
+title: ''
+labels: bug
+assignees: ''
 ---
 
-## Summary
+**Describe the bug**
+A clear description of what's happening.
 
-What is broken?
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Run `...`
+2. Type `...`
+3. See error
 
-## Steps to Reproduce
+**Expected behavior**
+What you expected to happen.
 
-1.
-2.
-3.
+**Environment**
+- OS: [e.g. macOS 14.5]
+- CORTEX version: [e.g. 0.1.18]
+- Node version: [e.g. 22.22.0]
+- Provider: [e.g. OpenRouter, Groq]
 
-## Expected Behavior
-
-What should have happened?
-
-## Actual Behavior
-
-What happened instead?
-
-## Environment
-
-- OpenClaude version:
-- OS:
-- Terminal:
-- Provider:
-- Model:
-
-## Logs / Screenshots
-
-Paste the exact error output or attach screenshots if useful.
-
-## Additional Context
-
-Anything else maintainers should know?
+**Additional context**
+Error messages, screenshots, etc.
