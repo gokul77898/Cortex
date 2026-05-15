@@ -19,13 +19,14 @@ export async function fetchOpenRouterModels(apiKey?: string): Promise<OpenRouter
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
     const res = await axios.get('https://openrouter.ai/api/v1/models', { headers, timeout: 8000 })
     const data = res.data?.data ?? []
-    cachedModels = data.map((m: any) => ({
+    const models: OpenRouterModel[] = (data as any[]).map((m: any) => ({
       id: m.id,
       name: m.name ?? m.id,
       description: m.description ?? '',
       pricing: m.pricing ?? { prompt: 0, completion: 0 },
       context_length: m.context_length ?? 0,
     }))
+    cachedModels = models
     cacheTime = Date.now()
     return cachedModels
   } catch {
