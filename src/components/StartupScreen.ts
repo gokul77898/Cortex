@@ -402,7 +402,9 @@ export async function printStartupScreen(): Promise<void> {
       delete process.env.CORTEX_USE_BEDROCK
       delete process.env.CORTEX_USE_VERTEX
       delete process.env.ANTHROPIC_API_KEY
+      delete process.env.ANTHROPIC_BASE_URL
       delete process.env.HF_TOKEN
+      delete process.env.NVIDIA_API_KEY
 
       for (const [k, v] of Object.entries(cfg.env)) {
         process.env[k] = v
@@ -423,7 +425,8 @@ export async function printStartupScreen(): Promise<void> {
       process.env.ANTHROPIC_MODEL = cfg.model
       process.env.MODEL_ID = cfg.model
       process.stdout.write(`\n  ${rgb(...NEON_GREEN)}✓${RESET} Configured ${answer}\n\n`)
-      choice = { name: answer, model: cfg.model, baseUrl: cfg.baseUrl, apiKey: userApiKey || '', provider: answer === 'anthropic' ? 'cortex' : answer === 'huggingface' ? 'huggingface' : answer === 'nvidia' ? 'nvidia' : answer === 'gemini' ? 'gemini' : 'openai' }
+      // Skip the old env injection below — we already set everything properly
+      choice = undefined
     } else {
       process.stdout.write(`\n  ${DIM}Run /connect to configure a provider later.${RESET}\n\n`)
     }
