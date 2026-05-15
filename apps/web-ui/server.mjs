@@ -216,12 +216,12 @@ app.post('/api/ask', async (req, res) => {
   
   send('start', { prompt, ts: start })
   
-  const apiKey = process.env.GROQ_API_KEY || ''
-  const baseUrl = process.env.CORTEX_GROQ_FALLBACK_URL || 'https://api.groq.com/openai/v1'
-  const model = process.env.CORTEX_GROQ_FALLBACK_MODEL || 'openai/gpt-oss-120b'
+  const apiKey = process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || ''
+  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/+$/, '')
+  const model = process.env.OPENAI_MODEL || 'minimax/minimax-m2.5:free'
   
   if (!apiKey) {
-    send('error', { text: 'OPENAI_API_KEY not configured' })
+    send('error', { text: 'No API key configured. Set OPENAI_API_KEY in .env' })
     res.end()
     return
   }
