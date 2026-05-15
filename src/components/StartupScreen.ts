@@ -2,7 +2,7 @@ import { password, select } from '@inquirer/prompts'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { addProviderProfile } from '../utils/providerProfiles.js'
+import { getActiveProviderProfile, addProviderProfile } from '../utils/providerProfiles.js'
 
 /**
  * CORTEX startup screen — Comprehensive Swarm Orchestrator.
@@ -305,6 +305,20 @@ export async function printStartupScreen(): Promise<void> {
     ? nvMission
     : hfMission ?? missions[missions.length - 1]
 
+  // If no .env keys found, check for a saved provider profile from a previous session
+  if (!choice || !choice.apiKey) {
+    const savedProfile = getActiveProviderProfile()
+    if (savedProfile?.apiKey) {
+      choice = {
+        name: savedProfile.name,
+        model: savedProfile.model,
+        baseUrl: savedProfile.baseUrl,
+        apiKey: savedProfile.apiKey,
+        provider: savedProfile.provider === 'anthropic' ? 'cortex' : 'openai',
+      }
+    }
+  }
+
   if (!choice || !choice.apiKey) {
     process.stdout.write(`\n  ${rgb(...NEON_YELLOW)}⚠ No API provider configured.${RESET}\n`)
     process.stdout.write(`  ${rgb(...NEON_CYAN)}Pick a provider to get started:${RESET}\n`)
@@ -425,6 +439,8 @@ export async function printStartupScreen(): Promise<void> {
       }
       process.env.ANTHROPIC_MODEL = cfg.model
       process.env.MODEL_ID = cfg.model
+      // Enable lite tools for faster responses (fewer tools = lighter API calls)
+      process.env.CORTEX_LITE_TOOLS = '1'
       // Persist provider profile so it's remembered on next restart
       try {
         addProviderProfile({
@@ -509,6 +525,7 @@ export async function printStartupScreen(): Promise<void> {
 
     process.env.ANTHROPIC_MODEL = choice.model
     process.env.MODEL_ID = choice.model
+    process.env.CORTEX_LITE_TOOLS = '1'
 
     process.stdout.write(`\n  ${rgb(...ACCENT)}STATUS:${RESET} Asset Verified. Swarm Online @ ${rgb(...ACCENT)}${choice.model}${RESET}.\n\n`)
     await new Promise(r => setTimeout(r, 600))

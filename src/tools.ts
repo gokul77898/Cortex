@@ -346,7 +346,16 @@ export function assembleToolPool(
   permissionContext: ToolPermissionContext,
   mcpTools: Tools,
 ): Tools {
-  const builtInTools = getTools(permissionContext)
+  let builtInTools = getTools(permissionContext)
+
+  // CORTEX_LITE_TOOLS=1 keeps only essential tools for faster API calls
+  if (isEnvTruthy(process.env.CORTEX_LITE_TOOLS)) {
+    const essential = new Set([
+      'Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep',
+      'WebFetch', 'WebSearch', 'Agent', 'Task',
+    ])
+    builtInTools = builtInTools.filter(t => essential.has(t.name))
+  }
 
   // Filter out MCP tools that are in the deny list
   const allowedMcpTools = filterToolsByDenyRules(mcpTools, permissionContext)
