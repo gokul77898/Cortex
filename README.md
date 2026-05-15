@@ -19,7 +19,7 @@
   <a href="#-quick-start"><img src="https://img.shields.io/badge/Quick%20Start-5%20min-brightgreen" /></a>
   <a href="#-architecture"><img src="https://img.shields.io/badge/Architecture-Full%20Diagram-blue" /></a>
   <a href="#-command-reference-50-total"><img src="https://img.shields.io/badge/Commands-50+-purple" /></a>
-  <a href="#-153-specialist-agents"><img src="https://img.shields.io/badge/Agents-153-orange" /></a>
+  <a href="#-153-specialist-agents"><img src="https://img.shields.io/badge/Agents-162-orange" /></a>
   <a href="#-mcp-servers-38-registered"><img src="https://img.shields.io/badge/MCP%20Servers-38-cyan" /></a>
   <a href="#-quick-start"><img src="https://img.shields.io/badge/Install-1%20command-green" /></a>
   <a href="#-docker"><img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" /></a>
@@ -83,7 +83,7 @@ A fully-agentic AI coding assistant with **everything built-in** — 50+ slash c
 | 🔄 | **Auto-failover** | Primary `zai-org/GLM-5:together` → fallback `:novita` on 5xx errors |
 | 🦙 | **Offline mode** | Ollama detected automatically at `localhost:11434` — zero config |
 | ⚡ | **50+ slash commands** | Smart commits, PR reviews, RAG, agents, voice, media, diagrams |
-| 👥 | **153 specialist agents** | Engineering · Marketing · Security · Design · Testing · Compliance · XR |
+| 👥 | **162 specialist agents** | Engineering · Marketing · Security · Design · Testing · Compliance · XR |
 | 🔌 | **38 MCP servers** | GitHub, Slack, Linear, Context7, Serena, Playwright, Jupyter, Git, Exa, Tavily, DuckDuckGo, Time, Everything, Postgres, SQLite, Puppeteer, Fetch, Memory, Filesystem, Seq-Thinking, Docker, Kubernetes, Chroma, Excel, Pandoc, PDF-Reader, Wikipedia, ArXiv, HackerNews, Reddit, YouTube-Transcript, RepoMix, OSM, AppleScript, Apple-Shortcuts, Automation-Mac, Calculator |
 | 🎤 | **Voice I/O** | Whisper (STT) + Bark (TTS) + Web Speech API |
 | 👁 | **Screen vision** | Electron `desktopCapturer` → vision LLM every 10s |
@@ -1287,6 +1287,21 @@ Measured on MacBook Air M2 · HF Router + Together provider · unless noted:
 5. Push + open a PR
 
 All contributions welcome — new agents, new commands, new MCPs, UI polish, bug fixes, docs.
+
+---
+
+## 🆕 Recent Changes
+
+| Change | Description |
+|--------|-------------|
+| **45+ Provider Registry** | Connect to OpenRouter, Groq, HuggingFace, NVIDIA, Cerebras, Together AI, Deep Infra, Fireworks, OpenAI, Anthropic, Google Gemini, DeepSeek, Mistral, xAI, Ollama, LM Studio, and more |
+| **`/connect` command** | Interactive provider setup — pick a category, pick a provider, paste API key, done |
+| **`/tools` command** | Toggle extra tools on/off. 7 default tools (Bash, Read, Edit, Write, Glob, Grep, WebFetch) + optional extras (Agent, WebSearch, NotebookEdit, TodoWrite, etc.) |
+| **`/model` picker** | Now shows only your active provider's models (not all mixed together) |
+| **Startup provider picker** | First-run wizard when no API key is configured — pick a provider, paste your key, it persists |
+| **Persistent API keys** | Keys saved to provider profile → remembered across restarts |
+| **Token optimization** | 162-agent list moved out of tool description (saves ~5K tokens/turn), CORTEX.md trimmed 85%, Bash git instructions compacted |
+| **162 specialist agents** | All game engine agents (Godot, Unity, Unreal, Roblox, Blender) now properly loaded |
 
 ---
 
