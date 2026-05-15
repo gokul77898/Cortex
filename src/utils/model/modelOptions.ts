@@ -815,34 +815,36 @@ function filterModelOptionsByAllowlist(options: ModelOption[]): ModelOption[] {
 }
 
 // =============================================================================
-// OpenRouter FREE Models — All free models available
+// OpenRouter FREE Models — Fetched live from OpenRouter API
 // =============================================================================
 export function getOpenRouterFreeModels(): ModelOption[] {
-  return [
-    { value: 'nvidia/nemotron-3-super:free', label: '🚀 Nemotron 3 Super 639B (Free)', description: 'NVIDIA · 262K context' },
-    { value: 'inclusionai/ring-2.6-1t:free', label: '🔷 inclusionAI Ring 2.6 1T (Free)', description: '530B · 262K context' },
-    { value: 'poolside/laguna-m1:free', label: '🌊 Poolside Laguna M1 (Free)', description: '236B · 131K context' },
-    { value: 'openai/gpt-oss-120b:free', label: '🤖 GPT-OSS 120B (Free)', description: 'OpenAI · 131K context' },
-    { value: 'z-ai/glm-4-5-air:free', label: '🧠 GLM 4.5 Air (Free)', description: 'Z.ai · 131K context' },
-    { value: 'minimax/minimax-m2.5:free', label: '⭐ MiniMax M2.5 (Free)', description: 'Best text · 196K context' },
-    { value: 'nvidia/nemotron-3-nano-30b-a3b:free', label: '🔷 Nemotron 3 Nano 30B (Free)', description: 'NVIDIA · 256K context' },
-    { value: 'poolside/laguna-xs2:free', label: '🌊 Poolside Laguna XS.2 (Free)', description: '36.8B · 131K context' },
-    { value: 'openai/gpt-oss-20b:free', label: '🤖 GPT-OSS 20B (Free)', description: 'OpenAI · 131K context' },
-    { value: 'baidu-qianfan/cobuddy:free', label: '🇨🇳 Baidu CoBuddy (Free)', description: '22.7B · 131K context' },
-    { value: 'arcee-ai/trinity-large-thinking:free', label: '🧠 Arcee Trinity Large (Free)', description: '16.3B · 262K · Thinking' },
-    { value: 'nvidia/nemotron-3-nano-omni:free', label: '🔷 Nemotron 3 Nano Omni (Free)', description: 'NVIDIA · 256K context' },
-    { value: 'deepseek/deepseek-v4-flash:free', label: '⚡ DeepSeek V4 Flash (Free)', description: '1M context' },
-    { value: 'google/gemma-4-31b:free', label: '🔷 Gemma 4 31B (Free)', description: 'Google · 262K context' },
-    { value: 'nvidia/nemotron-nano-12b-2-vl:free', label: '👁 Nemotron 12B Vision (Free)', description: 'NVIDIA vision' },
-    { value: 'nvidia/nemotron-nano-9b-v2:free', label: '🔷 Nemotron Nano 9B V2 (Free)', description: 'NVIDIA · 128K context' },
-    { value: 'google/gemma-4-26b-a4b:free', label: '📸 Gemma 4 26B Vision (Free)', description: 'Best vision' },
-    { value: 'qwen/qwen3-coder-480b-a35b:free', label: '💻 Qwen3 Coder 480B (Free)', description: 'Best coding · 262K context' },
-    { value: 'qwen/qwen3-next-80b-a3b-instruct:free', label: '💻 Qwen3 Next 80B (Free)', description: '262K context' },
-    { value: 'meta-llama/llama-3.3-70b-instruct:free', label: '🦙 Llama 3.3 70B (Free)', description: 'Meta · 65K context' },
-    { value: 'liquid/lfm-2.5-1.2b-thinking:free', label: '💧 Liquid LFM 1.2B Thinking (Free)', description: '32K context' },
-    { value: 'liquid/lfm-2.5-1.2b-instruct:free', label: '💧 Liquid LFM 1.2B Instruct (Free)', description: '32K context' },
-    { value: 'nousresearch/hermes-3-405b-instruct:free', label: '🏛 Hermes 3 405B (Free)', description: 'Nous · 131K context' },
-    { value: 'meta-llama/llama-3.2-3b-instruct:free', label: '🦙 Llama 3.2 3B (Free)', description: 'Meta · 131K context' },
-    { value: 'openrouter/free', label: '📦 Auto (Free)', description: 'Best available free model' },
-  ]
+  return OR_FREE_DEFAULTS
 }
+
+const OR_FREE_DEFAULTS: ModelOption[] = [
+  { value: 'nvidia/nemotron-3-super:free', label: '🚀 Nemotron 3 Super 639B (Free)', description: 'NVIDIA · 262K context' },
+  { value: 'inclusionai/ring-2.6-1t:free', label: '🔷 inclusionAI Ring 2.6 1T (Free)', description: '530B · 262K context' },
+  { value: 'poolside/laguna-m1:free', label: '🌊 Poolside Laguna M1 (Free)', description: '236B · 131K context' },
+  { value: 'openai/gpt-oss-120b:free', label: '🤖 GPT-OSS 120B (Free)', description: 'OpenAI · 131K context' },
+  { value: 'z-ai/glm-4-5-air:free', label: '🧠 GLM 4.5 Air (Free)', description: 'Z.ai · 131K context' },
+  { value: 'minimax/minimax-m2.5:free', label: '⭐ MiniMax M2.5 (Free)', description: 'Best text · 196K context' },
+  { value: 'nvidia/nemotron-3-nano-30b-a3b:free', label: '🔷 Nemotron 3 Nano 30B (Free)', description: 'NVIDIA · 256K context' },
+  { value: 'poolside/laguna-xs2:free', label: '🌊 Poolside Laguna XS.2 (Free)', description: '36.8B · 131K context' },
+  { value: 'openai/gpt-oss-20b:free', label: '🤖 GPT-OSS 20B (Free)', description: 'OpenAI · 131K context' },
+  { value: 'baidu-qianfan/cobuddy:free', label: '🇨🇳 Baidu CoBuddy (Free)', description: '22.7B · 131K context' },
+  { value: 'arcee-ai/trinity-large-thinking:free', label: '🧠 Arcee Trinity Large (Free)', description: '16.3B · 262K · Thinking' },
+  { value: 'nvidia/nemotron-3-nano-omni:free', label: '🔷 Nemotron 3 Nano Omni (Free)', description: 'NVIDIA · 256K context' },
+  { value: 'deepseek/deepseek-v4-flash:free', label: '⚡ DeepSeek V4 Flash (Free)', description: '1M context' },
+  { value: 'google/gemma-4-31b:free', label: '🔷 Gemma 4 31B (Free)', description: 'Google · 262K context' },
+  { value: 'nvidia/nemotron-nano-12b-2-vl:free', label: '👁 Nemotron 12B Vision (Free)', description: 'NVIDIA vision' },
+  { value: 'nvidia/nemotron-nano-9b-v2:free', label: '🔷 Nemotron Nano 9B V2 (Free)', description: 'NVIDIA · 128K context' },
+  { value: 'google/gemma-4-26b-a4b:free', label: '📸 Gemma 4 26B Vision (Free)', description: 'Best vision' },
+  { value: 'qwen/qwen3-coder-480b-a35b:free', label: '💻 Qwen3 Coder 480B (Free)', description: 'Best coding · 262K context' },
+  { value: 'qwen/qwen3-next-80b-a3b-instruct:free', label: '💻 Qwen3 Next 80B (Free)', description: '262K context' },
+  { value: 'meta-llama/llama-3.3-70b-instruct:free', label: '🦙 Llama 3.3 70B (Free)', description: 'Meta · 65K context' },
+  { value: 'liquid/lfm-2.5-1.2b-thinking:free', label: '💧 Liquid LFM 1.2B Thinking (Free)', description: '32K context' },
+  { value: 'liquid/lfm-2.5-1.2b-instruct:free', label: '💧 Liquid LFM 1.2B Instruct (Free)', description: '32K context' },
+  { value: 'nousresearch/hermes-3-405b-instruct:free', label: '🏛 Hermes 3 405B (Free)', description: 'Nous · 131K context' },
+  { value: 'meta-llama/llama-3.2-3b-instruct:free', label: '🦙 Llama 3.2 3B (Free)', description: 'Meta · 131K context' },
+  { value: 'openrouter/free', label: '📦 Auto (Free)', description: 'Best available free model' },
+]

@@ -304,8 +304,31 @@ async function refreshOpenAIModelOptionsCache(): Promise<void> {
 }
 function OpenRouterPicker({ onDone }: { onDone: (result?: string, options?: { display?: CommandResultDisplay }) => void }) {
   const setAppState = useSetAppState()
-  const options = getOpenRouterFreeModels()
-  const selectOptions = options.map(o => ({ value: o.value, label: `${o.label} - ${o.description}` }))
+  const [allOptions, setAllOptions] = React.useState(() => getOpenRouterFreeModels())
+  const [loading, setLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    import('../../utils/model/openRouterModels.js').then(async (m) => {
+      const models = await m.fetchOpenRouterModels()
+      if (cancelled) return
+      if (models.length > 0) {
+        const freeModels = m.getFreeModels(models)
+        if (freeModels.length > 0) {
+          const opts = freeModels.map(md => ({
+            value: md.id,
+            label: `🚀 ${md.name} (Free)`,
+            description: `${md.context_length.toLocaleString()} ctx`,
+          }))
+          setAllOptions(opts)
+        }
+      }
+    }).catch(() => {}).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  const selectOptions = allOptions.map(o => ({ value: o.value, label: `${o.label} - ${o.description}` }))
   const initialValue = 'minimax/minimax-m2.5:free'
   
   const handleSelect = (value: string) => {
@@ -320,7 +343,7 @@ function OpenRouterPicker({ onDone }: { onDone: (result?: string, options?: { di
   return (
     <Box flexDirection="column">
       <Text bold>OpenRouter Free Models</Text>
-      <Text dimColor>Select a free model</Text>
+      <Text dimColor>{loading ? 'Fetching live models...' : `Select a free model (${allOptions.length} available)`}</Text>
       <Select
         defaultValue={initialValue}
         options={selectOptions}
