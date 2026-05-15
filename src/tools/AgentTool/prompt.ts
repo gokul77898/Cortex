@@ -60,7 +60,7 @@ export function shouldInjectAgentListInMessages(): boolean {
   if (isEnvTruthy(process.env.CORTEX_AGENT_LIST_IN_MESSAGES)) return true
   if (isEnvDefinedFalsy(process.env.CORTEX_AGENT_LIST_IN_MESSAGES))
     return false
-  return getFeatureValue_CACHED_MAY_BE_STALE('tengu_agent_list_attach', true)
+  return true
 }
 
 export async function getPrompt(
