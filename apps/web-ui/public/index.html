@@ -6,7 +6,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=SF+Pro+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=SF+Pro+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/night-owl.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
 :root {
   --glass-bg: rgba(255, 255, 255, 0.08);
@@ -267,6 +269,67 @@ html, body {
   background: none;
   padding: 0;
 }
+
+/* Code blocks */
+.code-block-wrap {
+  margin: 12px 0;
+  background: #011627;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.code-lang {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.copy-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+.code-block-wrap pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+}
+.code-block-wrap code {
+  background: none !important;
+  padding: 0 !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.inline-code {
+  background: rgba(0,0,0,0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.message-content h1 { font-size: 22px; font-weight: 700; margin: 24px 0 12px; color: #fff; }
+.message-content h2 { font-size: 18px; font-weight: 700; margin: 20px 0 10px; color: rgba(255,255,255,0.95); }
+.message-content h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; color: rgba(255,255,255,0.9); }
+.message-content li { padding: 2px 0; color: rgba(255,255,255,0.8); }
+.spacer { height: 8px; }
 
 /* Typing */
 .typing-indicator {
@@ -1106,21 +1169,22 @@ function addMessage(content, isUser) {
 
 function formatContent(text) {
   text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    const langLabel = lang ? `<span style="font-size:11px;color:rgba(255,255,255,0.4);padding:4px 12px;display:block;border-bottom:1px solid rgba(255,255,255,0.06)">${lang}</span>` : '';
-    const id = 'code-' + Math.random().toString(36).slice(2, 8);
-    return `<div style="margin:12px 0;background:rgba(0,0,0,0.5);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);position:relative;">${langLabel}<pre style="margin:0;padding:16px;overflow-x:auto;"><code style="background:none;padding:0;font-size:13px;line-height:1.6;display:block;">${code}</code></pre><button onclick="(function(){const el=document.getElementById('${id}');navigator.clipboard.writeText(el.textContent);el.textContent='Copied!';setTimeout(()=>el.textContent='Copy',2000)})()" style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer" id="${id}">Copy</button></div>`;
+  text = text.replace(/```(\w*)\s*\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
+    const id = 'c' + Math.random().toString(36).slice(2, 8);
+    const code2 = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    return `<div class="code-block-wrap"><div class="code-header"><span class="code-lang">${lang || 'code'}</span><button class="copy-btn" onclick="(function(b){navigator.clipboard.writeText(b.nextElementSibling.textContent);b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',1500)})(this)">Copy</button></div><pre><code class="${lang ? 'language-'+lang : ''}">${code2}</code></pre></div>`;
   });
-  text = text.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-size:13px;">$1</code>');
+  text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
   text = text.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  text = text.replace(/^### (.+)$/gm, '<div style="font-size:16px;font-weight:600;margin:16px 0 8px;color:rgba(255,255,255,0.9)">$1</div>');
-  text = text.replace(/^## (.+)$/gm, '<div style="font-size:18px;font-weight:700;margin:20px 0 10px;color:rgba(255,255,255,0.95)">$1</div>');
-  text = text.replace(/^# (.+)$/gm, '<div style="font-size:22px;font-weight:700;margin:24px 0 12px;color:#fff">$1</div>');
-  text = text.replace(/^- (.+)$/gm, '<div style="padding:2px 0 2px 16px;position:relative">&bull; $1</div>');
-  text = text.replace(/^\d+\. (.+)$/gm, '<div style="padding:2px 0 2px 16px;position:relative">$&</div>');
-  text = text.replace(/\n\n/g, '<div style="height:8px"></div>');
+  text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+  text = text.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  text = text.replace(/\n\n/g, '<div class="spacer"></div>');
   text = text.replace(/\n/g, '<br>');
   return text;
 }
@@ -1217,6 +1281,9 @@ async function sendMessage() {
             if (data.text) {
               fullText += data.text;
               contentDiv.innerHTML = formatContent(fullText);
+              document.querySelectorAll('.code-block-wrap pre code').forEach(el => {
+                try { hljs.highlightElement(el); } catch {}
+              });
               chatContainer.scrollTop = chatContainer.scrollHeight;
             }
           } catch {}
