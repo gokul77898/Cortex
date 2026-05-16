@@ -147,7 +147,7 @@ function ConnectWizard({ onDone }: { onDone: LocalJSXCommandOnDone }): React.Rea
                 label: c.label,
                 description: c.description,
               }))}
-              onSelect={handleCategorySelect}
+              onChange={handleCategorySelect}
             />
           </Box>
         </Dialog>
@@ -161,7 +161,7 @@ function ConnectWizard({ onDone }: { onDone: LocalJSXCommandOnDone }): React.Rea
             <Text dimColor>Choose a provider to connect:</Text>
             <Select
               options={providers.map(providerToOption)}
-              onSelect={handleProviderSelect}
+              onChange={handleProviderSelect}
             />
           </Box>
         </Dialog>
