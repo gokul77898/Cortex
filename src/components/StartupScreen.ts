@@ -308,13 +308,16 @@ export async function printStartupScreen(): Promise<void> {
   // If no .env keys found, check for a saved provider profile from a previous session
   if (!choice || !choice.apiKey) {
     const savedProfile = getActiveProviderProfile()
-    if (savedProfile?.apiKey) {
-      choice = {
-        name: savedProfile.name,
-        model: savedProfile.model,
-        baseUrl: savedProfile.baseUrl,
-        apiKey: savedProfile.apiKey,
-        provider: savedProfile.provider === 'anthropic' ? 'cortex' : 'openai',
+    if (savedProfile) {
+      // Keyless providers (Ollama, LM Studio) have no apiKey — treat as valid
+      if (savedProfile.apiKey || !savedProfile.baseUrl.includes('localhost')) {
+        choice = {
+          name: savedProfile.name,
+          model: savedProfile.model,
+          baseUrl: savedProfile.baseUrl,
+          apiKey: savedProfile.apiKey ?? '',
+          provider: savedProfile.provider === 'anthropic' ? 'cortex' : 'openai',
+        }
       }
     }
   }
