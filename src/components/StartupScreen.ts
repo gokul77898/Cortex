@@ -2,7 +2,7 @@ import { password, select } from '@inquirer/prompts'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { getActiveProviderProfile, addProviderProfile } from '../utils/providerProfiles.js'
+import { getActiveProviderProfile } from '../utils/providerProfiles.js'
 
 /**
  * CORTEX startup screen — Comprehensive Swarm Orchestrator.
@@ -305,18 +305,32 @@ export async function printStartupScreen(): Promise<void> {
     ? nvMission
     : hfMission ?? missions[missions.length - 1]
 
-  // If no .env keys found, check for a saved provider profile from a previous session
+  // Check for a saved provider profile (persists across restarts)
+  const savedProfile = getActiveProviderProfile()
   if (!choice || !choice.apiKey) {
-    const savedProfile = getActiveProviderProfile()
     if (savedProfile) {
-      // Keyless providers (Ollama, LM Studio) have no apiKey — treat as valid
-      if (savedProfile.apiKey || !savedProfile.baseUrl.includes('localhost')) {
+      const hasKey = savedProfile.apiKey && savedProfile.apiKey.length > 0
+      if (hasKey) {
         choice = {
           name: savedProfile.name,
           model: savedProfile.model,
           baseUrl: savedProfile.baseUrl,
-          apiKey: savedProfile.apiKey ?? '',
+          apiKey: savedProfile.apiKey,
           provider: savedProfile.provider === 'anthropic' ? 'cortex' : 'openai',
+        }
+      } else {
+        // Active profile has no key — try to find one with a key
+        const { getProviderProfiles } = await import('../utils/providerProfiles.js')
+        const allProfiles = getProviderProfiles()
+        const profileWithKey = allProfiles.find(p => p.apiKey && p.apiKey.length > 0)
+        if (profileWithKey) {
+          choice = {
+            name: profileWithKey.name,
+            model: profileWithKey.model,
+            baseUrl: profileWithKey.baseUrl,
+            apiKey: profileWithKey.apiKey,
+            provider: profileWithKey.provider === 'anthropic' ? 'cortex' : 'openai',
+          }
         }
       }
     }
@@ -447,13 +461,25 @@ export async function printStartupScreen(): Promise<void> {
 
       // Persist provider profile so it's remembered on next restart
       try {
-        addProviderProfile({
-          name: answer === 'openai' ? 'OpenAI' : answer === 'anthropic' ? 'Anthropic' : answer.charAt(0).toUpperCase() + answer.slice(1),
-          provider: answer === 'anthropic' ? 'anthropic' : 'openai',
-          baseUrl: cfg.baseUrl,
-          model: cfg.model,
-          apiKey: userApiKey || undefined,
-        })
+        const { getProviderProfiles, updateProviderProfile, addProviderProfile: addProfile } = await import('../utils/providerProfiles.js')
+        const existing = getProviderProfiles().find(p => p.name.toLowerCase() === answer)
+        if (existing) {
+          updateProviderProfile(existing.id, {
+            name: existing.name,
+            provider: answer === 'anthropic' ? 'anthropic' : 'openai',
+            baseUrl: cfg.baseUrl,
+            model: cfg.model,
+            apiKey: userApiKey || undefined,
+          })
+        } else {
+          addProfile({
+            name: answer === 'openai' ? 'OpenAI' : answer === 'anthropic' ? 'Anthropic' : answer.charAt(0).toUpperCase() + answer.slice(1),
+            provider: answer === 'anthropic' ? 'anthropic' : 'openai',
+            baseUrl: cfg.baseUrl,
+            model: cfg.model,
+            apiKey: userApiKey || undefined,
+          })
+        }
       } catch {
         // Profile save is best-effort
       }
