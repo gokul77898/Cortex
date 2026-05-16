@@ -477,16 +477,9 @@ export async function printStartupScreen(): Promise<void> {
       process.env.OPENAI_BASE_URL = choice.baseUrl
       process.env.OPENAI_API_KEY = choice.apiKey
       process.env.OPENAI_MODEL = choice.model
-      if (choice.apiKey) {
-        process.env.ANTHROPIC_BASE_URL = choice.baseUrl
-        process.env.ANTHROPIC_API_KEY = choice.apiKey
-        if (originalAntKey && originalAntKey !== choice.apiKey) {
-          process.env.MOCK_MCP_HINT_ANT_KEY = originalAntKey
-        }
-      } else {
-        delete process.env.ANTHROPIC_API_KEY
-        delete process.env.ANTHROPIC_BASE_URL
-      }
+      // Do NOT set ANTHROPIC_API_KEY for non-Anthropic providers
+      delete process.env.ANTHROPIC_API_KEY
+      delete process.env.ANTHROPIC_BASE_URL
     } else if (choice.provider === 'nvidia') {
       process.env.CORTEX_USE_OPENAI = '1'
       process.env.CORTEX_NVIDIA_ONLY = '1'
