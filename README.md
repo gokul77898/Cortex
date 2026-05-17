@@ -708,7 +708,9 @@ The AI picks the playbook from `CORTEX.md` and executes. Slash commands remain a
 |---|---|
 | `/rag` `/r` | Semantic search over your codebase (pgvector + HF embeddings) |
 | `/autonomous` `/auto` `/daemon` | Background agent: scans repo, writes briefs, opens draft PRs |
-| `/voice` `/v` | Voice I/O via HF Whisper + Bark TTS |
+ | `/voice` `/v` | Voice I/O via HF Whisper + Bark TTS |
+| **`/legal`** | **Launch India‑focused Legal Hub** — spawns local web server with GPT-OSS-120B AI, auto web research, two‑phase chat (knowledge first, DuckDuckGo on `[SEARCH]`), multi‑document upload (3 docs, 60 pages each) |
+| **`/over`** | **Stop Legal Hub** — kills the legal server, resets model to previous |
 
 **Tier 9 setup:** `pip install -r python/requirements-tier-s.txt` (once). RAG needs pgvector: `brew install pgvector`.
 </details>
@@ -1290,6 +1292,11 @@ All contributions welcome — new agents, new commands, new MCPs, UI polish, bug
 
 | Change | Description |
 |--------|-------------|
+| **Legal Hub (`/legal` + `/over`)** | India-focused legal assistant — local web server, GPT-OSS-120B model, two‑phase chat (knowledge then web search), strict Indian‑law‑only system prompt |
+| **🎙️ AI Lawyer page** | Speech‑only legal advice at `/lawyer` — type or 🎤 speak, AI responds with natural human voice (TTS), continuous conversation loop, asks your name on first visit |
+| **📚 Legal Learning page** | Speech‑only legal tutoring at `/learn` — same voice interface, teaches Indian law step by step like a patient tutor, uses your name throughout |
+| **Multi‑document upload** | Up to 3 documents (`.txt`, `.md`, `.pdf`), up to 60 pages / 150KB each, stored server‑side as persistent chat context |
+| **4 legal MCPs** | Free/no‑key: PDF reader, legal‑workspace, ansvar‑india‑law, india‑stack — listed in `/mcp market` |
 | **45+ Provider Registry** | Connect to OpenRouter, Groq, HuggingFace, NVIDIA, Cerebras, Together AI, Deep Infra, Fireworks, OpenAI, Anthropic, Google Gemini, DeepSeek, Mistral, xAI, Ollama, LM Studio, and more |
 | **`/connect` command** | Interactive provider setup — pick a category, pick a provider, paste API key, done |
 | **`/tools` command** | Toggle extra tools on/off. 7 default tools (Bash, Read, Edit, Write, Glob, Grep, WebFetch) + optional extras (Agent, WebSearch, NotebookEdit, TodoWrite, etc.) |

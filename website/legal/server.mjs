@@ -16,6 +16,46 @@ const MAX_DOCS = 3;
 const MAX_PAGES = 60;
 const MAX_CHARS = 150000;
 
+const SYSTEM_PROMPTS = {
+  chat: `You are a LEGAL-ONLY AI assistant. INDIAN LAW ONLY. No code, no non-legal topics.
+
+STRICT RULES:
+1. Be CONCISE. Simple question = 2-3 short paragraphs maximum.
+2. NO tables. NO numbered lists. NO bullet points unless comparing 2-3 items.
+3. NO headings like "Key Points" or "Overview". Just answer naturally.
+4. NO fluff or introductory phrases like "Here is an explanation..." or "Certainly!".
+5. If user pastes contract/NDA text → use GREEN/YELLOW/RED tags. Otherwise NEVER use them.
+6. If unsure or need current info → respond with exactly: [SEARCH] what to search for
+7. If you KNOW the answer → answer immediately without searching.`,
+
+  lawyer: `You are an AI LAWYER speaking to a client. INDIAN LAW ONLY. No code, no non-legal topics. Your responses will be spoken aloud via text-to-speech.
+
+SPEECH RULES:
+1. Speak naturally like a human lawyer — use contractions, conversational tone.
+2. Short, clear sentences. Simple structure. Easy to follow when heard.
+3. NO markdown. NO special characters. NO tables. NO lists. NO bullet points.
+4. NO headings, labels, or formatting of any kind.
+5. NO phrases like "Here is my analysis" or "Certainly!" — just speak directly.
+6. Use verbal signposts: "The key point is...", "Let me explain...", "What this means for you is..."
+7. For contract/NDA text → naturally say "This is low risk", "This needs attention", or "This is a red flag" instead of GREEN/YELLOW/RED tags.
+8. If unsure → respond with exactly: [SEARCH] what to search for
+9. If you KNOW → answer immediately.`,
+
+  learn: `You are an AI LEGAL TUTOR teaching a student. INDIAN LAW ONLY. No code, no non-legal topics. Your responses will be spoken aloud via text-to-speech.
+
+SPEECH RULES:
+1. Speak like a patient teacher — warm, encouraging, conversational.
+2. Explain concepts step by step. Use analogies and examples.
+3. Short, clear sentences. Easy to follow when heard.
+4. NO markdown. NO special characters. NO tables. NO lists. NO bullet points.
+5. NO headings, labels, or formatting of any kind.
+6. NO phrases like "Here is an explanation" — just teach naturally.
+7. Ask questions to check understanding: "Does that make sense?", "Would you like me to elaborate?"
+8. Break complex topics into simple parts. Pause between concepts.
+9. If unsure → respond with exactly: [SEARCH] what to search for
+10. If you KNOW → answer immediately.`
+};
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -98,8 +138,7 @@ async function searchWeb(query) {
   } catch { return []; }
 }
 
-async function callModel(key, messages, systemExtra) {
-  // Include stored documents as system context
+async function callModel(key, messages, systemExtra, mode = 'chat', userName = '') {
   let docContext = '';
   if (documents.length > 0) {
     docContext = '\n\nUploaded documents:\n' + documents.map(d =>
@@ -107,17 +146,8 @@ async function callModel(key, messages, systemExtra) {
     ).join('\n\n');
   }
 
-  const base = `You are a LEGAL-ONLY AI assistant. INDIAN LAW ONLY. No code, no non-legal topics.${docContext}
-
-STRICT RULES:
-1. Be CONCISE. Simple question = 2-3 short paragraphs maximum.
-2. NO tables. NO numbered lists. NO bullet points unless comparing 2-3 items.
-3. NO headings like "Key Points" or "Overview". Just answer naturally.
-4. NO fluff or introductory phrases like "Here is an explanation..." or "Certainly!".
-5. If user pastes contract/NDA text → use GREEN/YELLOW/RED tags. Otherwise NEVER use them.
-6. If unsure or need current info → respond with exactly: [SEARCH] what to search for
-7. If you KNOW the answer → answer immediately without searching.`;
-
+  const userContext = userName ? `\n\nThe user's name is ${userName}. Address them by their name naturally throughout the conversation.` : '';
+  const base = (SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.chat) + `\n\nUploaded documents for reference:\n${docContext || '(none)'}${userContext}`;
   const system = systemExtra ? `${base}\n\n${systemExtra}` : base;
   const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -127,22 +157,20 @@ STRICT RULES:
   return resp.json();
 }
 
-async function chat(key, messages) {
-  // Phase 1: Ask model first, see if it knows the answer
+async function chat(key, messages, mode = 'chat', userName = '') {
   const phase1 = await callModel(key, messages,
     'STRICT: Answer ONLY from your knowledge. If you KNOW the answer, give it concisely. ' +
-    'If you are even slightly unsure or need current info, start with exactly: [SEARCH] what to search'
+    'If you are even slightly unsure or need current info, start with exactly: [SEARCH] what to search',
+    mode, userName
   );
 
   const text = phase1.choices?.[0]?.message?.content || '';
   const searchMatch = text.match(/^\[SEARCH\]\s*(.+)/s);
 
   if (!searchMatch) {
-    // Model answered from knowledge — return as-is
     return { data: phase1, searched: false };
   }
 
-  // Phase 2: Model needs web search
   const query = searchMatch[1].trim();
   const results = await searchWeb(query);
   const scraped = [];
@@ -153,13 +181,12 @@ async function chat(key, messages) {
 
   const context = scraped.map(s => `--- ${s.title || s.url} ---\n${(s.content || '').slice(0, 4000)}`).join('\n\n');
 
-  // Re-ask with web context
   const finalMessages = [
     ...messages,
     { role: 'assistant', content: `I need to look up current information about: ${query}` },
     { role: 'user', content: `Web search results for "${query}":\n${context || '(no results found)'}\n\nNow answer the original question. Use these if relevant, ignore if not.` }
   ];
-  const phase2 = await callModel(key, finalMessages, '');
+  const phase2 = await callModel(key, finalMessages, '', mode, userName);
   phase2.sources = scraped.map(s => ({ url: s.url, title: s.title }));
   return { data: phase2, searched: true };
 }
@@ -177,15 +204,14 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-  // POST /api/chat  (model first, searches web only if needed)
+  // POST /api/chat
   if (path === '/api/chat' && req.method === 'POST') {
     const body = await collectBody(req);
     try {
-      const { messages, urls } = JSON.parse(body);
+      const { messages, urls, mode, userName } = JSON.parse(body);
       if (!SERVER_KEY) return json(res, 401, { error: 'No API key. Configure OpenRouter via /connect in CLI first.' });
       if (!messages) return json(res, 400, { error: 'messages required' });
 
-      // If user provided specific URLs, scrape them and add to first message
       if (urls && urls.length > 0) {
         const scraped = [];
         const results = await Promise.allSettled(urls.map(u => scrapeUrl(u, { maxChars: 4000 })));
@@ -197,7 +223,8 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      const { data, searched } = await chat(SERVER_KEY, messages);
+      const currentMode = mode || 'chat';
+      const { data, searched } = await chat(SERVER_KEY, messages, currentMode, userName || '');
       if (data.error) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify(data));
@@ -245,7 +272,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /api/documents  — upload document
+  // POST /api/documents
   if (path === '/api/documents' && req.method === 'POST') {
     const body = await collectBody(req);
     try {
@@ -260,13 +287,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /api/documents — list documents
+  // GET /api/documents
   if (path === '/api/documents' && req.method === 'GET') {
     json(res, 200, { documents: documents.map(d => ({ id: d.id, name: d.name, size: d.size, uploadedAt: d.uploadedAt })), maxDocs: MAX_DOCS });
     return;
   }
 
-  // DELETE /api/documents/:id — remove document
+  // DELETE /api/documents/:id
   const docDeleteMatch = path.match(/^\/api\/documents\/(\d+)$/);
   if (docDeleteMatch && req.method === 'DELETE') {
     const id = parseInt(docDeleteMatch[1], 10);
@@ -278,12 +305,15 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve static
-  let filePath = join(__dirname, path === '/' ? 'index.html' : path);
-  if (!extname(filePath)) filePath = join(filePath, 'index.html');
+  let filePath;
+  if (path === '/lawyer') filePath = join(__dirname, 'lawyer.html');
+  else if (path === '/learn') filePath = join(__dirname, 'learn.html');
+  else filePath = join(__dirname, path === '/' ? 'index.html' : path);
+  if (!extname(filePath) && path !== '/lawyer' && path !== '/learn') filePath = join(filePath, 'index.html');
   try {
     if (!existsSync(filePath)) filePath = join(__dirname, 'index.html');
     const content = readFileSync(filePath, 'utf-8');
-    if (filePath.endsWith('index.html')) {
+    if (filePath.endsWith('.html')) {
       const html = content.replace('__HAS_KEY__', JSON.stringify(!!SERVER_KEY)).replace('__PORT__', String(PORT));
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); return;
     }
@@ -293,5 +323,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   const s = SERVER_KEY ? `key OK (${SERVER_KEY.slice(0, 8)}...)` : 'NO KEY — configure via CLI /connect';
-  console.log(`Legal Hub → http://localhost:${PORT} | Owl Alpha | ${s}`);
+  console.log(`Legal Hub → http://localhost:${PORT} | GPT-OSS-120B | ${s}`);
 });
