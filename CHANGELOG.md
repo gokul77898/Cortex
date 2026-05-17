@@ -2,6 +2,13 @@
 
 All notable changes to CORTEX are documented here.
 
+## [0.1.24] - 2026-05-16
+
+### Added
+- **`/mcp market` setup wizard** — Curated list of 14 popular MCP servers with interactive API key prompts. Run once, saves permanently to user config + `.env`.
+- **9 new MCP servers** in `.mcp.json`: Gmail, Google Calendar, Google Drive, Outlook, Notion, Todoist, Airtable, Canva, n8n
+- **Updated `.env.example`** with docs for all Google, Microsoft, Notion, Todoist, Airtable, n8n MCP env vars
+
 ## [0.1.18] - 2026-05-15
 
 ### Added
