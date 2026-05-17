@@ -159,6 +159,22 @@
       "command": "uvx",
       "args": ["chroma-mcp"]
     },
+    "paradyno-pdf": {
+      "command": "npx",
+      "args": ["-y", "@paradyno/pdf-mcp-server"]
+    },
+    "legal-workspace": {
+      "command": "uvx",
+      "args": ["legal-workspace-mcp"]
+    },
+    "ansvar-india-law": {
+      "command": "npx",
+      "args": ["-y", "ansvar-systems-india-law-mcp"]
+    },
+    "india-stack": {
+      "command": "uvx",
+      "args": ["mcp-india-stack"]
+    },
     "applescript": {
       "command": "npx",
       "args": ["-y", "@peakmojo/applescript-mcp"]

@@ -117,6 +117,26 @@ const CURATED_SERVERS: McpListing[] = [
     envVars: [{ key: 'TAVILY_API_KEY', label: 'Tavily API Key', placeholder: 'tvly-your-key' }],
     scope: 'user',
   },
+  {
+    id: 'paradyno-pdf', label: 'PDF Reader (Paradyno)', desc: 'Parse, extract text, split, merge, search PDFs locally (Rust)',
+    command: 'npx', args: ['-y', '@paradyno/pdf-mcp-server'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'legal-workspace', label: 'Legal Workspace', desc: 'Index and search local contract documents (PDF, DOCX, MD) via TF-IDF',
+    command: 'uvx', args: ['legal-workspace-mcp'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'ansvar-india-law', label: 'India Law (Ansvar)', desc: 'Search 846 Indian Central Acts — DPDPA, IT Act, Companies Act, Constitution, etc.',
+    command: 'npx', args: ['-y', 'ansvar-systems-india-law-mcp'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'india-stack', label: 'India Stack', desc: 'Validate PAN, GSTIN, IFSC, Aadhaar, UPI, pincode, HSN/SAC — offline-first, zero auth',
+    command: 'uvx', args: ['mcp-india-stack'],
+    envVars: [], scope: 'user',
+  },
 ]
 
 function getConfiguredServerIds(): Set<string> {
