@@ -194,6 +194,65 @@
     "obsidian": {
       "command": "npx",
       "args": ["-y", "obsidian-mcp-server", "--vault", "/Users/gokul/Documents/Obsidian"]
+    },
+    "gmail": {
+      "command": "npx",
+      "args": ["-y", "@shinzolabs/gmail-mcp"]
+    },
+    "google-calendar": {
+      "command": "npx",
+      "args": ["-y", "@cocal/google-calendar-mcp"],
+      "env": {
+        "GOOGLE_OAUTH_CREDENTIALS": "${GOOGLE_OAUTH_CREDENTIALS}"
+      }
+    },
+    "google-drive": {
+      "command": "npx",
+      "args": ["-y", "@piotr-agier/google-drive-mcp"],
+      "env": {
+        "GOOGLE_DRIVE_OAUTH_CREDENTIALS": "${GOOGLE_DRIVE_OAUTH_CREDENTIALS}"
+      }
+    },
+    "outlook": {
+      "command": "npx",
+      "args": ["-y", "outlook-mcp"],
+      "env": {
+        "MS_CLIENT_ID": "${MS_CLIENT_ID}",
+        "MS_CLIENT_SECRET": "${MS_CLIENT_SECRET}"
+      }
+    },
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@notionhq/notion-mcp-server"],
+      "env": {
+        "NOTION_TOKEN": "${NOTION_TOKEN}"
+      }
+    },
+    "todoist": {
+      "command": "npx",
+      "args": ["-y", "todoist-mcp"],
+      "env": {
+        "API_KEY": "${TODOIST_API_KEY}"
+      }
+    },
+    "airtable": {
+      "command": "npx",
+      "args": ["-y", "airtable-mcp-server"],
+      "env": {
+        "AIRTABLE_API_KEY": "${AIRTABLE_API_KEY}"
+      }
+    },
+    "canva": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@latest", "https://mcp.canva.com/mcp"]
+    },
+    "n8n": {
+      "command": "npx",
+      "args": ["-y", "mcp-n8n"],
+      "env": {
+        "N8N_BASE_URL": "${N8N_BASE_URL}",
+        "N8N_API_KEY": "${N8N_API_KEY}"
+      }
     }
   }
 }

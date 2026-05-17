@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { motion, AnimatePresence } from "framer-motion";
+import { MessageRenderer } from "@/components/MessageRenderer";
 
 interface Message {
   id: number;
@@ -200,10 +201,15 @@ function App() {
                     className={`max-w-[75%] px-5 py-4 rounded-2xl text-[15px] leading-relaxed ${
                       msg.isUser
                         ? "bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20"
-                        : "bg-white/10 border border-white/10"
+                        : "bg-transparent border-none"
                     }`}
-                    dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }}
-                  />
+                  >
+                    {msg.isUser ? (
+                      <div dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                    ) : (
+                      <MessageRenderer content={msg.content} />
+                    )}
+                  </div>
                 </motion.div>
               ))}
               {isLoading && (
