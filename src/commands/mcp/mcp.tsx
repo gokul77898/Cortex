@@ -137,6 +137,11 @@ const CURATED_SERVERS: McpListing[] = [
     command: 'uvx', args: ['mcp-india-stack'],
     envVars: [], scope: 'user',
   },
+  {
+    id: 'pentest-mcp', label: 'Pentest MCP', desc: 'Full bug bounty toolkit — nmap, nuclei, ffuf, sqlmap, hydra, subfinder, gobuster, 40+ tools via MCP',
+    command: 'npx', args: ['-y', 'pentest-mcp'],
+    envVars: [], scope: 'user',
+  },
 ]
 
 function getConfiguredServerIds(): Set<string> {

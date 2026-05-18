@@ -269,6 +269,10 @@
         "N8N_BASE_URL": "${N8N_BASE_URL}",
         "N8N_API_KEY": "${N8N_API_KEY}"
       }
+    },
+    "pentest-mcp": {
+      "command": "npx",
+      "args": ["-y", "pentest-mcp"]
     }
   }
 }

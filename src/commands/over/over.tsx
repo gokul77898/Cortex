@@ -12,11 +12,11 @@ export const call: LocalJSXCommandCall = async (
   const appState = getAppState()
   const currentModel = appState.mainLoopModel
 
-  // Check if legal mode is active (model is Owl Alpha or system prompt injection is set)
   const isLegalMode = currentModel === 'openai/gpt-oss-120b:free'
+  const isHunterMode = currentModel === 'minimax/minimax-m2.5:free'
 
-  if (isLegalMode) {
-    // Kill legal server
+  if (isLegalMode || isHunterMode) {
+    // Kill legal server if running
     stopServer()
 
     // Remove system prompt injection
@@ -29,9 +29,17 @@ export const call: LocalJSXCommandCall = async (
       mainLoopModelForSession: null,
     }))
 
-    onDone('Legal mode deactivated. Server stopped. Model reset to default.', { display: 'system' })
+    const mode = isLegalMode ? 'Legal' : 'Hunter'
+    onDone(`${mode} mode deactivated. Server stopped. Model reset to default.`, { display: 'system' })
   } else {
-    onDone('Not in legal mode.', { display: 'system' })
+    // Always clear system prompt injection and reset as a safety measure
+    setSystemPromptInjection(null)
+    setAppState(prev => ({
+      ...prev,
+      mainLoopModel: null as any,
+      mainLoopModelForSession: null,
+    }))
+    onDone('System prompt injection cleared. Model reset to default.', { display: 'system' })
   }
 
   return null

@@ -711,6 +711,7 @@ The AI picks the playbook from `CORTEX.md` and executes. Slash commands remain a
  | `/voice` `/v` | Voice I/O via HF Whisper + Bark TTS |
 | **`/legal`** | **Launch India‑focused Legal Hub** — spawns local web server with GPT-OSS-120B AI, auto web research, two‑phase chat (knowledge first, DuckDuckGo on `[SEARCH]`), multi‑document upload (3 docs, 60 pages each) |
 | **`/over`** | **Stop Legal Hub** — kills the legal server, resets model to previous |
+| **`/hunter`** | **Bug Bounty Hunter** — auto scan any website for vulnerabilities using Playwright + 200+ security checks. Phased methodology: recon, web analysis, advanced testing, infrastructure, report |
 
 **Tier 9 setup:** `pip install -r python/requirements-tier-s.txt` (once). RAG needs pgvector: `brew install pgvector`.
 </details>
@@ -1293,6 +1294,8 @@ All contributions welcome — new agents, new commands, new MCPs, UI polish, bug
 | Change | Description |
 |--------|-------------|
 | **Legal Hub (`/legal` + `/over`)** | India-focused legal assistant — local web server, GPT-OSS-120B model, two‑phase chat (knowledge then web search), strict Indian‑law‑only system prompt |
+| **🛡️ `/hunter` command** | Full bug bounty hunter — automated vulnerability scanning for any website. Playwright browser automation + 200+ security checks. Phased methodology (recon → analysis → advanced → infra → report). |
+| **🔌 pentest MCP** | 40+ pentesting tools via one MCP: nmap, nuclei, ffuf, sqlmap, hydra, gobuster, subfinder, and more — all accessible through natural language |
 | **🎙️ AI Lawyer page** | Speech‑only legal advice at `/lawyer` — type or 🎤 speak, AI responds with natural human voice (TTS), continuous conversation loop, asks your name on first visit |
 | **📚 Legal Learning page** | Speech‑only legal tutoring at `/learn` — same voice interface, teaches Indian law step by step like a patient tutor, uses your name throughout |
 | **Multi‑document upload** | Up to 3 documents (`.txt`, `.md`, `.pdf`), up to 60 pages / 150KB each, stored server‑side as persistent chat context |
