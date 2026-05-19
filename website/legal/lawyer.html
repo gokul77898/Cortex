@@ -365,7 +365,6 @@ msgInput.addEventListener('input', () => {
 
 // ── Init ──
 function begin() {
-  setTimeout(() => { const v = synth.getVoices(); if (v.length) synth.onvoiceschanged(); }, 100);
   setStatus('listening', `Welcome${userName ? ', ' + userName : ''}! Press 🎤 or type your legal question.`, '');
   sendBtn.textContent = 'Send';
   msgInput.focus();

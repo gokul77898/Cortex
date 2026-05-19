@@ -123,16 +123,6 @@ const CURATED_SERVERS: McpListing[] = [
     envVars: [], scope: 'user',
   },
   {
-    id: 'legal-workspace', label: 'Legal Workspace', desc: 'Index and search local contract documents (PDF, DOCX, MD) via TF-IDF',
-    command: 'uvx', args: ['legal-workspace-mcp'],
-    envVars: [], scope: 'user',
-  },
-  {
-    id: 'ansvar-india-law', label: 'India Law (Ansvar)', desc: 'Search 846 Indian Central Acts — DPDPA, IT Act, Companies Act, Constitution, etc.',
-    command: 'npx', args: ['-y', 'ansvar-systems-india-law-mcp'],
-    envVars: [], scope: 'user',
-  },
-  {
     id: 'india-stack', label: 'India Stack', desc: 'Validate PAN, GSTIN, IFSC, Aadhaar, UPI, pincode, HSN/SAC — offline-first, zero auth',
     command: 'uvx', args: ['mcp-india-stack'],
     envVars: [], scope: 'user',
@@ -140,6 +130,31 @@ const CURATED_SERVERS: McpListing[] = [
   {
     id: 'pentest-mcp', label: 'Pentest MCP', desc: 'Full bug bounty toolkit — nmap, nuclei, ffuf, sqlmap, hydra, subfinder, gobuster, 40+ tools via MCP',
     command: 'npx', args: ['-y', 'pentest-mcp'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'nuclei-mcp', label: 'Nuclei MCP', desc: 'Template-based vulnerability scanner — firewall bypass, CVE, and tech-specific templates. Needs nuclei installed.',
+    command: 'npx', args: ['-y', 'gc-nuclei-mcp'],
+    envVars: [{ key: 'NUCLEI_PATH', label: 'Nuclei binary path', url: 'https://github.com/projectdiscovery/nuclei' }], scope: 'user',
+  },
+  {
+    id: 'waftester', label: 'WAFtester', desc: 'WAF detection + automated bypass testing — tamper techniques, fuzzing, headless browser crawl. Free, no key.',
+    command: 'npx', args: ['-y', '@waftester/cli', 'mcp'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'firewall-tools', label: 'Firewall Tools', desc: 'hping3 (packet probe), firewalk (ACL mapper), wafw00f (WAF detector), Nessus guidance. Tools like brew install hping, pip install wafw00f.',
+    command: 'node', args: ['<project-root>/src/mcp/firewall-tools.mjs'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'kali-mcp', label: 'Kali Linux MCP', desc: '20+ Kali tools via Docker — nmap, masscan, sqlmap, nikto, hydra, john, hashcat, metasploit, gobuster, ffuf, wpscan and more. Needs Docker.',
+    command: 'npx', args: ['-y', 'kali-mcp-server'],
+    envVars: [], scope: 'user',
+  },
+  {
+    id: 'chrome-devtools', label: 'Chrome DevTools', desc: 'Debug live pages — inspect DOM, network, console, coverage, performance. Free, no key needed.',
+    command: 'npx', args: ['chrome-devtools-mcp@latest'],
     envVars: [], scope: 'user',
   },
 ]

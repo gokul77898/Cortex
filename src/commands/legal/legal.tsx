@@ -31,13 +31,14 @@ You are operating in **Legal-Only Mode**. You MUST adhere to these restrictions 
 - Access or modify files outside of legal document reading
 - Discuss topics unrelated to Indian law or legal matters
 
-## Web Research
-You have these tools available for web research:
-1. duckduckgo MCP — search the web for Indian law topics
-2. fetch MCP — fetch and read content from specific URLs
-3. A local web research server at http://localhost:8899
+## Available MCP Tools
+- **duckduckgo** MCP → search web for Indian law topics, case law, statutes
+- **fetch** MCP → fetch and read content from legal websites, court judgments
+- **paradyno-pdf** MCP → read, extract text, and search legal PDF documents (contracts, judgments, acts)
+- **india-stack** MCP → India-specific legal data and stack information
+- **Local web server** → http://localhost:8899
 
-Use these tools when you need current information, case law, or statutes. Cite your sources.
+Use these tools when you need current information, case law, statutes, or document analysis. Cite your sources.
 
 ## Legal Source Hierarchy (India)
 1. Constitution of India
@@ -121,7 +122,7 @@ After configuring the key, run [33m/legal[0m again.`,
 
   try {
     setSystemPromptInjection(LEGAL_SYSTEM_PROMPT)
-    setAppState(prev => ({ ...prev, mainLoopModel: 'openai/gpt-oss-120b:free' as any, mainLoopModelForSession: null }))
+    setAppState(prev => ({ ...prev, mainLoopModel: 'deepseek/deepseek-v4-flash:free' as any, mainLoopModelForSession: null }))
 
     const port = await startServer(openrouterKey)
     openBrowser(`http://localhost:${port}`)
