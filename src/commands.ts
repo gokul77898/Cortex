@@ -33,6 +33,7 @@ import initVerifiers from './commands/init-verifiers.js'
 import keybindings from './commands/keybindings/index.js'
 import legal from './commands/legal/index.js'
 import legalOver from './commands/over/index.js'
+import daemon from './commands/daemon/index.js'
 import hunter from './commands/hunter/index.js'
 import login from './commands/login/index.js'
 import logout from './commands/logout/index.js'
@@ -369,6 +370,7 @@ const COMMANDS = memoize((): Command[] => [
   keybindings,
   legal,
   legalOver,
+  daemon,
   hunter,
   installGitHubApp,
   installSlackApp,

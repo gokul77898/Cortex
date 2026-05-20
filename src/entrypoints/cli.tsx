@@ -547,6 +547,22 @@ async function main(): Promise<void> {
     }
   }
 
+  // Auto-launch 24/7 daemon (Telegram bot) if token is saved
+  if (process.env.CORTEX_DAEMON_AUTO === 'true') {
+    try {
+      const { getDaemonStatus, startDaemon } = await import('../services/daemon/index.js');
+      const status = getDaemonStatus();
+      if (status.state !== 'running') {
+        const result = await startDaemon();
+        if (result.includes('started')) {
+          process.stderr.write(`${GREEN}🤖 CORTEX Daemon: running (Telegram @${status.botUsername})${RESET}\n`);
+        }
+      }
+    } catch {
+      // daemon auto-start failed — silently skip
+    }
+  }
+
   await cliMain();
   profileCheckpoint('cli_after_main_complete');
 }
