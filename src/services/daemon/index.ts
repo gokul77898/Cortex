@@ -3,6 +3,7 @@ import { dirname } from 'path'
 import { startBot, stopBot, isBotRunning, getBotUsername } from './telegram.js'
 import { startTunnel, stopTunnel, isTunnelRunning } from './tunnel.js'
 import { mcpManager } from './mcpManager.js'
+import { agentManager } from './agentManager.js'
 
 const DAEMON_TOKEN_PATH = process.env.HOME + '/.cortex/daemon.json'
 let daemonState: 'stopped' | 'starting' | 'running' | 'error' = 'stopped'
@@ -70,6 +71,7 @@ export async function stopDaemon(): Promise<string> {
 }
 
 export function getDaemonStatus() {
+  const current = agentManager.currentAgent
   return {
     state: daemonState,
     uptime:
@@ -78,6 +80,8 @@ export function getDaemonStatus() {
     tunnelRunning: isTunnelRunning(),
     botUsername: getBotUsername(),
     mcp: mcpManager.status,
+    agent: current ? `${current.emoji} ${current.name}` : null,
+    agentLocked: agentManager.isLocked,
   }
 }
 

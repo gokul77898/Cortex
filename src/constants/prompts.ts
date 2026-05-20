@@ -57,6 +57,7 @@ import {
 import { SLEEP_TOOL_NAME } from '../tools/SleepTool/prompt.js'
 import { TICK_TAG } from './xml.js'
 import { logForDebugging } from '../utils/debug.js'
+import { getCurrentAgent } from '../services/agentBridge.js'
 import { loadMemoryPrompt } from '../memdir/memdir.js'
 import { isUndercover } from '../utils/undercover.js'
 import { isMcpInstructionsDeltaEnabled } from '../utils/mcpInstructionsDelta.js'
@@ -556,6 +557,11 @@ ${CYBER_RISK_INSTRUCTION}`,
     ...(feature('KAIROS') || feature('KAIROS_BRIEF')
       ? [systemPromptSection('brief', () => getBriefSection())]
       : []),
+    systemPromptSection('agent_persona', () => {
+      const agent = getCurrentAgent()
+      if (!agent || !agent.systemPrompt) return null
+      return `# Your Persona: ${agent.name}\n\n${agent.systemPrompt}`
+    }),
   ]
 
   const resolvedDynamicSections =

@@ -61,12 +61,16 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
         '../../services/daemon/index.js'
       )
       const status = getDaemonStatus()
+      const agentLine = status.agent
+        ? `\nAgent: ${status.agent}${status.agentLocked ? ' (locked)' : ''}`
+        : ''
       onDone(
         `Daemon: ${status.state}\n` +
           `Bot: ${status.botRunning ? 'running (@' + status.botUsername + ')' : 'stopped'}\n` +
           `Tunnel: ${status.tunnelRunning ? 'up' : 'down'}\n` +
           `Uptime: ${status.uptime}s\n` +
-          `MCP: ${status.mcp || 'disconnected'}`,
+          `MCP: ${status.mcp || 'disconnected'}` +
+          `${agentLine}`,
         { display: 'system' }
       )
       return null

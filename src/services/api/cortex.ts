@@ -196,6 +196,7 @@ import {
   TOOL_SEARCH_TOOL_NAME,
 } from '../../tools/ToolSearchTool/prompt.js'
 import { count } from '../../utils/array.js'
+import { getRelevantCategories, getServerNamesForCategories } from '../mcpFilter.js'
 import { insertBlockAfterToolResults } from '../../utils/contentArray.js'
 import { validateBoundedIntEnvVar } from '../../utils/envValidation.js'
 import { safeParseJSON } from '../../utils/json.js'
@@ -1180,6 +1181,30 @@ async function* queryModel(
     filteredTools = tools.filter(
       t => !toolMatchesName(t, TOOL_SEARCH_TOOL_NAME),
     )
+  }
+
+  // Smart MCP tool filtering — only keep MCP tools relevant to the user's query
+  {
+    const lastUserMsg = [...messages].reverse().find(
+      (m: any) => m.role === 'user' && Array.isArray(m.content),
+    )
+    if (lastUserMsg) {
+      const queryText = (lastUserMsg as any).content
+        .filter((b: any) => b.type === 'text')
+        .map((b: any) => b.text)
+        .join(' ')
+        .toLowerCase()
+      if (queryText) {
+        const categories = getRelevantCategories(queryText)
+        if (categories.size > 0) {
+          const relevantServers = getServerNamesForCategories(categories)
+          filteredTools = filteredTools.filter(t => {
+            if (!t.isMcp || !t.mcpInfo?.serverName) return true
+            return relevantServers.has(t.mcpInfo.serverName)
+          })
+        }
+      }
+    }
   }
 
   // Add tool search beta header if enabled - required for defer_loading to be accepted

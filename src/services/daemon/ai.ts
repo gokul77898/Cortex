@@ -46,11 +46,19 @@ RULES:
 export async function askAI(
   messages: ChatMessage[],
   tools: any[] = [],
-  systemExtra = ''
+  systemExtra = '',
+  agentPrompt = ''
 ): Promise<AIResult> {
+  let finalSystem = SYSTEM_PROMPT
+  if (agentPrompt) {
+    finalSystem = `${agentPrompt}\n\n---\n\n${SYSTEM_PROMPT}`
+  }
+  if (systemExtra) {
+    finalSystem = `${finalSystem}\n\n${systemExtra}`
+  }
   const system: ChatMessage = {
     role: 'system',
-    content: systemExtra ? `${SYSTEM_PROMPT}\n\n${systemExtra}` : SYSTEM_PROMPT,
+    content: finalSystem,
   }
 
   for (let attempt = 0; attempt < 3; attempt++) {

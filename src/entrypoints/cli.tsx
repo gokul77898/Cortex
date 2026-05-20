@@ -563,6 +563,14 @@ async function main(): Promise<void> {
     }
   }
 
+  // Load 162 expert agent profiles for smart persona auto-detection
+  try {
+    const { loadAgentsForCLI } = await import('../services/agentBridge.js');
+    loadAgentsForCLI();
+  } catch (e) {
+    // agent loading failed — continue without
+  }
+
   await cliMain();
   profileCheckpoint('cli_after_main_complete');
 }
