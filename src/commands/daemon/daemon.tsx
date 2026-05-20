@@ -23,7 +23,9 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
     case 'token': {
       const token = parts[1]
       if (!token) {
-        onDone('Usage: /daemon token <your_telegram_bot_token>', { display: 'system' })
+        onDone('Usage: /daemon token <your_telegram_bot_token>', {
+          display: 'system',
+        })
         return null
       }
       const { setToken } = await import('../../services/daemon/index.js')
@@ -34,7 +36,9 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
 
     case 'tunnel': {
       const action = parts[1]?.toLowerCase()
-      const { startTunnel, stopTunnel } = await import('../../services/daemon/index.js')
+      const { startTunnel, stopTunnel } = await import(
+        '../../services/daemon/index.js'
+      )
       if (action === 'stop') {
         stopTunnel()
         onDone('Tunnel stopped', { display: 'system' })
@@ -43,7 +47,9 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
         if (url) {
           onDone(`Tunnel: ${url}`, { display: 'system' })
         } else {
-          onDone('Tunnel unavailable (cloudflared not installed?)', { display: 'system' })
+          onDone('Tunnel unavailable (cloudflared not installed?)', {
+            display: 'system',
+          })
         }
       }
       return null
@@ -51,10 +57,16 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
 
     case 'status':
     default: {
-      const { getDaemonStatus } = await import('../../services/daemon/index.js')
+      const { getDaemonStatus } = await import(
+        '../../services/daemon/index.js'
+      )
       const status = getDaemonStatus()
       onDone(
-        `Daemon: ${status.state}\nBot: ${status.botRunning ? 'running (@' + status.botUsername + ')' : 'stopped'}\nTunnel: ${status.tunnelRunning ? 'up' : 'down'}\nUptime: ${status.uptime}s`,
+        `Daemon: ${status.state}\n` +
+          `Bot: ${status.botRunning ? 'running (@' + status.botUsername + ')' : 'stopped'}\n` +
+          `Tunnel: ${status.tunnelRunning ? 'up' : 'down'}\n` +
+          `Uptime: ${status.uptime}s\n` +
+          `MCP: ${status.mcp || 'disconnected'}`,
         { display: 'system' }
       )
       return null

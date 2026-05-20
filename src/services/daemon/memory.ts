@@ -43,10 +43,11 @@ export async function getConversationHistory(chatId: string): Promise<Array<{ ro
     const data = await res.json()
     return (data.results || [])
       .map((r: any) => {
-        const match = r.observation?.match(/^\[(\d+)\]\s*(user|assistant|system):\s*(.*)/s)
+        if (!r || !r.observation) return null
+        const match = String(r.observation).match(/^\[(\d+)\]\s*(user|assistant|system):\s*(.*)/s)
         return match ? { role: match[2], content: match[3] } : null
       })
-      .filter(Boolean)
+      .filter((r: any): r is { role: string; content: string } => r !== null)
   } catch {
     return []
   }
