@@ -287,6 +287,10 @@
       "env": {
         "AGENTMEMORY_URL": "http://localhost:3111"
       }
+    },
+    "agent-browser": {
+      "command": "node",
+      "args": ["/Users/gokul/Documents/openclaude/src/mcp/agent-browser-mcp.mjs"]
     }
   }
 }
