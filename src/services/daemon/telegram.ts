@@ -127,13 +127,16 @@ export async function startBot(token: string): Promise<string> {
       { role: 'user', content: text },
     ]
 
-    const tools = mcpManager.getToolSchemas()
+    const tools = mcpManager.getRelevantToolSchemas(text)
     let response = ''
     let toolIterations = 0
     const maxToolCalls = 12
 
     while (toolIterations < maxToolCalls) {
-      const result = await askAI(currentMessages, tools)
+      const updatedTools = toolIterations === 0
+        ? tools
+        : mcpManager.getToolSchemas()
+      const result = await askAI(currentMessages, updatedTools)
 
       if (result.toolCalls && result.toolCalls.length > 0) {
         toolIterations++
