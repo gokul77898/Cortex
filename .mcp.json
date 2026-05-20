@@ -280,6 +280,13 @@
     "kali-mcp": {
       "command": "npx",
       "args": ["-y", "kali-mcp-server"]
+    },
+    "agentmemory": {
+      "command": "npx",
+      "args": ["-y", "@agentmemory/mcp"],
+      "env": {
+        "AGENTMEMORY_URL": "http://localhost:3111"
+      }
     }
   }
 }

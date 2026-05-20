@@ -827,7 +827,7 @@ const OR_FREE_DEFAULTS: ModelOption[] = [
   { value: 'poolside/laguna-m1:free', label: '🌊 Poolside Laguna M1 (Free)', description: '236B · 131K context' },
   { value: 'openai/gpt-oss-120b:free', label: '🤖 GPT-OSS 120B (Free)', description: 'OpenAI · 131K context' },
   { value: 'z-ai/glm-4-5-air:free', label: '🧠 GLM 4.5 Air (Free)', description: 'Z.ai · 131K context' },
-  { value: 'minimax/minimax-m2.5:free', label: '⭐ MiniMax M2.5 (Free)', description: 'Best text · 196K context' },
+  { value: 'deepseek/deepseek-v4-flash:free', label: '⭐ DeepSeek V4 Flash (Free)', description: 'Fast · OpenRouter' },
   { value: 'nvidia/nemotron-3-nano-30b-a3b:free', label: '🔷 Nemotron 3 Nano 30B (Free)', description: 'NVIDIA · 256K context' },
   { value: 'poolside/laguna-xs2:free', label: '🌊 Poolside Laguna XS.2 (Free)', description: '36.8B · 131K context' },
   { value: 'openai/gpt-oss-20b:free', label: '🤖 GPT-OSS 20B (Free)', description: 'OpenAI · 131K context' },

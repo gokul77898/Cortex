@@ -939,7 +939,7 @@ CORTEX supports multiple free model providers:
 
 | Provider | Model | How to Use |
 |---|---|---|
-| **OpenRouter** (default) | MiniMax M2.5, Gemma, Llama | Set `OPENAI_MODEL=minimax/minimax-m2.5:free` |
+| **OpenRouter** (default) | DeepSeek, Gemma, Llama | Set `OPENAI_MODEL=deepseek/deepseek-v4-flash:free` |
 | **NVIDIA NIM** | DeepSeek V4 Pro, Qwen3 Coder | Use `/model` to select |
 | **Ollama** (local) | llama3.2:3b, moondream | Automatic fallback when offline |
 
@@ -952,7 +952,7 @@ CORTEX supports multiple free model providers:
 **Environment Variables (`.env`):**
 ```bash
 # Default: OpenRouter MiniMax (free)
-OPENAI_MODEL=minimax/minimax-m2.5:free
+OPENAI_MODEL=deepseek/deepseek-v4-flash:free
 
 # NVIDIA models (for /model selection)
 NVIDIA_MODEL_ID=deepseek-ai/deepseek-v4-pro

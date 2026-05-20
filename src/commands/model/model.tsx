@@ -329,7 +329,7 @@ function OpenRouterPicker({ onDone }: { onDone: (result?: string, options?: { di
   }, [])
 
   const selectOptions = allOptions.map(o => ({ value: o.value, label: `${o.label} - ${o.description}` }))
-  const initialValue = 'minimax/minimax-m2.5:free'
+  const initialValue = 'deepseek/deepseek-v4-flash:free'
   
   const handleSelect = (value: string) => {
     setAppState(prev => ({

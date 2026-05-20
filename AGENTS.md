@@ -1,2 +1,2 @@
 # Agent Configuration
-default_model: "minimax/minimax-m2.5:free"
+default_model: "deepseek/deepseek-v4-flash:free"

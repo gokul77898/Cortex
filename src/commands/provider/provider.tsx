@@ -1369,7 +1369,7 @@ export function ProviderWizard({
               goal: normalizeRecommendationGoal(null),
               apiKey: value.trim(),
               baseUrl: 'https://openrouter.ai/v1',
-              model: 'minimax/minimax-m2.5:free',
+              model: 'deepseek/deepseek-v4-flash:free',
               processEnv: {},
             })
             if (env) {

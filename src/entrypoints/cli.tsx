@@ -490,6 +490,63 @@ async function main(): Promise<void> {
     }
   }
 
+  // Auto-launch agentmemory memory server in background (unless disabled)
+  if (process.env.CORTEX_AGENTMEMORY_AUTO !== 'false') {
+    const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', BLUE = '\x1b[34m', RESET = '\x1b[0m'
+    try {
+      const { spawn } = await import('child_process');
+      const http = await import('http');
+      const fs = await import('fs/promises');
+
+      // Auto-configure ~/.agentmemory/.env with current provider credentials
+      const agentmemoryDir = process.env.HOME + '/.agentmemory';
+      const envPath = agentmemoryDir + '/.env';
+      const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '';
+      const model = process.env.OPENAI_MODEL || 'deepseek/deepseek-v4-flash:free';
+
+      let existingEnv = '';
+      try { existingEnv = await fs.readFile(envPath, 'utf-8'); } catch {}
+      if (openrouterKey && !existingEnv.includes('OPENROUTER_API_KEY=') && !existingEnv.includes('OPENAI_API_KEY=')) {
+        const providerLines = [
+          '# Auto-configured by Cortex CLI on ' + new Date().toISOString().slice(0, 10),
+          'OPENROUTER_API_KEY=' + openrouterKey,
+          'OPENROUTER_MODEL=' + model,
+          'EMBEDDING_PROVIDER=openrouter',
+          'AGENTMEMORY_AUTO_COMPRESS=true',
+          'CONSOLIDATION_ENABLED=true',
+          'GRAPH_EXTRACTION_ENABLED=true',
+          'AGENTMEMORY_REFLECT=true',
+          'AGENTMEMORY_LLM_TIMEOUT_MS=30000',
+          'AGENTMEMORY_TOOLS=all',
+          '',
+          existingEnv,
+        ].join('\n');
+        await fs.writeFile(envPath, providerLines.trimStart(), 'utf-8');
+        process.stderr.write(`${BLUE}⚙ Agent Memory: configured with '${model}'${RESET}\n`);
+      }
+
+      const isRunning = await new Promise(resolve => {
+        const req = http.get('http://localhost:3111/agentmemory/health', res => { res.resume(); resolve(true); });
+        req.on('error', () => resolve(false));
+        req.setTimeout(2000, () => { req.destroy(); resolve(false); });
+      });
+
+      if (!isRunning) {
+        const proc = spawn('npx', ['--yes', '@agentmemory/agentmemory'], {
+          detached: true,
+          stdio: 'ignore',
+          env: { ...process.env },
+        });
+        proc.unref();
+        process.stderr.write(`${GREEN}🧠 Agent Memory: starting... (viewer: http://localhost:3113)${RESET}\n`);
+      } else {
+        process.stderr.write(`${GREEN}🧠 Agent Memory: connected (viewer: http://localhost:3113)${RESET}\n`);
+      }
+    } catch (e) {
+      process.stderr.write(`${YELLOW}⚠ Could not auto-start agentmemory: ${e}${RESET}\n`);
+    }
+  }
+
   await cliMain();
   profileCheckpoint('cli_after_main_complete');
 }

@@ -28,7 +28,7 @@ spec:
             - name: OPENAI_BASE_URL
               value: "https://openrouter.ai/api/v1"
             - name: OPENAI_MODEL
-              value: "minimax/minimax-m2.5:free"
+              value: "deepseek/deepseek-v4-flash:free"
             - name: CORTEX_SIMPLE
               value: "1"
           resources:

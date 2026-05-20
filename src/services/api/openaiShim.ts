@@ -1071,10 +1071,10 @@ class OpenAIShimMessages {
     if (process.env.OPENROUTER_API_KEY && isOpenRouterModel) {
       const GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m', DIM = '\x1b[2m', BOLD = '\x1b[1m', RESET = '\x1b[0m'
       const orKey = process.env.OPENROUTER_API_KEY
-      // Default to minimax if just "openrouter" is specified
+      // Default to deepseek if just "openrouter" is specified
       let orModel = String(body.model)
       if (orModel === 'openrouter' || orModel === 'puter' || !orModel.includes(':')) {
-        orModel = 'minimax/minimax-m2.5:free'
+        orModel = 'deepseek/deepseek-v4-flash:free'
       }
       
       // Map aliases to actual models
@@ -1524,7 +1524,7 @@ export function createOpenAIShimClient(options: {
     process.env.OPENAI_API_KEY ??=
       process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? ''
   } else if (!!process.env.HF_TOKEN) {
-    process.env.OPENAI_BASE_URL ??= process.env.HF_BASE_URL ?? `https://api-inference.huggingface.co/models/${process.env.HF_MODEL_ID ?? 'minimax/minimax-m2.5:free'}/v1`
+    process.env.OPENAI_BASE_URL ??= process.env.HF_BASE_URL ?? `https://api-inference.huggingface.co/models/${process.env.HF_MODEL_ID ?? 'deepseek/deepseek-v4-flash:free'}/v1`
     process.env.OPENAI_API_KEY ??= process.env.HF_TOKEN
     if (process.env.HF_MODEL_ID && !process.env.OPENAI_MODEL) {
       process.env.OPENAI_MODEL = process.env.HF_MODEL_ID

@@ -153,6 +153,11 @@ const CURATED_SERVERS: McpListing[] = [
     envVars: [], scope: 'user',
   },
   {
+    id: 'agentmemory', label: 'Agent Memory', desc: 'Persistent memory for AI agents — auto-captures sessions, semantic search, knowledge graphs, MCP server. Free, no external DB. npx @agentmemory/agentmemory to start server.',
+    command: 'npx', args: ['-y', '@agentmemory/mcp'],
+    envVars: [{ key: 'AGENTMEMORY_URL', value: 'http://localhost:3111' }], scope: 'user',
+  },
+  {
     id: 'chrome-devtools', label: 'Chrome DevTools', desc: 'Debug live pages — inspect DOM, network, console, coverage, performance. Free, no key needed.',
     command: 'npx', args: ['chrome-devtools-mcp@latest'],
     envVars: [], scope: 'user',

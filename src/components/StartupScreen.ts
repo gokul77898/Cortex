@@ -206,7 +206,7 @@ function getMissionsFromEnv(): MissionConfig[] {
   const hfBase = process.env.HF_BASE_URL || content.match(/^\s*HF_BASE_URL=([^\s#]+)/m)?.[1]
   missions.push({
     name: `✦ Mission 09: Brain-Swarm (${hfModel?.split('/').pop() || 'MiniMax M2.5'})`,
-    model: hfModel || 'minimax/minimax-m2.5:free',
+    model: hfModel || 'deepseek/deepseek-v4-flash:free',
     baseUrl: hfBase || 'https://openrouter.ai/v1',
     apiKey: hfToken || '',
     provider: 'huggingface'
@@ -385,8 +385,8 @@ export async function printStartupScreen(): Promise<void> {
 
     const providerConfigs: Record<string, { baseUrl: string; model: string; env: Record<string, string> }> = {
       openrouter: {
-        baseUrl: 'https://openrouter.ai/api/v1', model: 'minimax/minimax-m2.5:free',
-        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://openrouter.ai/api/v1', OPENAI_MODEL: 'minimax/minimax-m2.5:free' },
+        baseUrl: 'https://openrouter.ai/api/v1', model: 'deepseek/deepseek-v4-flash:free',
+        env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://openrouter.ai/api/v1', OPENAI_MODEL: 'deepseek/deepseek-v4-flash:free' },
       },
       groq: {
         baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile',
