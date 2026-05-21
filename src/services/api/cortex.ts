@@ -1186,10 +1186,11 @@ async function* queryModel(
   // Smart MCP tool filtering — only keep MCP tools relevant to the user's query
   {
     const lastUserMsg = [...messages].reverse().find(
-      (m: any) => m.role === 'user' && Array.isArray(m.content),
+      (m: any) => (m.type === 'user' || m.role === 'user') && Array.isArray(m.message?.content || m.content),
     )
     if (lastUserMsg) {
-      const queryText = (lastUserMsg as any).content
+      const content = lastUserMsg.message?.content || lastUserMsg.content || []
+      const queryText = (Array.isArray(content) ? content : [])
         .filter((b: any) => b.type === 'text')
         .map((b: any) => b.text)
         .join(' ')
@@ -1198,10 +1199,12 @@ async function* queryModel(
         const categories = getRelevantCategories(queryText)
         if (categories.size > 0) {
           const relevantServers = getServerNamesForCategories(categories)
-          filteredTools = filteredTools.filter(t => {
-            if (!t.isMcp || !t.mcpInfo?.serverName) return true
-            return relevantServers.has(t.mcpInfo.serverName)
-          })
+          if (relevantServers.size > 0) {
+            filteredTools = filteredTools.filter(t => {
+              if (!t.isMcp || !t.mcpInfo?.serverName) return true
+              return relevantServers.has(t.mcpInfo.serverName)
+            })
+          }
         }
       }
     }
