@@ -1,3 +1,13 @@
+const DEFAULT_MCP_SERVERS: string[] = [
+  'filesystem',
+  'duckduckgo',
+  'agent-browser',
+  'github',
+  'fetch',
+  'memory',
+  'time',
+]
+
 const SERVER_CATEGORIES: Record<string, string[]> = {
   'agent-browser': ['browser'],
   puppeteer: ['browser'],
@@ -169,4 +179,8 @@ export function isToolRelevant(tool: { name?: string; mcpInfo?: { serverName: st
   return servers.has(serverName)
 }
 
-export { SERVER_CATEGORIES, CATEGORY_KEYWORDS }
+export { SERVER_CATEGORIES, CATEGORY_KEYWORDS, DEFAULT_MCP_SERVERS }
+
+export function isDefaultMcpServer(serverName: string): boolean {
+  return DEFAULT_MCP_SERVERS.includes(serverName)
+}

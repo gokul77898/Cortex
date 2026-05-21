@@ -69,7 +69,6 @@ import { useMoreRight } from '../moreright/useMoreRight.js';
 import { SpinnerWithVerb, BriefIdleStatus, type SpinnerMode } from '../components/Spinner.js';
 import { getSystemPrompt } from '../constants/prompts.js';
 import { buildEffectiveSystemPrompt } from '../utils/systemPrompt.js';
-import { detectAgentForQuery } from '../services/agentBridge.js';
 import { getSystemContext, getUserContext } from '../context.js';
 import { getMemoryFiles } from '../utils/cortexmd.js';
 import { startBackgroundHousekeeping } from '../utils/backgroundHousekeeping.js';
@@ -2703,8 +2702,6 @@ export function REPL({
         }, () => {
           haikuTitleAttemptedRef.current = false;
         });
-        // Auto-detect expert agent persona based on first user message
-        detectAgentForQuery(text);
       }
     }
 

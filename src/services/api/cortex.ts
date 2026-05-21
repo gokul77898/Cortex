@@ -196,7 +196,7 @@ import {
   TOOL_SEARCH_TOOL_NAME,
 } from '../../tools/ToolSearchTool/prompt.js'
 import { count } from '../../utils/array.js'
-import { getRelevantCategories, getServerNamesForCategories } from '../mcpFilter.js'
+import { getEnabledMcpServers } from '../cortexConfig.js'
 import { insertBlockAfterToolResults } from '../../utils/contentArray.js'
 import { validateBoundedIntEnvVar } from '../../utils/envValidation.js'
 import { safeParseJSON } from '../../utils/json.js'
@@ -1183,31 +1183,13 @@ async function* queryModel(
     )
   }
 
-  // Smart MCP tool filtering — only keep MCP tools relevant to the user's query
+  // MCP tool filtering — only include default 7 servers + user-enabled ones
   {
-    const lastUserMsg = [...messages].reverse().find(
-      (m: any) => (m.type === 'user' || m.role === 'user') && Array.isArray(m.message?.content || m.content),
-    )
-    if (lastUserMsg) {
-      const content = lastUserMsg.message?.content || lastUserMsg.content || []
-      const queryText = (Array.isArray(content) ? content : [])
-        .filter((b: any) => b.type === 'text')
-        .map((b: any) => b.text)
-        .join(' ')
-        .toLowerCase()
-      if (queryText) {
-        const categories = getRelevantCategories(queryText)
-        if (categories.size > 0) {
-          const relevantServers = getServerNamesForCategories(categories)
-          if (relevantServers.size > 0) {
-            filteredTools = filteredTools.filter(t => {
-              if (!t.isMcp || !t.mcpInfo?.serverName) return true
-              return relevantServers.has(t.mcpInfo.serverName)
-            })
-          }
-        }
-      }
-    }
+    const enabledServers = getEnabledMcpServers()
+    filteredTools = filteredTools.filter(t => {
+      if (!t.isMcp || !t.mcpInfo?.serverName) return true
+      return enabledServers.includes(t.mcpInfo.serverName)
+    })
   }
 
   // Add tool search beta header if enabled - required for defer_loading to be accepted
