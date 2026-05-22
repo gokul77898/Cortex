@@ -237,9 +237,18 @@ class AgentManager {
   load(): void {
     if (this.loaded) return
 
-    const agentsDir = join(process.env.HOME || '', '.cortex', 'agents')
-    if (!existsSync(agentsDir)) {
-      console.log('[AGENT] No agents directory found at', agentsDir)
+    const possiblePaths = [
+      join(process.cwd(), '.cortex', 'agents'),
+      join(process.env.HOME || '', '.cortex', 'agents'),
+    ]
+
+    let agentsDir = ''
+    for (const p of possiblePaths) {
+      if (existsSync(p)) { agentsDir = p; break }
+    }
+
+    if (!agentsDir) {
+      console.log('[AGENT] No agents directory found at', possiblePaths.join(' or '))
       this.loaded = true
       return
     }
