@@ -1317,24 +1317,6 @@ MIT — do whatever you want, just don't sue me.
 
 ---
 
-## 🙏 Credits
-
-Built on the shoulders of the open-source community with extensive rewrites:
-
-- 50+ custom AI commands (original)
-- Full HuggingFace provider integration (GLM-5 · Llama · DeepSeek · Qwen)
-- Electron floating UI with screen watcher
-- Web dashboard + VS Code extension
-- Smart multi-provider router with auto-failover
-- 153 specialist agents
-- 38 MCP server registry
-- Full telemetry & vendor-auth strip-out
-- Offline Ollama fallback chain
-- **Mission 09: Brain-Swarm** default boot theme
-
-Powered by **HuggingFace Router** + **Together AI** + **Novita** + **zai-org/GLM-5** + **Ollama**.
-
----
 
 <p align="center">
   <strong>⭐ Star the repo if CORTEX saves you even one hour</strong><br/>
