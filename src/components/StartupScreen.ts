@@ -194,7 +194,7 @@ function getMissionsFromEnv(): MissionConfig[] {
   const nvBase = process.env.NVIDIA_BASE_URL || content.match(/^\s*NVIDIA_BASE_URL=([^\s#]+)/m)?.[1]
   missions.push({
     name: `✦ Mission 06: Neural-Core (NVIDIA ${nvModel?.split('/').pop() || 'deepseek-v4-pro'})`,
-    model: nvModel || 'deepseek-ai/deepseek-v4-pro',
+    model: nvModel || 'meta/esm2-650m',
     baseUrl: nvBase || 'https://integrate.api.nvidia.com/v1',
     apiKey: nvKey || '',
     provider: 'nvidia'
@@ -393,8 +393,8 @@ export async function printStartupScreen(): Promise<void> {
         env: { CORTEX_USE_OPENAI: '1', OPENAI_BASE_URL: 'https://api.groq.com/openai/v1', OPENAI_MODEL: 'llama-3.3-70b-versatile' },
       },
       nvidia: {
-        baseUrl: 'https://integrate.api.nvidia.com/v1', model: 'deepseek-ai/deepseek-v4-pro',
-        env: { CORTEX_USE_OPENAI: '1', CORTEX_NVIDIA_ONLY: '1', OPENAI_BASE_URL: 'https://integrate.api.nvidia.com/v1', OPENAI_MODEL: 'deepseek-ai/deepseek-v4-pro' },
+        baseUrl: 'https://integrate.api.nvidia.com/v1', model: 'meta/esm2-650m',
+        env: { CORTEX_USE_OPENAI: '1', CORTEX_NVIDIA_ONLY: '1', OPENAI_BASE_URL: 'https://integrate.api.nvidia.com/v1', OPENAI_MODEL: 'meta/esm2-650m' },
       },
       huggingface: {
         baseUrl: 'https://router.huggingface.co/v1', model: 'zai-org/GLM-5:together',

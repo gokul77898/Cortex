@@ -337,130 +337,50 @@ function getCodexModelOptions(): ModelOption[] {
 // =============================================================================
 function getNvidiaNimModelOptions(): ModelOption[] {
   return [
-    // ── Top-Tier Reasoning & Coding ──────────────────────────────────────
     {
-      value: 'deepseek-ai/deepseek-v4-pro',
-      label: '⭐ DeepSeek V4 Pro',
-      description: 'MoE flagship · Deep reasoning & coding',
+      value: 'meta/esm2-650m',
+      label: 'ESM2 650M',
+      description: 'Protein embeddings from amino acid sequences',
     },
     {
-      value: 'deepseek-ai/deepseek-v4-flash',
-      label: '⚡ DeepSeek V4 Flash',
-      description: 'Fast coding model · Lower rate limits',
+      value: 'stepfun-ai/step-3.7-flash',
+      label: 'Step 3.7 Flash',
+      description: 'Sparse MoE multimodal reasoning · Agentic & coding',
     },
-    {
-      value: 'deepseek-ai/deepseek-v3_2',
-      label: 'DeepSeek V3.2',
-      description: 'Long context reasoning',
-    },
-    // ── Mistral Family ───────────────────────────────────────────────────
-    {
-      value: 'mistralai/mistral-large-3-675b-instruct-2512',
-      label: '🔥 Mistral Large 3 675B',
-      description: '675B params · Most powerful Mistral',
-    },
-    {
-      value: 'mistralai/mistral-medium-3.5-128b',
-      label: 'Mistral Medium 3.5 128B',
-      description: 'Great for coding · Balanced speed/quality',
-    },
-    {
-      value: 'mistralai/devstral-2-123b-instruct-2512',
-      label: '🛠️ Devstral 2 123B',
-      description: 'Purpose-built for coding & agentic tasks',
-    },
-    {
-      value: 'mistralai/mistral-small-4-119b-2603',
-      label: 'Mistral Small 4 119B',
-      description: 'Code generation focused',
-    },
-    {
-      value: 'mistralai/ministral-14b-instruct-2512',
-      label: 'Ministral 14B',
-      description: 'Lightweight · Fast responses',
-    },
-    // ── Moonshot / Kimi ──────────────────────────────────────────────────
-    {
-      value: 'moonshotai/kimi-k2.6',
-      label: '🌙 Kimi K2.6',
-      description: 'Multimodal · Very strong all-rounder',
-    },
-    {
-      value: 'moonshotai/kimi-k2-thinking',
-      label: 'Kimi K2 Thinking',
-      description: 'Deep reasoning with chain-of-thought',
-    },
-    // ── Qwen Family ─────────────────────────────────────────────────────
-    {
-      value: 'qwen/qwen3.5-397b-a17b',
-      label: '🧠 Qwen 3.5 397B',
-      description: 'Massive MoE · Powerful reasoning',
-    },
-    {
-      value: 'qwen/qwen3.5-122b-a10b',
-      label: 'Qwen 3.5 122B',
-      description: 'Tool calling specialist',
-    },
-    {
-      value: 'qwen/qwen3-coder-480b-a35b-instruct',
-      label: '💻 Qwen3 Coder 480B',
-      description: 'Massive code model · Your executor model',
-    },
-    // ── GLM / Z.ai ──────────────────────────────────────────────────────
     {
       value: 'z-ai/glm-5.1',
       label: 'GLM 5.1',
       description: 'Agentic AI · Strong general purpose',
     },
     {
-      value: 'z-ai/glm-4.7',
-      label: 'GLM 4.7',
-      description: 'Tool calling focused',
+      value: 'nvidia/nemotron-3-content-safety',
+      label: 'Nemotron 3 Content Safety',
+      description: 'Multilingual safety & toxicity detection',
     },
-    // ── MiniMax ──────────────────────────────────────────────────────────
     {
       value: 'minimaxai/minimax-m2.7',
       label: 'MiniMax M2.7',
-      description: 'Coding focused · Fast',
+      description: '230B params · Coding, reasoning & office tasks',
     },
-    {
-      value: 'minimaxai/minimax-m2.5',
-      label: 'MiniMax M2.5',
-      description: 'Reasoning focused',
-    },
-    // ── NVIDIA Nemotron ──────────────────────────────────────────────────
-    {
-      value: 'nvidia/nemotron-3-super-120b-a12b',
-      label: '🟢 Nemotron 3 Super 120B',
-      description: 'NVIDIA flagship · MoE architecture',
-    },
-    {
-      value: 'nvidia/nemotron-3-nano-30b-a3b',
-      label: 'Nemotron 3 Nano 30B',
-      description: 'NVIDIA lightweight · Fast inference',
-    },
-    {
-      value: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
-      label: 'Nemotron 3 Nano Omni Reasoning',
-      description: 'Vision + reasoning multimodal',
-    },
-    // ── Google (on NVIDIA) ───────────────────────────────────────────────
-    {
-      value: 'google/gemma-4-31b-it',
-      label: 'Gemma 4 31B',
-      description: 'Google open model · Coding capable',
-    },
-    // ── OpenAI (on NVIDIA) ───────────────────────────────────────────────
-    {
-      value: 'openai/gpt-oss-20b',
-      label: 'GPT-OSS 20B',
-      description: 'OpenAI open model on NVIDIA',
-    },
-    // ── Step Function ────────────────────────────────────────────────────
     {
       value: 'stepfun-ai/step-3.5-flash',
       label: 'Step 3.5 Flash',
-      description: 'Agentic · Fast',
+      description: '200B MoE reasoning engine · Agentic & fast',
+    },
+    {
+      value: 'mistralai/mistral-large-3-675b-instruct-2512',
+      label: 'Mistral Large 3 675B',
+      description: '675B MoE VLM · General purpose & agentic',
+    },
+    {
+      value: 'qwen/qwen3-coder-480b-a35b-instruct',
+      label: 'Qwen3 Coder 480B',
+      description: 'Agentic coding & browser use · 256K context',
+    },
+    {
+      value: 'mistralai/mistral-nemotron',
+      label: 'Mistral Nemotron',
+      description: 'Agentic workflows · Coding & function calling',
     },
   ]
 }

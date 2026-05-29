@@ -10,7 +10,7 @@ import { execSync } from 'child_process'
 const SESSION = 'cortex-daemon'
 
 function runAgentBrowser(args) {
-  const cmd = `AGENT_BROWSER_SESSION=${SESSION} agent-browser ${args.join(' ')} --json 2>/dev/null`
+  const cmd = `AGENT_BROWSER_SESSION=${SESSION} agent-browser --headed ${args.join(' ')} --json 2>/dev/null`
   try {
     const out = execSync(cmd, { encoding: 'utf-8', timeout: 30000 })
     return JSON.parse(out)
@@ -25,7 +25,7 @@ function runAgentBrowser(args) {
 const TOOLS = [
   {
     name: 'browser_open',
-    description: 'Launch browser and navigate to URL',
+    description: 'Open a website in a real headed browser window (you will SEE the browser open). Use this INSTEAD of duckduckgo or fetch when the user wants to visit a specific website (e.g. "go to amazon.com", "open react docs", "search for X on Y"). Also required before using any other browser_* tools.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -35,7 +35,7 @@ const TOOLS = [
   },
   {
     name: 'browser_snapshot',
-    description: 'Get accessibility tree with refs (@e1, @e2...) for AI interaction',
+    description: 'Get the page accessibility tree with element refs (@e1, @e2...) for AI interaction. Use this after browser_open to read the page content and find elements to interact with. Includes all interactive elements (links, buttons, inputs) and their refs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -83,7 +83,7 @@ const TOOLS = [
   },
   {
     name: 'browser_screenshot',
-    description: 'Take a screenshot of the current page',
+    description: 'Take a screenshot/photo of the current page. Use this when the user wants to "see" or "look at" a website visually. Shows rendered content including images, layouts, and CSS that fetch/duckduckgo cannot provide.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -219,7 +219,17 @@ const TOOLS = [
 
 const server = new Server(
   { name: 'agent-browser-mcp', version: '1.0.0' },
-  { capabilities: { tools: {} } }
+  {
+    capabilities: { tools: {} },
+    instructions: `You have a REAL BROWSER with a VISIBLE WINDOW. The user can SEE the browser as it navigates.
+
+IMPORTANT USAGE RULES:
+- When the user says "go to <site>" (e.g. "go to amazon.com", "open react docs"), use browser_open — do NOT use duckduckgo or fetch.
+- When the user wants to search ON a specific site (e.g. "search amazon for headphones"), first browser_open the site, then use browser_fill and browser_click to interact with the search form.
+- When the user wants to SEE a page visually or take a screenshot, use browser_open + browser_screenshot.
+- Use browser_snapshot after browser_open to read the page content and find interactive elements.
+- Use browser_find to locate elements by their visible text (e.g., search box, submit button).`,
+  }
 )
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }))
@@ -268,15 +278,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       case 'browser_get_text': {
         const r = runAgentBrowser(['get', 'text', args.selector])
-        return { content: [{ type: 'text', text: r?.data || JSON.stringify(r) }] }
+        const txt = r?.data !== undefined ? String(r.data) : (r?.text || JSON.stringify(r))
+        return { content: [{ type: 'text', text: txt }] }
       }
       case 'browser_get_url': {
         const r = runAgentBrowser(['get', 'url'])
-        return { content: [{ type: 'text', text: r?.data || JSON.stringify(r) }] }
+        const txt = r?.data !== undefined ? String(r.data) : (r?.url || JSON.stringify(r))
+        return { content: [{ type: 'text', text: txt }] }
       }
       case 'browser_get_title': {
         const r = runAgentBrowser(['get', 'title'])
-        return { content: [{ type: 'text', text: r?.data || JSON.stringify(r) }] }
+        const txt = r?.data !== undefined ? String(r.data) : (r?.title || JSON.stringify(r))
+        return { content: [{ type: 'text', text: txt }] }
       }
       case 'browser_eval': {
         const r = runAgentBrowser(['eval', args.code])
