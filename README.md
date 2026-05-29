@@ -12,7 +12,7 @@
 
 <p align="center">
   <strong>An open-source, agentic AI coding assistant for your terminal, desktop, and editor.</strong><br/>
-  Connect to any LLM provider — OpenRouter, Groq, HuggingFace, NVIDIA, OpenAI, Anthropic, Gemini, and more.
+  Connect to any LLM provider — OpenRouter, Groq, HuggingFace, NVIDIA, OpenAI, Anthropic, Gemini.
 </p>
 
 <p align="center">
