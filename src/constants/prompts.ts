@@ -566,6 +566,9 @@ ${CYBER_RISK_INSTRUCTION}`,
       if (!agent || !agent.systemPrompt) return null
       return `# Your Persona: ${agent.name}\n\n${agent.systemPrompt}`
     }),
+    ...(process.env.HUNTER_MODE === '1' && process.env.HUNTER_PROMPT
+      ? [systemPromptSection('hunter_mode', () => process.env.HUNTER_PROMPT!)]
+      : []),
   ]
 
   const resolvedDynamicSections =

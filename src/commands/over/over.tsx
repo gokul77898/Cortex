@@ -11,14 +11,18 @@ export const call: LocalJSXCommandCall = async (
   const { setAppState } = context
   const injection = getSystemPromptInjection()
 
+  const isHunterMode = process.env.HUNTER_MODE === '1'
   const isLegalMode = injection?.includes('LEGAL ASSISTANT MODE')
-  const isHunterMode = injection?.includes('SECURITY ASSESSMENT MODE')
 
   // Kill legal server if running
   stopServer()
 
   // Remove system prompt injection
   setSystemPromptInjection(null)
+
+  // Clear hunter mode env vars
+  delete process.env.HUNTER_MODE
+  delete process.env.HUNTER_PROMPT
 
   // Reset model to default
   setAppState(prev => ({
@@ -30,7 +34,7 @@ export const call: LocalJSXCommandCall = async (
   if (isLegalMode) {
     onDone('Legal mode deactivated. Model reset to default.', { display: 'system' })
   } else if (isHunterMode) {
-    onDone('Security assessment mode deactivated. Model reset to default.', { display: 'system' })
+    onDone('Hunter mode deactivated. Model reset to default.', { display: 'system' })
   } else {
     onDone('System prompt injection cleared. Model reset to default.', { display: 'system' })
   }

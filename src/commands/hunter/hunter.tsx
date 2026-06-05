@@ -1,51 +1,50 @@
 import * as React from 'react'
 import { Box, Text } from '../../ink.js'
-import { setSystemPromptInjection } from '../../context.js'
 import type { LocalJSXCommandCall, LocalJSXCommandContext } from '../../types/command.js'
+import { agentManager } from '../../services/daemon/agentManager.js'
 
-const HUNTER_MODEL = 'deepseek/deepseek-v4-flash:free'
+const HUNTER_MODEL = 'qwen/qwen3-coder-480b-a35b-instruct'
 
-const HUNTER_PROMPT = `# SECURITY ASSESSMENT MODE
+function buildAgentReferenceList(): string {
+  if (!agentManager.isLoaded) agentManager.load()
+  const agents = agentManager.getAllAgents()
+  return agents.map(a =>
+    `  ${a.emoji || '•'} ${a.name} — ${a.description}`
+  ).join('\n')
+}
 
-You are a security researcher with MCP tools for testing websites. The user tells you what to check — you do NOT follow any predefined steps.
+const BASE_HUNTER_PROMPT = `# HUNTER MODE — DYNAMIC AGENT SYSTEM
 
-## RULES
-1. When user gives a URL, ASK: "What do you want me to check?"
-2. Wait for their answer before doing anything.
-3. They might say: "check WAF", "scan ports", "check headers", "take screenshot", "full recon", "test for SQLi", "check robots.txt", "detect tech stack", etc.
-4. Run ONLY what they ask — use the right MCP tool for the job.
-5. Each tool call needs permission: say what tool + why, ask "May I proceed?", wait for yes, then call it.
-6. Show the output after each call.
-7. When they give a NEW URL, ask again what they want.
+You are in **Hunter Mode** — a dynamic agent system with automatic expert selection.
 
-## Permission Flow (MANDATORY)
-Before every tool call:
-1. Say which tool and what it will do
-2. Ask "May I proceed?"
-3. Wait for user to say yes
-4. Call the tool
-5. Show output
+## How It Works
+1. The user tells you what they want to do
+2. You automatically identify which expert agent profile best matches the task
+3. You adopt that expert's persona, knowledge, and approach
+4. You solve the task using the available MCP tools
 
-## Available MCP Tools
-- Playwright MCP → browser_navigate(url), browser_screenshot()
-- WebFetch → fetch any URL, inspect response headers
-- pentest-mcp → nmapScan(target), gobuster(target), nikto(target), nucleiScan(target)
-- nuclei-mcp → do-nuclei(target, templates?)
-- waftester → WAF detection and bypass tests
-- firewall-tools → wafw00f_detect(url), hping3_probe(host, port), firewalk_scan(target), nessus_info()
-- kali-mcp → run_kali_command(tool, args), kali_network_scan(target)
-- Chrome DevTools MCP → page inspection, JS console
+Available MCP tools:
+- agent-browser → browser automation (open, click, fill, screenshot, snapshot)
+- filesystem → file read/write/edit operations
+- duckduckgo → web search
+- github → git/GitHub operations
+- fetch → HTTP requests
 
-## Output
-Format result as:
-=== [TOOL NAME] ===
-[output]
-=== RESULT ===
-[what this means]`
+## Expert Agent Profiles (162 available)
+{AGENT_LIST}
+
+## Rules
+- Auto-select the best agent for each task from the list above
+- Adopt that agent's expertise and approach
+- Use MCP tools as needed
+- Always explain what agent you're acting as and why you chose it
+- Switch agents dynamically as the task changes`
 
 export const call: LocalJSXCommandCall = async (onDone, context, args) => {
   try {
-    setSystemPromptInjection(HUNTER_PROMPT)
+    const agentList = buildAgentReferenceList()
+    process.env.HUNTER_MODE = '1'
+    process.env.HUNTER_PROMPT = BASE_HUNTER_PROMPT.replace('{AGENT_LIST}', agentList)
 
     context.setAppState(prev => ({
       ...prev,
@@ -64,19 +63,20 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
 [36m│[90m ╚══════╝╚══════╝ ╚═════╝   ╚═╝   [36m │
 [36m└─────────────────────────────────────────────┘[0m
 
-[32m  ● Security assessment mode active[0m
-[32m  ● Scanner ready — you tell me what to test[0m
-[32m  ● Toolchain: Playwright + kali-mcp + pentest-mcp + nuclei + waftester + firewall-tools[0m
+[32m  ● Hunter mode active[0m
+[32m  ● ${agentManager.getAllAgents().length} expert agents loaded[0m
+[32m  ● Auto-selects best agent for each task[0m
+[32m  ● Model: ${HUNTER_MODEL}[0m
 
 [90m───────────────────────────────────────────────[0m
 
-[33mTell me what to scan. Examples:[0m
-[90m  "test example.com"[0m
-[90m  "scan https://target.com"[0m
-[90m  "hey can you check my site xyz.com"[0m
-[90m  "run on http://testapp.local"[0m
+[33mTell me what you want to do. Examples:[0m
+[90m  "find XSS on my site"[0m
+[90m  "build a REST API in Go"[0m
+[90m  "debug this Python error"[0m
+[90m  "analyze this crypto token"[0m
 
-[90mType [1m/over[22m[90m to exit assessment mode.[0m`,
+[90mType [1m/over[22m[90m to exit hunter mode.[0m`,
       { display: 'system' },
     )
   } catch (e) {
