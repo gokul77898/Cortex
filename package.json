@@ -1,6 +1,6 @@
 {
   "name": "@gokulvenkatareddy/cortex",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "description": "CORTEX — Autonomous AGI Terminal. Any LLM, one command. NVIDIA, OpenAI, Gemini, Groq, Ollama and more.",
   "type": "module",
   "bin": {
