@@ -558,6 +558,25 @@ async function executeUserInput(params: ExecuteUserInputParams): Promise<void> {
             ? primaryCmd.value
             : undefined
         const shouldCallBeforeQuery = primaryMode === 'prompt'
+
+        // Hunter mode: auto-detect best agent for each query
+        if (process.env.HUNTER_MODE === '1' && primaryInput) {
+          const agentModule = await import('../services/daemon/agentManager.js')
+          const config = await import('../services/cortexConfig.js')
+          agentModule.agentManager.load()
+          const detected = agentModule.agentManager.getRelevantAgent(primaryInput)
+          if (detected) {
+            config.setSelectedAgentId(detected.id)
+          }
+          // Smart MCP: auto-enable servers matching the task
+          const mcpFilter = await import('../services/mcpFilter.js')
+          const categories = mcpFilter.getRelevantCategories(primaryInput)
+          const servers = mcpFilter.getServerNamesForCategories(categories)
+          for (const server of servers) {
+            config.enableMcpServer(server)
+          }
+        }
+
         await onQuery(
           newMessages,
           abortController,

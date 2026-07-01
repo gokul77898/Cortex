@@ -3,7 +3,7 @@ import { Box, Text } from '../../ink.js'
 import type { LocalJSXCommandCall, LocalJSXCommandContext } from '../../types/command.js'
 import { agentManager } from '../../services/daemon/agentManager.js'
 
-const HUNTER_MODEL = 'qwen/qwen3-coder-480b-a35b-instruct'
+const HUNTER_MODEL = 'RefinedNeuro/vibethinker-3b-hermes:Q4_K_M'
 
 function buildAgentReferenceList(): string {
   if (!agentManager.isLoaded) agentManager.load()
@@ -41,6 +41,24 @@ Available MCP tools:
 - Switch agents dynamically as the task changes`
 
 export const call: LocalJSXCommandCall = async (onDone, context, args) => {
+  const subcommand = (args || '').trim().split(/\s+/)[0]?.toLowerCase()
+
+  if (subcommand === 'create-agent') {
+    const mod = await import('./create-agent.js')
+    return mod.call(onDone, context, (args || '').trim().slice('create-agent'.length).trim())
+  }
+
+  if (subcommand === 'compare') {
+    const mod = await import('./compare.js')
+    return mod.call(onDone, context, (args || '').trim().slice('compare'.length).trim())
+  }
+
+  if (subcommand === 'sensor') {
+    const mod = await import('./sensor.js')
+    return mod.call(onDone, context, (args || '').trim().slice('sensor'.length).trim())
+  }
+
+  // Default: activate hunter mode
   try {
     const agentList = buildAgentReferenceList()
     process.env.HUNTER_MODE = '1'
@@ -76,7 +94,12 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
 [90m  "debug this Python error"[0m
 [90m  "analyze this crypto token"[0m
 
-[90mType [1m/over[22m[90m to exit hunter mode.[0m`,
+[90mType [1m/over[22m[90m to exit hunter mode.[0m
+
+[90mSubcommands:[0m
+[90m  /hunter create-agent  — Create a custom agent profile[0m
+[90m  /hunter compare       — Compare agent responses[0m
+[90m  /hunter sensor        — Error-watching daemon mode[0m`,
       { display: 'system' },
     )
   } catch (e) {
