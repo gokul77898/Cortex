@@ -389,7 +389,10 @@ export function applyActiveProviderProfileFromConfig(
   if (!options?.force && hasProviderSelectionFlags(processEnv)) {
     // Respect explicit startup provider intent. Re-apply only when the
     // current process env is already profile-managed and aligned.
-    if (!isProcessEnvAlignedWithProfile(processEnv, activeProfile)) {
+    // On a fresh start (profile never applied in this process), always
+    // apply the saved active profile so user's config takes effect.
+    if (processEnv[PROFILE_ENV_APPLIED_FLAG] === '1' &&
+        !isProcessEnvAlignedWithProfile(processEnv, activeProfile)) {
       return undefined
     }
   }

@@ -1,6 +1,7 @@
+import { execSync } from 'child_process'
 import { isRemoteManagedSettingsEligible } from '../services/remoteManagedSettings/syncCache.js'
 import { clearCACertsCache } from './caCerts.js'
-import { getGlobalConfig } from './config.js'
+import { getGlobalConfig, saveGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
 import {
   isProviderManagedEnvVar,
@@ -8,7 +9,12 @@ import {
 } from './managedEnvConstants.js'
 import { clearMTLSCache } from './mtls.js'
 import { clearProxyCache, configureGlobalAgents } from './proxy.js'
-import { applyActiveProviderProfileFromConfig } from './providerProfiles.js'
+import {
+  applyActiveProviderProfileFromConfig,
+  getActiveProviderProfile,
+  getProviderProfiles,
+  applyProviderProfileToProcessEnv,
+} from './providerProfiles.js'
 import { isSettingSourceEnabled } from './settings/constants.js'
 import {
   getSettings_DEPRECATED,
@@ -180,6 +186,36 @@ export function applySafeConfigEnvironmentVariables(): void {
   // Apply active provider profile only when startup did not explicitly
   // select a provider via flags/env. Explicit startup intent should win.
   applyActiveProviderProfileFromConfig()
+
+  // Auto-detect Ollama: if no explicit provider intent is set and Ollama is
+  // running locally, default to the Ollama profile.
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.CORTEX_USE_GEMINI &&
+      !process.env.CORTEX_USE_GITHUB && !process.env.CORTEX_USE_BEDROCK &&
+      !process.env.CORTEX_USE_VERTEX && !process.env.CORTEX_USE_FOUNDRY) {
+    const currentProfile = getActiveProviderProfile()
+    const isOllamaProfile = currentProfile?.baseUrl?.includes('localhost:11434')
+    const isEnvOllama = process.env.OPENAI_BASE_URL?.includes('localhost:11434')
+    if (!isOllamaProfile && !isEnvOllama) {
+      try {
+        execSync('pgrep -x ollama', { stdio: 'ignore', timeout: 2000 })
+        // Ollama process is running — find or activate the Ollama profile
+        const config = getGlobalConfig()
+        const profiles = getProviderProfiles(config)
+        const existing = profiles.find(p =>
+          p.baseUrl?.includes('localhost:11434') &&
+          p.model?.includes('vibethinker')
+        ) || profiles.find(p =>
+          p.baseUrl?.includes('localhost:11434')
+        )
+        if (existing) {
+          applyProviderProfileToProcessEnv(existing)
+          saveGlobalConfig(c => ({ ...c, activeProviderProfileId: existing.id }))
+        }
+      } catch {
+        // Ollama not running — leave current config as-is
+      }
+    }
+  }
 }
 
 /**
