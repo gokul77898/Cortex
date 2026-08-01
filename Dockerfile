@@ -7,7 +7,7 @@
 #   docker run -it --rm -e OPENAI_API_KEY=sk-... cortex "hello"
 # =============================================================================
 
-FROM node:20-slim AS builder
+FROM node:25-slim AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN npm run build
 # =============================================================================
 # Runtime image
 # =============================================================================
-FROM node:20-slim
+FROM node:25-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
